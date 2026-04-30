@@ -1,0 +1,70 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.so
+
+# Claude Code
+.claude/
+
+# Git backup
+.git.backup/
+.git.backup2/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.log.*
+
+# Workspace (temporary files)
+workspace/
+
+# Test data (if contains sensitive info)
+# test_data/
+
+# Local config
+opc.toml
+*.local.toml
+
+# Internal documentation (keep local only)
+docs/plan/
+docs/claude/
+docs/*_summary.md
+docs/*_issues.md
+docs/*_comparison.md
+docs/*_roadmap.md
+docs/*_matrix.md
+docs/IMPORTANT_*.md
+docs/harness_*.md
+docs/knowledge-*.md
+docs/github_upload_sop.md
+
+# Internal files
+claude.md
+plan.md
+analyze_*.py
+demo_*.py
+run_wn2384t_*.py
+test_*.py
+QUICK_UPLOAD.md
+UPLOAD_CHECKLIST.md
+pre_upload_check.sh
+upload_to_github.sh

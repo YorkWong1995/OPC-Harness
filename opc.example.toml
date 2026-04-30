@@ -1,0 +1,10 @@
+[workflow]
+roles = ["architect"]
+ceo_review = false
+auto_confirm = false
+
+[roles]
+architect = true
+ceo = false
+ops = false
+growth = false
