@@ -34,6 +34,9 @@ cd OPC-Harness
 # 安装依赖
 pip install -e .
 
+# 如需中英混合/中文场景的 BGE 向量嵌入支持
+pip install -e .[bge]
+
 # 配置环境变量
 cp .env.example .env
 # 编辑 .env 文件，填入你的 ANTHROPIC_API_KEY

@@ -17,20 +17,20 @@
 
 - [x] 更新 README.md 的目录结构描述，使其与当前实际结构一致 <!-- files: README.md -->
 - [x] 在 README.md 中补充 opc index 和 opc query 的 CLI 使用示例 <!-- files: README.md -->
-- [ ] 在 README.md 中更新依赖安装说明：pip install -e . 和 pip install -e .[bge] <!-- files: README.md -->
-- [ ] 删除 docs/improvement_roadmap.md（内容已过时，核心改进已在代码中实现） <!-- files: docs/improvement_roadmap.md -->
-- [ ] 删除 docs/priority_matrix.md（与当前项目状态不符） <!-- files: docs/priority_matrix.md -->
+- [x] 在 README.md 中更新依赖安装说明：pip install -e . 和 pip install -e .[bge] <!-- files: README.md -->
+- [x] 删除 docs/improvement_roadmap.md（内容已过时，核心改进已在代码中实现） <!-- files: docs/improvement_roadmap.md -->
+- [x] 删除 docs/priority_matrix.md（与当前项目状态不符） <!-- files: docs/priority_matrix.md -->
 
 ## 3. CLI 端到端冒烟测试
 
-- [ ] 编写 tests/test_cli_smoke.py：测试 opc index --name test-idx --dirs test_data 能成功构建索引 <!-- files: src/opc/cli.py -->
-- [ ] 在 tests/test_cli_smoke.py 中添加：测试 opc query "测试问题" --name test-idx --no-llm 能返回结果 <!-- files: src/opc/cli.py -->
-- [ ] 在 tests/test_cli_smoke.py 中添加：测试 opc run 的参数解析（不实际调用 API，mock anthropic client） <!-- files: src/opc/cli.py, src/opc/workflow.py -->
+- [x] 编写 tests/test_cli_smoke.py：测试 opc index --name test-idx --dirs test_data 能成功构建索引 <!-- files: src/opc/cli.py -->
+- [x] 在 tests/test_cli_smoke.py 中添加：测试 opc query "测试问题" --name test-idx --no-llm 能返回结果 <!-- files: src/opc/cli.py -->
+- [x] 在 tests/test_cli_smoke.py 中添加：测试 opc run 的参数解析（不实际调用 API，mock anthropic client） <!-- files: src/opc/cli.py, src/opc/workflow.py -->
 
 ## 4. 敏感与生成文件治理
 
-- [ ] 删除 .env 文件（.env.example 已存在，保留即可） <!-- files: .env -->
-- [ ] 清理所有 __pycache__ 目录 <!-- context: find . -type d -name __pycache__ -exec rm -rf {} + -->
-- [ ] 清理 workspace/*/index/ 下的生成索引文件 <!-- context: rm -rf workspace/*/index/ -->
+- [x] 删除 .env 文件（.env.example 已存在，保留即可） <!-- files: .env -->
+- [x] 清理所有 __pycache__ 目录 <!-- context: find . -type d -name __pycache__ -exec rm -rf {} + -->
+- [x] 清理 workspace/*/index/ 下的生成索引文件 <!-- context: rm -rf workspace/*/index/ -->
 - [ ] 在 .gitignore 中添加 workspace/*/index/ 和 workspace/*/artifacts/ 和 *.log <!-- files: .gitignore -->
 - [ ] 运行 git status 确认无敏感文件和生成产物被跟踪 <!-- context: 验收任务 -->
