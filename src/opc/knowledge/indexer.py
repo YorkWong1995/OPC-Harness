@@ -11,7 +11,7 @@ from .models import Chunk, IndexMeta, EXTENSION_MAP, SKIP_DIRS
 from .chunker import chunk_file
 from .bm25_index import BM25Index
 from .vector_store import VectorStore
-from .embedder import EMBEDDING_MODEL_NAME
+from .embedder import get_model_info
 
 
 class Indexer:
@@ -80,12 +80,13 @@ class Indexer:
             print(f"  生成 {len(all_chunks)} 个分块")
 
         if not all_chunks:
+            model_name, _ = get_model_info()
             meta = IndexMeta(
                 index_name=self.index_name,
                 source_dirs=[str(d) for d in source_dirs],
                 total_files=len(files),
                 total_chunks=0,
-                embedding_model=EMBEDDING_MODEL_NAME,
+                embedding_model=model_name,
                 created_at=datetime.now(timezone.utc).isoformat(),
                 updated_at=datetime.now(timezone.utc).isoformat(),
             )
@@ -108,12 +109,13 @@ class Indexer:
 
         # 5. 保存元数据
         elapsed = time.time() - start_time
+        model_name, _ = get_model_info()
         meta = IndexMeta(
             index_name=self.index_name,
             source_dirs=[str(d) for d in source_dirs],
             total_files=len(files),
             total_chunks=len(all_chunks),
-            embedding_model=EMBEDDING_MODEL_NAME,
+            embedding_model=model_name,
             created_at=datetime.now(timezone.utc).isoformat(),
             updated_at=datetime.now(timezone.utc).isoformat(),
         )

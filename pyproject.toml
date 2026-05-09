@@ -17,6 +17,13 @@ dependencies = [
     "tomli>=2; python_version < '3.11'",
 ]
 
+[project.optional-dependencies]
+# 中英混合 / 中文场景推荐: pip install -e .[bge]
+bge = [
+    "sentence-transformers>=2.7",
+    "torch>=2.0",
+]
+
 [project.scripts]
 opc = "opc.cli:main"
 

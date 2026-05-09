@@ -111,7 +111,14 @@ def _get_workspace_root() -> Path:
 
 
 def _get_index_root(name: str) -> Path:
-    """获取索引根目录"""
+    """获取索引根目录
+
+    支持通过环境变量 OPC_INDEX_ROOT 覆盖默认位置，
+    C 盘空间受限场景可设置为 D:/opc_index
+    """
+    override = os.environ.get("OPC_INDEX_ROOT")
+    if override:
+        return Path(override).resolve() / name / "index"
     return _get_workspace_root() / name / "index"
 
 

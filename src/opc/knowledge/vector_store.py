@@ -7,7 +7,7 @@ from pathlib import Path
 import chromadb
 
 from .models import Chunk, RetrievalResult
-from .embedder import get_embedding_function, EMBEDDING_MODEL_NAME
+from .embedder import get_embedding_function
 
 
 COLLECTION_PREFIX = "opc_"
