@@ -35,7 +35,8 @@ Thumbs.db
 *.log.*
 
 # Workspace (temporary files)
-workspace/
+workspace/*/index/
+workspace/*/artifacts/
 
 # Test data (if contains sensitive info)
 # test_data/

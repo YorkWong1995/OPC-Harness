@@ -32,5 +32,5 @@
 - [x] 删除 .env 文件（.env.example 已存在，保留即可） <!-- files: .env -->
 - [x] 清理所有 __pycache__ 目录 <!-- context: find . -type d -name __pycache__ -exec rm -rf {} + -->
 - [x] 清理 workspace/*/index/ 下的生成索引文件 <!-- context: rm -rf workspace/*/index/ -->
-- [ ] 在 .gitignore 中添加 workspace/*/index/ 和 workspace/*/artifacts/ 和 *.log <!-- files: .gitignore -->
-- [ ] 运行 git status 确认无敏感文件和生成产物被跟踪 <!-- context: 验收任务 -->
+- [x] 在 .gitignore 中添加 workspace/*/index/ 和 workspace/*/artifacts/ 和 *.log <!-- files: .gitignore -->
+- [x] 运行 git status 确认无敏感文件和生成产物被跟踪 <!-- context: 验收任务 -->
