@@ -52,6 +52,34 @@ result = opc.run("帮我设计一个用户登录功能")
 print(result)
 ```
 
+### 知识索引与检索
+
+```bash
+# 构建知识索引（索引指定目录下的文件）
+opc index --name myproject --dirs src/opc
+
+# 按扩展名过滤，仅索引 Python 和 Markdown 文件
+opc index --name docs --dirs docs/ README.md --extensions .py .md
+
+# 覆盖已有索引
+opc index --name myproject --dirs src/opc --overwrite
+
+# 检索查询（返回 top-10 结果并由 LLM 生成答案）
+opc query "如何构建知识索引" --name myproject
+
+# 仅显示检索结果，不调用 LLM
+opc query "RAG 检索流程" --name myproject --no-llm
+
+# 自定义返回数量和模型
+opc query "Agent 角色定义" --name myproject --top-k 5 --model claude-sonnet-4-6
+
+# 列出所有已有索引
+opc index-list
+
+# 删除索引
+opc index-delete --name myproject
+```
+
 ### 交互式模式
 
 ```bash
