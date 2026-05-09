@@ -15,7 +15,7 @@
 
 ## 2. 文档与代码一致性修复
 
-- [ ] 更新 README.md 的目录结构描述，使其与当前实际结构一致 <!-- files: README.md -->
+- [x] 更新 README.md 的目录结构描述，使其与当前实际结构一致 <!-- files: README.md -->
 - [ ] 在 README.md 中补充 opc index 和 opc query 的 CLI 使用示例 <!-- files: README.md -->
 - [ ] 在 README.md 中更新依赖安装说明：pip install -e . 和 pip install -e .[bge] <!-- files: README.md -->
 - [ ] 删除 docs/improvement_roadmap.md（内容已过时，核心改进已在代码中实现） <!-- files: docs/improvement_roadmap.md -->

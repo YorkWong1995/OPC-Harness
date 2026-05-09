@@ -62,20 +62,38 @@ python run_opc.py
 
 ```
 OPC-Harness/
-├── src/                    # 核心代码
-│   ├── opc.py             # OPC 主入口
-│   ├── roles/             # 角色定义（CEO、PM、Architect 等）
-│   ├── tools/             # 工具集（文件、Shell、代码分析）
-│   ├── memory/            # 记忆系统（BM25 RAG）
-│   └── environment/       # 执行环境
-├── workspace/             # 工作空间（任务产出）
-├── test_data/             # 测试数据
-├── CLAUDE.md              # Claude 协作规范
-└── README.md              # 本文件
-```
-├── test_data/             # 测试数据
-├── CLAUDE.md              # Claude 协作规范入口
-└── README.md              # 本文件
+├── src/opc/                # 核心代码包
+│   ├── __init__.py        # 包入口
+│   ├── agent.py           # Agent 核心
+│   ├── cli.py             # 命令行接口
+│   ├── config.py          # 配置管理
+│   ├── environment.py     # 执行环境
+│   ├── memory.py          # 记忆系统
+│   ├── rag.py             # RAG 检索
+│   ├── rag_bm25.py        # BM25 RAG 实现
+│   ├── roles.py           # 角色定义（CEO、PM、Architect 等）
+│   ├── schema.py          # 数据模型
+│   ├── store.py           # 存储后端
+│   ├── workflow.py        # 工作流引擎
+│   └── knowledge/         # 知识检索子系统
+│       ├── bm25_index.py  # BM25 索引
+│       ├── chunker.py     # 文档分块
+│       ├── embedder.py    # 向量嵌入
+│       ├── indexer.py     # 索引构建
+│       ├── retriever.py   # 检索器
+│       └── vector_store.py # 向量存储
+├── tests/                  # 测试用例
+├── docs/                   # 文档
+│   ├── claude/            # Claude 协作规范
+│   └── plan/              # 项目规划文档
+├── workspace/              # 工作空间（任务产出）
+├── test_data/              # 测试数据
+├── run_opc.py              # 交互式运行入口
+├── run_tasks.py            # 自动任务执行器
+├── pyproject.toml          # 项目配置
+├── opc.example.toml        # OPC 配置示例
+├── CLAUDE.md               # Claude 协作规范入口
+└── README.md               # 本文件
 ```
 
 ## 核心概念
