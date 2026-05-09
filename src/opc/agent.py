@@ -9,10 +9,19 @@ import sys
 
 import os
 
+import time
+
 import anthropic
 
 from .rag import SimpleRAG, create_rag_for_project
 from .schema import Message, MessageQueue
+
+# 重试配置：遇到上游波动时等待并重试
+RETRY_MAX_ATTEMPTS = int(os.environ.get("OPC_RETRY_MAX", "3"))
+RETRY_BASE_DELAY = int(os.environ.get("OPC_RETRY_BASE_DELAY", "1800"))  # 秒，默认 30 分钟
+
+# 可重试的 HTTP 状态码（上游波动、过载）
+RETRYABLE_STATUS_CODES = {500, 502, 503, 529}
 
 # 允许 run_command 执行的命令白名单
 COMMAND_WHITELIST = {
@@ -54,6 +63,35 @@ class Agent:
             base_url=base_url if base_url else None,
         )
 
+    def _is_retryable(self, error: Exception) -> bool:
+        """判断错误是否可重试（上游波动、过载等）"""
+        if isinstance(error, anthropic.APITimeoutError):
+            return True
+        if isinstance(error, anthropic.APIError):
+            status = getattr(error, "status_code", None)
+            return status in RETRYABLE_STATUS_CODES
+        return False
+
+    def _call_with_retry(self, **kwargs) -> anthropic.types.Message:
+        """带指数退避重试的 API 调用，基础间隔 30 分钟"""
+        last_error = None
+        for attempt in range(1, RETRY_MAX_ATTEMPTS + 1):
+            try:
+                return self.client.messages.create(**kwargs)
+            except Exception as e:
+                last_error = e
+                if not self._is_retryable(e):
+                    raise
+                if attempt < RETRY_MAX_ATTEMPTS:
+                    delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    print(
+                        f"[{self.role}] 上游服务暂时不可用 "
+                        f"(第 {attempt}/{RETRY_MAX_ATTEMPTS} 次)，"
+                        f"{delay // 60} 分钟后重试... 错误: {e}"
+                    )
+                    time.sleep(delay)
+        raise last_error
+
     def receive(self, message: Message):
         """接收消息（用于 Environment 集成）"""
         self.msg_buffer.push(message)
@@ -84,13 +122,13 @@ class Agent:
                 kwargs["tools"] = self.tools
 
             try:
-                response = self.client.messages.create(**kwargs)
+                response = self._call_with_retry(**kwargs)
             except anthropic.APITimeoutError as e:
-                error_msg = f"[{self.role}] API 调用超时: {e}"
+                error_msg = f"[{self.role}] API 调用超时（已重试 {RETRY_MAX_ATTEMPTS} 次）: {e}"
                 print(error_msg)
                 return error_msg
             except anthropic.APIError as e:
-                error_msg = f"[{self.role}] API 调用错误: {e}"
+                error_msg = f"[{self.role}] API 调用错误（不可重试）: {e}"
                 print(error_msg)
                 return error_msg
             except Exception as e:

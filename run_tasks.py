@@ -1,6 +1,7 @@
 """Autonomous task runner — executes a markdown task list via claude CLI."""
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -97,8 +98,25 @@ def build_prompt(task: Task, config: Config) -> str:
     return "\n".join(parts)
 
 
+def _resolve_claude_cmd(cmd: str) -> str:
+    if Path(cmd).is_file():
+        return cmd
+    import shutil
+    found = shutil.which(cmd)
+    if found:
+        return found
+    app_data = Path(os.environ.get("APPDATA", ""))
+    for candidate in [
+        app_data / "npm" / "claude.cmd",
+        app_data / "npm" / "claude",
+    ]:
+        if candidate.exists():
+            return str(candidate)
+    return cmd
+
+
 def run_claude(prompt: str, config: Config) -> tuple[bool, str, str]:
-    cmd = [config.claude_cmd, "-p", "--dangerously-skip-permissions"]
+    cmd = [_resolve_claude_cmd(config.claude_cmd), "-p", "--dangerously-skip-permissions"]
     try:
         result = subprocess.run(
             cmd,
@@ -181,6 +199,11 @@ def run_all(config: Config) -> list[TaskResult]:
     for i, task in enumerate(pending, 1):
         print(f"[{i}/{len(pending)}] {task.description}")
 
+        if "decision" in task.metadata:
+            print(f"  Skipped (needs decision): {task.metadata['decision']}")
+            results.append(TaskResult(task=task, success=False, skipped=True))
+            continue
+
         if config.dry_run:
             prompt = build_prompt(task, config)
             print(f"  Prompt preview:\n{prompt[:200]}...\n")
@@ -223,8 +246,9 @@ def print_summary(results: list[TaskResult]) -> None:
     if not results:
         return
     succeeded = sum(1 for r in results if r.success and not r.skipped)
-    failed = sum(1 for r in results if not r.success)
-    skipped = sum(1 for r in results if r.skipped)
+    failed = sum(1 for r in results if not r.success and not r.skipped)
+    skipped_dry = sum(1 for r in results if r.skipped and r.success)
+    skipped_decision = sum(1 for r in results if r.skipped and not r.success)
 
     print(f"\n{'=' * 40}")
     print(f"Task Run Summary")
@@ -232,17 +256,70 @@ def print_summary(results: list[TaskResult]) -> None:
     print(f"Total:     {len(results)}")
     print(f"Succeeded: {succeeded}")
     print(f"Failed:    {failed}")
-    if skipped:
-        print(f"Skipped:   {skipped} (dry-run)")
+    if skipped_dry:
+        print(f"Skipped:   {skipped_dry} (dry-run)")
+    if skipped_decision:
+        print(f"Deferred:  {skipped_decision} (needs decision)")
     if failed:
         print(f"\nFailed tasks:")
         for r in results:
-            if not r.success:
+            if not r.success and not r.skipped:
                 print(f"  - {r.task.description}: {r.error[:100]}")
+
+
+def plan_tasks(goal: str, config: Config) -> None:
+    prompt = f"""You are a technical project planner analyzing a codebase at: {config.project_dir.resolve()}
+
+Goal: {goal}
+
+Instructions:
+1. Read CLAUDE.md and explore the project structure to understand the codebase
+2. Break down the goal into concrete, independently executable tasks
+3. Order tasks by dependency (tasks that others depend on come first)
+4. Each task should be completable in a single session (< 10 minutes)
+
+Output ONLY a markdown task list in this exact format (no other text):
+
+# Tasks
+
+- [ ] First task description <!-- files: relevant/file.py -->
+- [ ] Second task description <!-- context: additional info -->
+- [ ] Third task description
+
+Rules for task decomposition:
+- Each task should be atomic — one clear change or addition
+- Include <!-- files: ... --> when specific files are involved
+- Include <!-- context: ... --> for non-obvious constraints
+- 5-15 tasks is typical; fewer for simple goals, more for complex ones
+- Tasks should be ordered so each can be executed without depending on later ones
+"""
+    print(f"Planning tasks for: {goal}\n")
+    success, stdout, stderr = run_claude(prompt, config)
+    if not success:
+        print(f"Error during planning: {stderr[:300]}")
+        sys.exit(1)
+
+    task_lines = []
+    for line in stdout.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# ") or TASK_PATTERN.match(stripped):
+            task_lines.append(line)
+
+    if not task_lines:
+        print("Error: Claude did not produce a valid task list.")
+        print(f"Raw output:\n{stdout[:500]}")
+        sys.exit(1)
+
+    output = "\n".join(task_lines) + "\n"
+    config.task_file.write_text(output, encoding="utf-8")
+    task_count = sum(1 for l in task_lines if l.strip().startswith("- [ ]"))
+    print(f"Generated {task_count} tasks → {config.task_file}\n")
+    print(output)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Autonomous task runner via Claude CLI")
+    parser.add_argument("--plan", type=str, metavar="GOAL", help="Auto-decompose a goal into tasks")
     parser.add_argument("--tasks", type=Path, default=Path("tasks.md"), help="Task file path")
     parser.add_argument("--project-dir", type=Path, default=Path("."), help="Project directory")
     parser.add_argument("--no-commit", action="store_true", help="Disable auto-commit")
@@ -250,6 +327,8 @@ def main():
     parser.add_argument("--timeout", type=int, default=600, help="Per-task timeout in seconds")
     parser.add_argument("--log", type=Path, default=Path("task_run.log"), help="Log file path")
     parser.add_argument("--verbose", action="store_true", help="Print Claude output")
+    parser.add_argument("--plan-and-run", type=str, metavar="GOAL",
+                        help="Plan tasks then immediately execute them")
     args = parser.parse_args()
 
     config = Config(
@@ -261,6 +340,14 @@ def main():
         dry_run=args.dry_run,
         verbose=args.verbose,
     )
+
+    if args.plan:
+        plan_tasks(args.plan, config)
+        return
+
+    if args.plan_and_run:
+        plan_tasks(args.plan_and_run, config)
+        print("--- Starting execution ---\n")
 
     results = run_all(config)
     print_summary(results)
