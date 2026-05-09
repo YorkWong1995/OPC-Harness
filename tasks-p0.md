@@ -7,11 +7,11 @@
 - [x] 迁移 test_message.py 到 tests/test_message.py，改为 pytest 风格 <!-- files: test_message.py -->
 - [x] 迁移 test_memory.py 到 tests/test_memory.py，改为 pytest 风格 <!-- files: test_memory.py -->
 - [x] 迁移 test_new_tools.py 到 tests/test_tools.py，改为 pytest 风格 <!-- files: test_new_tools.py -->
-- [ ] 在 pyproject.toml 中添加 [tool.pytest.ini_options] 配置：testpaths = ["tests"]，addopts = "-v" <!-- files: pyproject.toml -->
-- [ ] 编写 tests/test_workflow.py：测试 HarnessWorkflow 初始化和阶段流转（mock API 调用） <!-- files: src/opc/workflow.py -->
-- [ ] 编写 tests/test_agent.py：测试 Agent 工具分发逻辑和消息缓冲区 <!-- files: src/opc/agent.py -->
-- [ ] 编写 tests/test_knowledge.py：测试 BM25 索引构建和查询、chunker 分块逻辑 <!-- files: src/opc/knowledge/bm25_index.py, src/opc/knowledge/chunker.py -->
-- [ ] 运行 python -m pytest 确认所有测试通过，修复发现的问题 <!-- context: 这是验收任务，确保整个测试套件可以一键跑通 -->
+- [x] 在 pyproject.toml 中添加 [tool.pytest.ini_options] 配置：testpaths = ["tests"]，addopts = "-v" <!-- files: pyproject.toml -->
+- [x] 编写 tests/test_workflow.py：测试 HarnessWorkflow 初始化和阶段流转（mock API 调用） <!-- files: src/opc/workflow.py -->
+- [x] 编写 tests/test_agent.py：测试 Agent 工具分发逻辑和消息缓冲区 <!-- files: src/opc/agent.py -->
+- [x] 编写 tests/test_knowledge.py：测试 BM25 索引构建和查询、chunker 分块逻辑 <!-- files: src/opc/knowledge/bm25_index.py, src/opc/knowledge/chunker.py -->
+- [x] 运行 python -m pytest 确认所有测试通过，修复发现的问题 <!-- context: 这是验收任务，确保整个测试套件可以一键跑通 -->
 
 ## 2. 文档与代码一致性修复
 

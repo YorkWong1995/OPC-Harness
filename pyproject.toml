@@ -27,5 +27,9 @@ bge = [
 [project.scripts]
 opc = "opc.cli:main"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+
 [tool.setuptools.packages.find]
 where = ["src"]
