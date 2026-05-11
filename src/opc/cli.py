@@ -65,6 +65,11 @@ def main():
         action="store_true",
         help="跳过 Architect 环节（适用于简单任务）",
     )
+    run_parser.add_argument(
+        "--resume-from",
+        default=None,
+        help="从指定阶段恢复执行（跳过已完成阶段），如 '已定义'、'实现中'",
+    )
 
     # ---- opc index ----
     index_parser = subparsers.add_parser("index", help="构建知识索引")
@@ -159,7 +164,7 @@ def _run_workflow(args):
         roles=roles,
         model=args.model,
     )
-    workflow.run()
+    workflow.run(resume_from=args.resume_from)
 
 
 # ---- opc index ----
