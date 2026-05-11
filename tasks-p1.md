@@ -2,7 +2,7 @@
 
 ## 5. 工作流断点续跑
 
-- [ ] 定义状态持久化格式：在 src/opc/workflow.py 中添加 WorkflowState dataclass，包含 current_stage, completed_stages, artifact_paths, task_description <!-- files: src/opc/workflow.py -->
+- [x] 定义状态持久化格式：在 src/opc/workflow.py 中添加 WorkflowState dataclass，包含 current_stage, completed_stages, artifact_paths, task_description <!-- files: src/opc/workflow.py -->
 - [ ] 实现 save_state() 方法：每个阶段完成后将 WorkflowState 序列化为 JSON 写入 artifacts/.opc_state.json <!-- files: src/opc/workflow.py -->
 - [ ] 实现 load_state() 类方法：从 artifacts/.opc_state.json 恢复 WorkflowState <!-- files: src/opc/workflow.py -->
 - [ ] 在 HarnessWorkflow.run() 中添加 resume_from 参数：跳过已完成阶段，从指定阶段继续 <!-- files: src/opc/workflow.py -->

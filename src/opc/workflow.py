@@ -1,5 +1,6 @@
 """Harness 工作流状态机：驱动 PM → Engineer → QA 的最小闭环"""
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from rich.console import Console
@@ -19,6 +20,17 @@ from .roles import (
 from .store import Store
 
 console = Console()
+
+
+@dataclass
+class WorkflowState:
+    """工作流状态持久化结构，用于保存和恢复工作流执行进度。"""
+
+    current_stage: str = "待澄清"
+    completed_stages: list[str] = field(default_factory=list)
+    artifact_paths: dict[str, str] = field(default_factory=dict)
+    task_description: str = ""
+
 
 # 状态流转（参照 plan.md 9.4节）
 STATES = [
