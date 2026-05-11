@@ -2,9 +2,22 @@
 roles = ["architect"]
 ceo_review = false
 auto_confirm = false
+profile = "default"
 
 [roles]
 architect = true
+ceo = false
+ops = false
+growth = false
+
+[profile.full]
+[profile.full.workflow]
+roles = ["all"]
+ceo_review = true
+
+[profile.minimal]
+[profile.minimal.roles]
+architect = false
 ceo = false
 ops = false
 growth = false
