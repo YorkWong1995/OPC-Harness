@@ -32,6 +32,24 @@ class WorkflowState:
     artifact_paths: dict[str, str] = field(default_factory=dict)
     task_description: str = ""
 
+    @classmethod
+    def load_state(cls, artifacts_dir: Path) -> "WorkflowState":
+        """从 artifacts/.opc_state.json 恢复 WorkflowState。
+
+        Args:
+            artifacts_dir: artifacts 目录路径
+
+        Returns:
+            恢复的 WorkflowState 实例
+
+        Raises:
+            FileNotFoundError: 状态文件不存在
+            json.JSONDecodeError: 状态文件内容不是合法 JSON
+        """
+        state_path = artifacts_dir / ".opc_state.json"
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+        return cls(**data)
+
 
 # 状态流转（参照 plan.md 9.4节）
 STATES = [
