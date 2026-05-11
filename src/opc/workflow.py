@@ -31,6 +31,8 @@ class WorkflowState:
     completed_stages: list[str] = field(default_factory=list)
     artifact_paths: dict[str, str] = field(default_factory=dict)
     task_description: str = ""
+    # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 input_tokens / output_tokens / duration_seconds
+    stage_logs: dict[str, dict] = field(default_factory=dict)
 
     @classmethod
     def load_state(cls, artifacts_dir: Path) -> "WorkflowState":
