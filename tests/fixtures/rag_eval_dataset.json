@@ -1,0 +1,92 @@
+[
+  {
+    "question": "RRF 融合算法的公式是什么？",
+    "relevant_files": ["src/opc/knowledge/retriever.py"],
+    "relevant_chunks": ["src/opc/knowledge/retriever.py::L27-L56"]
+  },
+  {
+    "question": "CodeChunker 如何检测 Python 代码的切分点？",
+    "relevant_files": ["src/opc/knowledge/chunker.py"],
+    "relevant_chunks": ["src/opc/knowledge/chunker.py::L38-L52"]
+  },
+  {
+    "question": "Chunk 数据模型包含哪些字段？",
+    "relevant_files": ["src/opc/knowledge/models.py"],
+    "relevant_chunks": ["src/opc/knowledge/models.py::L8-L16"]
+  },
+  {
+    "question": "向量检索和 BM25 检索结果是如何融合的？",
+    "relevant_files": ["src/opc/knowledge/retriever.py"],
+    "relevant_chunks": ["src/opc/knowledge/retriever.py::L17-L56"]
+  },
+  {
+    "question": "索引构建的完整流程包括哪些步骤？",
+    "relevant_files": ["src/opc/knowledge/indexer.py"],
+    "relevant_chunks": ["src/opc/knowledge/indexer.py::L36-L127"]
+  },
+  {
+    "question": "SimpleRAG 的关键词提取逻辑是怎样的？",
+    "relevant_files": ["src/opc/rag.py"],
+    "relevant_chunks": ["src/opc/rag.py::L102-L110"]
+  },
+  {
+    "question": "哪些目录在索引时会被跳过？",
+    "relevant_files": ["src/opc/knowledge/models.py"],
+    "relevant_chunks": ["src/opc/knowledge/models.py::L84-L91"]
+  },
+  {
+    "question": "为什么选择 ChromaDB 作为向量数据库？",
+    "relevant_files": ["docs/knowledge-retrieval-design.md"],
+    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L38-L49"]
+  },
+  {
+    "question": "知识检索模块的 Chunk 策略对代码和文档分别使用什么参数？",
+    "relevant_files": ["docs/knowledge-retrieval-design.md"],
+    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L81-L89"]
+  },
+  {
+    "question": "混合检索后是否需要 Rerank？当前方案是什么？",
+    "relevant_files": ["docs/knowledge-retrieval-design.md"],
+    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L52-L77"]
+  },
+  {
+    "question": "opc.toml 中 profile 配置的作用是什么？",
+    "relevant_files": ["opc.example.toml", "src/opc/config.py"],
+    "relevant_chunks": ["opc.example.toml::L1-L30", "src/opc/config.py::L23-L79"]
+  },
+  {
+    "question": "WorkflowConfig 支持哪些配置项？",
+    "relevant_files": ["src/opc/config.py"],
+    "relevant_chunks": ["src/opc/config.py::L15-L20"]
+  },
+  {
+    "question": "load_workflow_config 如何确定使用哪个 profile？",
+    "relevant_files": ["src/opc/config.py"],
+    "relevant_chunks": ["src/opc/config.py::L23-L49"]
+  },
+  {
+    "question": "OPC 允许的角色有哪些？",
+    "relevant_files": ["src/opc/config.py"],
+    "relevant_chunks": ["src/opc/config.py::L11-L12"]
+  },
+  {
+    "question": "WorkflowState 的持久化结构包含哪些字段？",
+    "relevant_files": ["src/opc/workflow.py"],
+    "relevant_chunks": ["src/opc/workflow.py::L38-L47"]
+  },
+  {
+    "question": "DocChunker 如何处理 Markdown 文件的分块？",
+    "relevant_files": ["src/opc/knowledge/chunker.py"],
+    "relevant_chunks": ["src/opc/knowledge/chunker.py::L183-L221"]
+  },
+  {
+    "question": "EXTENSION_MAP 支持哪些配置文件格式？",
+    "relevant_files": ["src/opc/knowledge/models.py"],
+    "relevant_chunks": ["src/opc/knowledge/models.py::L47-L73"]
+  },
+  {
+    "question": "Indexer 如何处理文件发现时的目录过滤？",
+    "relevant_files": ["src/opc/knowledge/indexer.py"],
+    "relevant_chunks": ["src/opc/knowledge/indexer.py::L129-L149"]
+  }
+]

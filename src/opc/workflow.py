@@ -365,8 +365,6 @@ class HarnessWorkflow:
                 return
             elif decision == "n":
                 raise _StopWorkflow()
-            elif decision == "s":
-                return
             elif decision == "e":
                 growth_prompt = self.last_edited_prompt
             elif decision == "r":
@@ -400,8 +398,6 @@ class HarnessWorkflow:
                 return
             elif decision == "n":
                 raise _StopWorkflow()
-            elif decision == "s":
-                return
             elif decision == "e":
                 prd_prompt = self.last_edited_prompt
             elif decision == "r":
@@ -433,8 +429,6 @@ class HarnessWorkflow:
                 return
             elif decision == "n":
                 raise _StopWorkflow()
-            elif decision == "s":
-                return
             elif decision == "e":
                 arch_prompt = self.last_edited_prompt
             elif decision == "r":
@@ -468,8 +462,6 @@ class HarnessWorkflow:
                 return
             elif decision == "n":
                 raise _StopWorkflow()
-            elif decision == "s":
-                return
             elif decision == "e":
                 eng_prompt = self.last_edited_prompt
             elif decision == "r":
@@ -538,8 +530,6 @@ class HarnessWorkflow:
                 return
             elif decision == "n":
                 raise _StopWorkflow()
-            elif decision == "s":
-                return
             elif decision == "e":
                 ops_prompt = self.last_edited_prompt
             elif decision == "r":
@@ -555,8 +545,6 @@ class HarnessWorkflow:
             decision = self.review("是否进入复盘阶段？", outputs["acceptance"])
             if decision == "n":
                 raise _StopWorkflow()
-            elif decision == "s":
-                return
             elif decision == "r":
                 raise _GoBack()
         console.print("\n[bold cyan][PM][/bold cyan] 正在进行复盘...")
@@ -579,7 +567,7 @@ class HarnessWorkflow:
         console.print(Panel(retro[:800] + ("..." if len(retro) > 800 else ""), title="复盘记录预览"))
 
     def review(self, stage: str, content: str, current_prompt: str = "") -> str:
-        """审查节点：支持 y（继续）、n（终止）、r（退回上一阶段）、e（编辑提示）、s（跳过）五种输入。
+        """审查节点：支持 y（继续）、n（终止）、r（退回重做）、e（编辑提示）四种输入。
 
         Args:
             stage: 阶段描述信息
@@ -591,7 +579,6 @@ class HarnessWorkflow:
             "n" - 终止工作流
             "r" - 退回到上一阶段重新执行
             "e" - 编辑提示后重做（编辑后的提示存储在 self.last_edited_prompt）
-            "s" - 跳过当前阶段，直接进入下一阶段
         """
         if self.auto_confirm:
             console.print(f"[dim]|| {stage} (自动确认)[/dim]")
@@ -616,7 +603,7 @@ class HarnessWorkflow:
             return self._prompt_review_input(stage, current_prompt)
 
     def _prompt_review_input(self, stage: str, current_prompt: str = "") -> str:
-        """提示用户输入审查决策，支持 y/n/r/e/s 五种输入。
+        """提示用户输入审查决策，支持 y/n/r/e 四种输入。
 
         Args:
             stage: 阶段描述信息
@@ -625,16 +612,14 @@ class HarnessWorkflow:
         while True:
             response = input(
                 f"\n|| {stage}\n"
-                f"   [y] 继续  [n] 终止  [r] 退回上一阶段  [e] 编辑提示  [s] 跳过当前阶段: "
+                f"   [y] 继续  [n] 终止  [r] 退回重做  [e] 编辑提示: "
             ).strip().lower()
-            if response in ("y", "n", "r", "e", "s"):
+            if response in ("y", "n", "r", "e"):
                 break
-            console.print("[red]无效输入，请输入 y/n/r/e/s[/red]")
+            console.print("[red]无效输入，请输入 y/n/r/e[/red]")
 
         if response == "n":
             console.print("[yellow]工作流已终止。[/]")
-        elif response == "s":
-            console.print("[yellow]跳过当前阶段，进入下一阶段。[/]")
         elif response == "r":
             console.print("[yellow]退回到上一阶段重新执行。[/]")
         elif response == "e":
