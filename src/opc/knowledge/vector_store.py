@@ -103,6 +103,12 @@ class VectorStore:
 
         return retrieval_results
 
+    def delete_chunks(self, chunk_ids: list[str]):
+        """按 chunk id 删除向量记录"""
+        if self.collection is None or not chunk_ids:
+            return
+        self.collection.delete(ids=chunk_ids)
+
     def delete_collection(self, index_name: str):
         """删除 collection"""
         collection_name = f"{COLLECTION_PREFIX}{index_name}"

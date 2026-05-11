@@ -1,6 +1,6 @@
 # OPC 项目任务清单
 
-> 最后更新：2026-05-09  
+> 最后更新：2026-05-11  
 > 原则：先稳定核心能力，再扩展 Agent 协作
 
 ---
@@ -92,32 +92,32 @@
 ## P2：提升 RAG / Knowledge 能力（4-6 周）
 
 ### 9. 检索效果评估集
-- [ ] 创建 `tests/fixtures/rag_eval_dataset.json`
+- [x] 创建 `tests/fixtures/rag_eval_dataset.json`
   - 包含 10-20 个问答对，覆盖代码、文档、配置
-- [ ] 编写 `tests/test_rag_quality.py`
+- [x] 编写 `tests/test_rag_quality.py`
   - 测试 top-k 命中率、MRR、NDCG
-- [ ] 验收标准：检索效果量化可追踪
+- [x] 验收标准：检索效果量化可追踪
 
 ### 10. 索引增量更新
-- [ ] 在 `indexer.py` 添加增量更新逻辑
+- [x] 在 `indexer.py` 添加增量更新逻辑
   - 检测文件变更（基于 mtime 或 hash）
   - 只重新索引变更的文件
-- [ ] 添加 `opc index --name <name> --incremental` 命令
-- [ ] 验收标准：大项目索引更新时间从分钟级降到秒级
+- [x] 添加 `opc index --name <name> --incremental` 命令
+- [x] 验收标准：大项目索引更新时间从分钟级降到秒级
 
 ### 11. RAG 工具化接入 Agent
-- [ ] 在 `agent.py` 添加 `search_knowledge` 工具
+- [x] 在 `agent.py` 添加 `search_knowledge` 工具
   - 允许 Agent 主动查询项目知识库
-- [ ] 在 `roles.py` 的 Engineer/QA prompt 中引导使用
+- [x] 在 `roles.py` 的 Engineer/QA prompt 中引导使用
   - "如果不确定实现细节，使用 search_knowledge 工具查询"
-- [ ] 验收标准：Agent 能主动检索并引用项目文档
+- [x] 验收标准：Agent 能主动检索并引用项目文档
 
 ### 12. 代码分块增强
-- [ ] 在 `chunker.py` 添加语义分块策略
+- [x] 在 `chunker.py` 添加语义分块策略
   - Markdown：按标题层级分块
   - Python/C++：按函数/类分块（使用 tree-sitter 或正则）
   - JSON/YAML：按顶层 key 分块
-- [ ] 验收标准：代码库问答的召回率提升 20%+
+- [x] 验收标准：代码库问答的召回率提升 20%+
 
 ---
 

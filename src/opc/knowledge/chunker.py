@@ -165,6 +165,52 @@ class CodeChunker:
         )
 
 
+class ConfigChunker:
+    """按顶层 key 分块 JSON/YAML 配置文件"""
+
+    def chunk_file(self, file_path: str, content: str, language: str, source_name: str) -> list[Chunk]:
+        if language == "json":
+            chunks = self._top_level_key_chunks(file_path, content, language, source_name, r'^\s{2}"([^"\\]+)"\s*:')
+        elif language == "yaml":
+            chunks = self._top_level_key_chunks(file_path, content, language, source_name, r'^(?!\s)([^#:\s][^:]*)\s*:')
+        else:
+            chunks = []
+        if chunks:
+            return chunks
+        return DocChunker().chunk_file(file_path, content, language, source_name)
+
+    def _top_level_key_chunks(
+        self,
+        file_path: str,
+        content: str,
+        language: str,
+        source_name: str,
+        pattern: str,
+    ) -> list[Chunk]:
+        lines = content.split("\n")
+        key_lines = [i for i, line in enumerate(lines) if re.match(pattern, line)]
+        if not key_lines:
+            return []
+
+        chunks = []
+        boundaries = key_lines + [len(lines)]
+        for i in range(len(boundaries) - 1):
+            start = boundaries[i]
+            end = boundaries[i + 1]
+            chunk_lines = lines[start:end]
+            chunk_id = f"{file_path}::L{start + 1}-L{end}"
+            chunks.append(Chunk(
+                chunk_id=chunk_id,
+                file_path=file_path,
+                start_line=start + 1,
+                end_line=end,
+                content="\n".join(chunk_lines),
+                language=language,
+                source_name=source_name,
+            ))
+        return chunks
+
+
 class DocChunker:
     """按标题/固定窗口分块文档文件"""
 
@@ -382,6 +428,8 @@ def chunk_file(file_path: str, content: str, source_name: str, **kwargs) -> list
         chunker = CodeChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "min_lines", "overlap")})
     elif language in DOC_LANGUAGES:
         chunker = DocChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "overlap", "heading_level")})
+    elif language in {"json", "yaml"}:
+        chunker = ConfigChunker()
     else:
         # 配置文件等：作为整体文本窗口切分
         chunker = DocChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "overlap", "heading_level")})

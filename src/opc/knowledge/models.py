@@ -25,6 +25,7 @@ class IndexMeta:
     embedding_model: str
     created_at: str
     updated_at: str
+    file_manifest: dict[str, dict] = field(default_factory=dict)
 
 
 @dataclass

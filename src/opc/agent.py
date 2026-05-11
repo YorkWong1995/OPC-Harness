@@ -192,6 +192,7 @@ class Agent:
             "edit_file": self._tool_edit_file,
             "list_files": self._tool_list_files,
             "grep": self._tool_grep,
+            "search_knowledge": self._tool_search_knowledge,
             "run_command": self._tool_run_command,
         }
         handler = dispatch.get(name)
@@ -206,6 +207,8 @@ class Agent:
             print(f"  -> 文件: {inputs.get('file_path', 'N/A')}")
         elif name == "grep":
             print(f"  -> 模式: {inputs.get('pattern', 'N/A')}")
+        elif name == "search_knowledge":
+            print(f"  -> 查询: {inputs.get('query', 'N/A')}")
         elif name == "run_command":
             print(f"  -> 命令: {inputs.get('command', 'N/A')}")
 
@@ -352,6 +355,42 @@ class Agent:
         if not matches:
             return "无匹配结果"
         return "\n".join(matches)
+
+    def _tool_search_knowledge(self, query: str, top_k: int = 5, index_name: str | None = None) -> str:
+        if not self.project_dir:
+            return "错误：未设置项目目录"
+
+        from .knowledge.bm25_index import BM25Index
+        from .knowledge.indexer import Indexer
+        from .knowledge.retriever import Retriever
+        from .knowledge.vector_store import VectorStore
+
+        name = index_name or self.project_dir.name
+        index_root = self.project_dir / "index"
+        meta = Indexer.load_meta(index_root)
+        if meta is None:
+            return f"错误：知识索引不存在，请先运行 opc index --name {name} --dirs {self.project_dir}"
+
+        bm25 = BM25Index()
+        bm25.load(index_root / "bm25")
+        vector_store = VectorStore(index_root / "chroma")
+        vector_store.create_collection(meta.index_name)
+        retriever = Retriever(vector_store, bm25)
+        results = retriever.retrieve(query, top_k=top_k)
+        if not results:
+            return "未找到相关知识。"
+
+        lines = []
+        for i, result in enumerate(results, 1):
+            chunk = result.chunk
+            preview = chunk.content[:800]
+            if len(chunk.content) > 800:
+                preview += "\n..."
+            lines.append(
+                f"[{i}] {chunk.file_path}:{chunk.start_line}-{chunk.end_line} "
+                f"score={result.rrf_score:.4f}\n{preview}"
+            )
+        return "\n\n".join(lines)
 
     def _tool_run_command(self, command: str, timeout: int = 300) -> str:
         """执行终端命令：支持交互式检测、更长超时、更好的错误处理"""
@@ -558,6 +597,26 @@ TOOLS_READ_WRITE = [
         },
     },
     {
+        "name": "search_knowledge",
+        "description": "查询项目知识库，返回与问题相关的文档或代码片段及来源位置。",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "要检索的问题或关键词"},
+                "top_k": {
+                    "type": "integer",
+                    "description": "返回结果数，默认 5",
+                    "default": 5,
+                },
+                "index_name": {
+                    "type": "string",
+                    "description": "可选索引名称；默认使用当前项目目录名",
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "run_command",
         "description": "在项目目录中执行终端命令（仅限白名单命令：python, pip, npm, node, git, pytest, eslint, npx, cargo, go）。支持交互式命令检测。",
         "input_schema": {
@@ -576,5 +635,5 @@ TOOLS_READ_WRITE = [
 ]
 
 TOOLS_READ_ONLY = [
-    tool for tool in TOOLS_READ_WRITE if tool["name"] in {"read_file", "list_files", "grep"}
+    tool for tool in TOOLS_READ_WRITE if tool["name"] in {"read_file", "list_files", "grep", "search_knowledge"}
 ]

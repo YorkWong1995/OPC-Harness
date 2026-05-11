@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from datetime import datetime, timezone
@@ -39,6 +40,7 @@ class Indexer:
         extensions: list[str] | None = None,
         overwrite: bool = False,
         verbose: bool = False,
+        incremental: bool = False,
     ) -> IndexMeta:
         """构建完整索引
 
@@ -47,7 +49,11 @@ class Indexer:
             extensions: 限制的文件扩展名（如 ['.py', '.md']）
             overwrite: 是否覆盖已有索引
             verbose: 是否输出详细信息
+            incremental: 是否只重新索引发生变更的文件
         """
+        if incremental and not overwrite:
+            return self._build_incremental(source_dirs, extensions, verbose)
+
         start_time = time.time()
 
         if overwrite:
@@ -63,6 +69,7 @@ class Indexer:
 
         # 2. 分块
         all_chunks: list[Chunk] = []
+        file_manifest: dict[str, dict] = {}
         for file_path, source_name in files:
             try:
                 content = file_path.read_text(encoding="utf-8", errors="replace")
@@ -75,6 +82,7 @@ class Indexer:
                 rel_path = file_path.name
             chunks = chunk_file(rel_path, content, source_name=source_name.name)
             all_chunks.extend(chunks)
+            file_manifest[rel_path] = self._file_signature(file_path, chunks)
 
         if verbose:
             print(f"  生成 {len(all_chunks)} 个分块")
@@ -89,6 +97,7 @@ class Indexer:
                 embedding_model=model_name,
                 created_at=datetime.now(timezone.utc).isoformat(),
                 updated_at=datetime.now(timezone.utc).isoformat(),
+                file_manifest=file_manifest,
             )
             self._save_meta(meta)
             return meta
@@ -118,11 +127,96 @@ class Indexer:
             embedding_model=model_name,
             created_at=datetime.now(timezone.utc).isoformat(),
             updated_at=datetime.now(timezone.utc).isoformat(),
+            file_manifest=file_manifest,
         )
         self._save_meta(meta)
 
         if verbose:
             print(f"  索引完成，耗时 {elapsed:.1f}s")
+
+        return meta
+
+    def _build_incremental(
+        self,
+        source_dirs: list[Path],
+        extensions: list[str] | None = None,
+        verbose: bool = False,
+    ) -> IndexMeta:
+        start_time = time.time()
+        previous_meta = self.load_meta(self.index_root)
+        bm25 = BM25Index()
+
+        if previous_meta is None or not self.bm25_path.exists():
+            if verbose:
+                print("  未发现已有索引，执行完整构建...")
+            return self.build(source_dirs, extensions, overwrite=False, verbose=verbose)
+
+        self.index_root.mkdir(parents=True, exist_ok=True)
+        ext_filter = set(extensions) if extensions else set(EXTENSION_MAP.keys())
+        files = self._discover_files(source_dirs, ext_filter)
+        previous_manifest = previous_meta.file_manifest or {}
+        current_manifest: dict[str, dict] = {}
+        current_paths: set[str] = set()
+        unchanged_paths: set[str] = set()
+        changed_files: list[tuple[Path, Path, str, str]] = []
+
+        for file_path, source_name in files:
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+            try:
+                rel_path = str(file_path.relative_to(source_name))
+            except ValueError:
+                rel_path = file_path.name
+            current_paths.add(rel_path)
+            signature = self._file_signature(file_path)
+            current_manifest[rel_path] = signature
+            if previous_manifest.get(rel_path, {}).get("hash") == signature["hash"]:
+                unchanged_paths.add(rel_path)
+            else:
+                changed_files.append((file_path, source_name, rel_path, content))
+
+        deleted_paths = set(previous_manifest) - current_paths
+        bm25.load(self.bm25_path)
+        retained_chunks = [c for c in bm25.chunks if c.file_path in unchanged_paths]
+        removed_chunk_ids = [c.chunk_id for c in bm25.chunks if c.file_path in deleted_paths or c.file_path not in unchanged_paths]
+
+        changed_chunks: list[Chunk] = []
+        for _, source_name, rel_path, content in changed_files:
+            chunks = chunk_file(rel_path, content, source_name=source_name.name)
+            changed_chunks.extend(chunks)
+            current_manifest[rel_path] = self._signature_from_content(content, chunks)
+
+        all_chunks = retained_chunks + changed_chunks
+        if verbose:
+            print(f"  增量更新：保留 {len(unchanged_paths)} 个文件，重建 {len(changed_files)} 个文件，删除 {len(deleted_paths)} 个文件")
+            print(f"  生成 {len(all_chunks)} 个分块")
+
+        bm25.build(all_chunks)
+        bm25.save(self.bm25_path)
+
+        vs = VectorStore(self.chroma_path)
+        vs.create_collection(self.index_name)
+        vs.delete_chunks(removed_chunk_ids)
+        vs.add_chunks(changed_chunks)
+
+        model_name, _ = get_model_info()
+        meta = IndexMeta(
+            index_name=self.index_name,
+            source_dirs=[str(d) for d in source_dirs],
+            total_files=len(current_paths),
+            total_chunks=len(all_chunks),
+            embedding_model=model_name,
+            created_at=previous_meta.created_at,
+            updated_at=datetime.now(timezone.utc).isoformat(),
+            file_manifest=current_manifest,
+        )
+        self._save_meta(meta)
+
+        if verbose:
+            elapsed = time.time() - start_time
+            print(f"  增量索引完成，耗时 {elapsed:.1f}s")
 
         return meta
 
@@ -154,6 +248,26 @@ class Indexer:
         if self.index_root.exists():
             shutil.rmtree(self.index_root, ignore_errors=True)
 
+    def _file_signature(self, file_path: Path, chunks: list[Chunk] | None = None) -> dict:
+        content = file_path.read_bytes()
+        signature = {
+            "mtime": file_path.stat().st_mtime,
+            "size": file_path.stat().st_size,
+            "hash": hashlib.sha256(content).hexdigest(),
+        }
+        if chunks is not None:
+            signature["chunks"] = [c.chunk_id for c in chunks]
+        return signature
+
+    def _signature_from_content(self, content: str, chunks: list[Chunk]) -> dict:
+        encoded = content.encode("utf-8")
+        return {
+            "mtime": None,
+            "size": len(encoded),
+            "hash": hashlib.sha256(encoded).hexdigest(),
+            "chunks": [c.chunk_id for c in chunks],
+        }
+
     def _save_meta(self, meta: IndexMeta):
         """保存索引元数据"""
         self.meta_path.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +280,7 @@ class Indexer:
                 "embedding_model": meta.embedding_model,
                 "created_at": meta.created_at,
                 "updated_at": meta.updated_at,
+                "file_manifest": meta.file_manifest,
             }, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )

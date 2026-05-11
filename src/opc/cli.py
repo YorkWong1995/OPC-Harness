@@ -82,6 +82,7 @@ def main():
     index_parser.add_argument("--dirs", nargs="+", required=True, help="要索引的目录或文件")
     index_parser.add_argument("--extensions", nargs="*", help="文件扩展名过滤（如 .py .md）")
     index_parser.add_argument("--overwrite", action="store_true", help="覆盖已有索引")
+    index_parser.add_argument("--incremental", action="store_true", help="增量更新已有索引，仅重建变更文件")
     index_parser.add_argument("--verbose", action="store_true", help="详细输出")
 
     # ---- opc query ----
@@ -202,6 +203,7 @@ def _run_index(args):
         extensions=extensions,
         overwrite=args.overwrite,
         verbose=True,
+        incremental=args.incremental,
     )
 
     console.print(Panel(
