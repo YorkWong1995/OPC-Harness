@@ -1,6 +1,7 @@
 """Harness 工作流状态机：驱动 PM → Engineer → QA 的最小闭环"""
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from rich.console import Console
@@ -77,6 +78,8 @@ class HarnessWorkflow:
         self.model = model
         self.use_embedded_engineer = use_embedded_engineer
 
+        self.workflow_state = WorkflowState(task_description=task)
+
         self.pm = create_pm_agent(model=model)
 
         # 根据配置选择 Engineer 类型
@@ -95,6 +98,15 @@ class HarnessWorkflow:
         """判断可选角色是否启用。"""
         return role in self.roles
 
+    def save_state(self):
+        """将当前 WorkflowState 序列化为 JSON 写入 artifacts/.opc_state.json"""
+        self.workflow_state.current_stage = self.state
+        state_path = self.store.dir / ".opc_state.json"
+        state_path.write_text(
+            json.dumps(asdict(self.workflow_state), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
     def run(self):
         console.print(Panel(f"[bold]任务[/]: {self.task}", title="OPC Harness 工作流启动"))
 
@@ -107,6 +119,9 @@ class HarnessWorkflow:
             growth = self.growth.run(f"基于以下任务产出 Growth / Research 建议：\n\n{self.task}")
             growth_path = self.store.save("growth.md", growth)
             self.state = "已调研"
+            self.workflow_state.completed_stages.append("已调研")
+            self.workflow_state.artifact_paths["growth"] = str(growth_path)
+            self.save_state()
             console.print(f"[green]研究建议已保存[/]: {growth_path}")
             console.print(Panel(growth[:800] + ("..." if len(growth) > 800 else ""), title="研究建议预览"))
             if not self.review("Growth 已产出研究建议，是否继续让 PM 产出 PRD？", growth):
@@ -118,6 +133,9 @@ class HarnessWorkflow:
         prd = self.pm.run(pm_input)
         prd_path = self.store.save("prd.md", prd)
         self.state = "已定义"
+        self.workflow_state.completed_stages.append("已定义")
+        self.workflow_state.artifact_paths["prd"] = str(prd_path)
+        self.save_state()
         console.print(f"[green]PRD 已保存[/]: {prd_path}")
         console.print(Panel(prd[:800] + ("..." if len(prd) > 800 else ""), title="PRD 预览"))
         if not self.review("PM 已产出 PRD，是否继续？", prd):
@@ -129,6 +147,9 @@ class HarnessWorkflow:
             architecture = self.architect.run(f"基于以下 PRD 产出架构方案：\n\n{prd}")
             arch_path = self.store.save("architecture.md", architecture)
             self.state = "已设计"
+            self.workflow_state.completed_stages.append("已设计")
+            self.workflow_state.artifact_paths["architecture"] = str(arch_path)
+            self.save_state()
             console.print(f"[green]架构说明已保存[/]: {arch_path}")
             console.print(
                 Panel(architecture[:800] + ("..." if len(architecture) > 800 else ""), title="架构说明预览")
@@ -145,6 +166,9 @@ class HarnessWorkflow:
         implementation = self.engineer.run(engineer_input)
         impl_path = self.store.save("implementation.md", implementation)
         self.state = "实现中"
+        self.workflow_state.completed_stages.append("实现中")
+        self.workflow_state.artifact_paths["implementation"] = str(impl_path)
+        self.save_state()
         console.print(f"[green]实现说明已保存[/]: {impl_path}")
         console.print(Panel(implementation[:800] + ("..." if len(implementation) > 800 else ""), title="实现说明预览"))
         if not self.review("Engineer 已完成实现，是否继续让 QA 验收？", implementation):
@@ -157,16 +181,23 @@ class HarnessWorkflow:
         )
         acc_path = self.store.save("acceptance.md", acceptance)
         self.state = "待验收"
+        self.workflow_state.completed_stages.append("待验收")
+        self.workflow_state.artifact_paths["acceptance"] = str(acc_path)
+        self.save_state()
         console.print(f"[green]验收记录已保存[/]: {acc_path}")
         console.print(Panel(acceptance[:800] + ("..." if len(acceptance) > 800 else ""), title="验收记录预览"))
 
         # ---- Step 5: 判断验收结果 ----
         if "不通过" in acceptance:
             self.state = "已退回"
+            self.workflow_state.completed_stages.append("已退回")
+            self.save_state()
             console.print("\n[bold red]QA 验收未通过[/]，工作流暂停。请查看 acceptance.md 了解原因。")
             return
 
         self.state = "已通过"
+        self.workflow_state.completed_stages.append("已通过")
+        self.save_state()
         console.print("\n[bold green]QA 验收通过[/]")
 
         # ---- Step 6: Ops / Release 检查（可选）----
@@ -178,6 +209,9 @@ class HarnessWorkflow:
             )
             ops_path = self.store.save("ops.md", ops_result)
             self.state = "已运行检查"
+            self.workflow_state.completed_stages.append("已运行检查")
+            self.workflow_state.artifact_paths["ops"] = str(ops_path)
+            self.save_state()
             console.print(f"[green]Ops 检查已保存[/]: {ops_path}")
             console.print(Panel(ops_result[:800] + ("..." if len(ops_result) > 800 else ""), title="Ops 检查预览"))
             if not self.review("Ops 已产出发布与运行检查，是否进入复盘阶段？", ops_result):
@@ -198,6 +232,9 @@ class HarnessWorkflow:
         retro = self.pm.run(retro_input)
         retro_path = self.store.save("retrospective.md", retro)
         self.state = "已复盘"
+        self.workflow_state.completed_stages.append("已复盘")
+        self.workflow_state.artifact_paths["retrospective"] = str(retro_path)
+        self.save_state()
         console.print(f"[green]复盘记录已保存[/]: {retro_path}")
         console.print(Panel(retro[:800] + ("..." if len(retro) > 800 else ""), title="复盘记录预览"))
 
