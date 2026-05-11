@@ -3,6 +3,7 @@
 import json
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rich.console import Console
@@ -52,6 +53,78 @@ class WorkflowState:
         state_path = artifacts_dir / ".opc_state.json"
         data = json.loads(state_path.read_text(encoding="utf-8"))
         return cls(**data)
+
+
+def generate_run_report(state: WorkflowState, artifacts_dir: Path) -> Path:
+    """从 WorkflowState 生成 artifacts/run_report.md。
+
+    报告包含：任务描述、各阶段耗时与 token 消耗、产物路径汇总。
+
+    Args:
+        state: 当前工作流状态
+        artifacts_dir: artifacts 目录路径
+
+    Returns:
+        生成的 run_report.md 文件路径
+    """
+    lines: list[str] = []
+    lines.append("# OPC Run Report")
+    lines.append("")
+    lines.append(f"- **生成时间**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    lines.append(f"- **最终阶段**: {state.current_stage}")
+    lines.append("")
+
+    # 任务描述
+    lines.append("## 任务描述")
+    lines.append("")
+    lines.append(state.task_description or "(无)")
+    lines.append("")
+
+    # 阶段执行日志
+    lines.append("## 阶段执行日志")
+    lines.append("")
+    if state.stage_logs:
+        lines.append("| 阶段 | 耗时(s) | Input Tokens | Output Tokens |")
+        lines.append("|------|---------|--------------|---------------|")
+        total_duration = 0.0
+        total_input = 0
+        total_output = 0
+        for stage_name, log in state.stage_logs.items():
+            duration = log.get("duration_seconds", 0)
+            inp = log.get("input_tokens", 0)
+            out = log.get("output_tokens", 0)
+            total_duration += duration
+            total_input += inp
+            total_output += out
+            lines.append(f"| {stage_name} | {duration} | {inp} | {out} |")
+        lines.append(f"| **合计** | **{round(total_duration, 2)}** | **{total_input}** | **{total_output}** |")
+    else:
+        lines.append("(无阶段日志)")
+    lines.append("")
+
+    # 产物路径
+    lines.append("## 产物路径")
+    lines.append("")
+    if state.artifact_paths:
+        for name, path in state.artifact_paths.items():
+            lines.append(f"- **{name}**: `{path}`")
+    else:
+        lines.append("(无产物)")
+    lines.append("")
+
+    # 已完成阶段
+    lines.append("## 已完成阶段")
+    lines.append("")
+    if state.completed_stages:
+        lines.append(" → ".join(state.completed_stages))
+    else:
+        lines.append("(无)")
+    lines.append("")
+
+    report_content = "\n".join(lines)
+    report_path = artifacts_dir / "run_report.md"
+    report_path.write_text(report_content, encoding="utf-8")
+    return report_path
 
 
 # 状态流转（参照 plan.md 9.4节）

@@ -14,7 +14,7 @@
 - [x] 扩展 WorkflowState：添加 stage_logs 字段，记录每阶段的 input_tokens, output_tokens, duration_seconds <!-- files: src/opc/workflow.py -->
 - [x] 在 Agent.run() 中添加 token 计数：从 API response 的 usage 字段提取 <!-- files: src/opc/agent.py -->
 - [x] 在 HarnessWorkflow 每阶段结束后记录耗时和 token 到 stage_logs <!-- files: src/opc/workflow.py -->
-- [ ] 实现 generate_run_report()：从 WorkflowState 生成 artifacts/run_report.md <!-- files: src/opc/workflow.py -->
+- [x] 实现 generate_run_report()：从 WorkflowState 生成 artifacts/run_report.md <!-- files: src/opc/workflow.py -->
 
 ## 7. Human Review 体验升级
 
