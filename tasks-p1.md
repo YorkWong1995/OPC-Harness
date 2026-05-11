@@ -19,7 +19,7 @@
 ## 7. Human Review 体验升级
 
 - [x] 重构 review() 方法：支持 y（继续）、n（终止）、r（退回重做）、e（编辑提示）四种输入 <!-- files: src/opc/workflow.py -->
-- [ ] 实现退回重做逻辑：当用户输入 r 时，回到上一阶段重新执行 <!-- files: src/opc/workflow.py -->
+- [x] 实现退回重做逻辑：当用户输入 r 时，回到上一阶段重新执行 <!-- files: src/opc/workflow.py -->
 - [x] 实现编辑提示逻辑：当用户输入 e 时，允许修改当前阶段的输入 prompt 并重新执行 <!-- files: src/opc/workflow.py -->
 - [x] 添加跳过阶段选项 s：允许跳过当前阶段直接进入下一阶段 <!-- files: src/opc/workflow.py -->
 

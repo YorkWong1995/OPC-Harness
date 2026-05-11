@@ -304,6 +304,11 @@ class HarnessWorkflow:
                     stage_idx -= 1
                     console.print(f"[yellow]退回到上一阶段: {prev}[/yellow]")
                 else:
+                    # 第一个阶段无法退回，清除已完成标记后重做当前阶段
+                    cur_state_name = self._stage_to_state_name(current)
+                    if cur_state_name in self.workflow_state.completed_stages:
+                        self.workflow_state.completed_stages.remove(cur_state_name)
+                    self.save_state()
                     console.print("[yellow]已经是第一个阶段，将重做当前阶段。[/yellow]")
             except _StopWorkflow:
                 return
