@@ -1,6 +1,7 @@
 """Harness 工作流状态机：驱动 PM → Engineer → QA 的最小闭环"""
 
 import json
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -118,6 +119,20 @@ class HarnessWorkflow:
         """判断可选角色是否启用。"""
         return role in self.roles
 
+    def _run_stage(self, agent, prompt: str, stage_name: str) -> str:
+        """运行 agent 并记录耗时和 token 到 stage_logs。"""
+        start = time.time()
+        result = agent.run(prompt)
+        duration = time.time() - start
+        input_tokens = getattr(agent, "last_input_tokens", 0)
+        output_tokens = getattr(agent, "last_output_tokens", 0)
+        self.workflow_state.stage_logs[stage_name] = {
+            "input_tokens": int(input_tokens) if isinstance(input_tokens, (int, float)) else 0,
+            "output_tokens": int(output_tokens) if isinstance(output_tokens, (int, float)) else 0,
+            "duration_seconds": round(duration, 2),
+        }
+        return result
+
     def save_state(self):
         """将当前 WorkflowState 序列化为 JSON 写入 artifacts/.opc_state.json"""
         self.workflow_state.current_stage = self.state
@@ -174,7 +189,7 @@ class HarnessWorkflow:
                 pm_input = f"基于以下任务和 Growth 建议产出 PRD：\n\n任务：\n{self.task}\n\nGrowth 建议：\n{growth}"
         elif self.enabled("growth"):
             console.print("\n[bold cyan][Growth][/bold cyan] 正在产出研究建议...")
-            growth = self.growth.run(f"基于以下任务产出 Growth / Research 建议：\n\n{self.task}")
+            growth = self._run_stage(self.growth, f"基于以下任务产出 Growth / Research 建议：\n\n{self.task}", "已调研")
             growth_path = self.store.save("growth.md", growth)
             self.state = "已调研"
             self.workflow_state.completed_stages.append("已调研")
@@ -192,7 +207,7 @@ class HarnessWorkflow:
             console.print("[dim]跳过 PM/PRD 阶段（已完成）[/dim]")
         else:
             console.print("\n[bold cyan][PM][/bold cyan] 正在产出 PRD...")
-            prd = self.pm.run(pm_input)
+            prd = self._run_stage(self.pm, pm_input, "已定义")
             prd_path = self.store.save("prd.md", prd)
             self.state = "已定义"
             self.workflow_state.completed_stages.append("已定义")
@@ -210,7 +225,7 @@ class HarnessWorkflow:
             engineer_input = f"基于以下 PRD 和架构方案完成实现：\n\nPRD:\n{prd}\n\n架构方案:\n{architecture}"
         elif self.enabled("architect"):
             console.print("\n[bold cyan][Architect][/bold cyan] 正在基于 PRD 产出架构方案...")
-            architecture = self.architect.run(f"基于以下 PRD 产出架构方案：\n\n{prd}")
+            architecture = self._run_stage(self.architect, f"基于以下 PRD 产出架构方案：\n\n{prd}", "已设计")
             arch_path = self.store.save("architecture.md", architecture)
             self.state = "已设计"
             self.workflow_state.completed_stages.append("已设计")
@@ -233,7 +248,7 @@ class HarnessWorkflow:
             console.print("[dim]跳过 Engineer 阶段（已完成）[/dim]")
         else:
             console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
-            implementation = self.engineer.run(engineer_input)
+            implementation = self._run_stage(self.engineer, engineer_input, "实现中")
             impl_path = self.store.save("implementation.md", implementation)
             self.state = "实现中"
             self.workflow_state.completed_stages.append("实现中")
@@ -250,8 +265,9 @@ class HarnessWorkflow:
             console.print("[dim]跳过 QA 阶段（已完成）[/dim]")
         else:
             console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
-            acceptance = self.qa.run(
-                f"验证以下实现是否满足 PRD 要求：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}"
+            acceptance = self._run_stage(self.qa,
+                f"验证以下实现是否满足 PRD 要求：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}",
+                "待验收",
             )
             acc_path = self.store.save("acceptance.md", acceptance)
             self.state = "待验收"
@@ -284,8 +300,9 @@ class HarnessWorkflow:
             console.print("[dim]跳过 Ops 阶段（已完成）[/dim]")
         elif self.enabled("ops"):
             console.print("\n[bold cyan][Ops][/bold cyan] 正在进行发布与运行检查...")
-            ops_result = self.ops.run(
-                f"基于以下材料进行发布与运行检查：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}\n\n验收记录:\n{acceptance}"
+            ops_result = self._run_stage(self.ops,
+                f"基于以下材料进行发布与运行检查：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}\n\n验收记录:\n{acceptance}",
+                "已运行检查",
             )
             ops_path = self.store.save("ops.md", ops_result)
             self.state = "已运行检查"
@@ -312,7 +329,7 @@ class HarnessWorkflow:
             )
             if ops_result:
                 retro_input += f"\n\nOps 检查:\n{ops_result[:1000]}"
-            retro = self.pm.run(retro_input)
+            retro = self._run_stage(self.pm, retro_input, "已复盘")
             retro_path = self.store.save("retrospective.md", retro)
             self.state = "已复盘"
             self.workflow_state.completed_stages.append("已复盘")
