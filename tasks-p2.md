@@ -23,7 +23,7 @@
 
 ## 12. 代码分块增强
 
-- [ ] 在 chunker.py 添加 Markdown 按标题层级分块策略 <!-- files: src/opc/knowledge/chunker.py --> <!-- context: 按二级标题 ## 分块，保留标题作为上下文前缀 -->
-- [ ] 在 chunker.py 添加 Python 按函数/类分块策略（基于正则匹配） <!-- files: src/opc/knowledge/chunker.py --> <!-- context: 匹配 def 和 class 定义，将每个函数/类作为独立 chunk -->
-- [ ] 在 chunker.py 添加 JSON/YAML 按顶层 key 分块策略 <!-- files: src/opc/knowledge/chunker.py -->
-- [ ] 在 chunker.py 添加自动格式检测：根据文件扩展名选择分块策略 <!-- files: src/opc/knowledge/chunker.py -->
+- [x] 在 chunker.py 添加 Markdown 按标题层级分块策略 <!-- files: src/opc/knowledge/chunker.py --> <!-- context: 按二级标题 ## 分块，保留标题作为上下文前缀 -->
+- [x] 在 chunker.py 添加 Python 按函数/类分块策略（基于正则匹配） <!-- files: src/opc/knowledge/chunker.py --> <!-- context: 匹配 def 和 class 定义，将每个函数/类作为独立 chunk -->
+- [x] 在 chunker.py 添加 JSON/YAML 按顶层 key 分块策略 <!-- files: src/opc/knowledge/chunker.py -->
+- [x] 在 chunker.py 添加自动格式检测：根据文件扩展名选择分块策略 <!-- files: src/opc/knowledge/chunker.py -->

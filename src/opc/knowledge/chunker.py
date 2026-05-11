@@ -168,12 +168,15 @@ class CodeChunker:
 class DocChunker:
     """按标题/固定窗口分块文档文件"""
 
-    def __init__(self, target_lines: int = 200, overlap: int = 50):
+    def __init__(self, target_lines: int = 200, overlap: int = 50, heading_level: int | None = None):
         self.target_lines = target_lines
         self.overlap = overlap
+        self.heading_level = heading_level
 
     def chunk_file(self, file_path: str, content: str, language: str, source_name: str) -> list[Chunk]:
         if language == "markdown":
+            if self.heading_level == 2:
+                return self._markdown_h2_chunks(file_path, content, language, source_name)
             return self._markdown_chunks(file_path, content, language, source_name)
         elif language == "rst":
             return self._rst_chunks(file_path, content, language, source_name)
@@ -215,6 +218,82 @@ class DocChunker:
                     start_line=start + 1,
                     end_line=end,
                     content="\n".join(section_lines),
+                    language=language,
+                    source_name=source_name,
+                ))
+        return chunks
+
+    def _markdown_h2_chunks(self, file_path: str, content: str, language: str, source_name: str) -> list[Chunk]:
+        """按二级标题 ## 分块，保留最近的一级/二级标题作为上下文前缀"""
+        lines = content.split("\n")
+        # 找到所有 ## 标题行（恰好两个 #，后跟空白）
+        h2_indices = [i for i, line in enumerate(lines) if re.match(r"^##\s", line)]
+        if not h2_indices:
+            return self._window_chunks(file_path, content, language, source_name)
+
+        # 切分边界：从 0 起到每个 ## 行，再到文件末尾
+        boundaries = sorted(set([0] + h2_indices + [len(lines)]))
+        # 跟踪最近的 H1 标题作为上下文
+        current_h1: str | None = None
+        chunks = []
+        for i in range(len(boundaries) - 1):
+            start = boundaries[i]
+            end = boundaries[i + 1]
+            if start >= end:
+                continue
+            section_lines = lines[start:end]
+
+            # 更新最近的 H1（在该段内出现的最后一个一级标题）
+            for line in section_lines:
+                if re.match(r"^#\s", line):
+                    current_h1 = line.strip()
+
+            # 构造上下文前缀：H1（若有） + 当前段的 H2（若该段以 H2 开头）
+            section_h2: str | None = None
+            if section_lines and re.match(r"^##\s", section_lines[0]):
+                section_h2 = section_lines[0].strip()
+            content_text = "\n".join(section_lines)
+            if section_h2 is not None and current_h1:
+                # 段首为 H2，在前面补 H1 上下文
+                content_text = current_h1 + "\n\n" + content_text
+            # 段首为 H1（如文件开头）或无 H1 时，不重复加前缀
+
+            # 超长段落再按窗口切分（窗口块也带前缀）
+            if len(section_lines) > self.target_lines * 1.5:
+                sub_chunks = self._window_chunks(
+                    file_path, "\n".join(section_lines), language, source_name,
+                    line_offset=start,
+                )
+                # 给每个子块加上同样的标题上下文前缀
+                prefix = ""
+                if current_h1 and section_h2:
+                    prefix = current_h1 + "\n\n" + section_h2 + "\n\n"
+                elif current_h1:
+                    prefix = current_h1 + "\n\n"
+                elif section_h2:
+                    prefix = section_h2 + "\n\n"
+                if prefix:
+                    sub_chunks = [
+                        Chunk(
+                            chunk_id=c.chunk_id,
+                            file_path=c.file_path,
+                            start_line=c.start_line,
+                            end_line=c.end_line,
+                            content=prefix + c.content,
+                            language=c.language,
+                            source_name=c.source_name,
+                        )
+                        for c in sub_chunks
+                    ]
+                chunks.extend(sub_chunks)
+            else:
+                chunk_id = f"{file_path}::L{start + 1}-L{end}"
+                chunks.append(Chunk(
+                    chunk_id=chunk_id,
+                    file_path=file_path,
+                    start_line=start + 1,
+                    end_line=end,
+                    content=content_text,
                     language=language,
                     source_name=source_name,
                 ))
@@ -302,9 +381,9 @@ def chunk_file(file_path: str, content: str, source_name: str, **kwargs) -> list
     if language in CODE_LANGUAGES:
         chunker = CodeChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "min_lines", "overlap")})
     elif language in DOC_LANGUAGES:
-        chunker = DocChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "overlap")})
+        chunker = DocChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "overlap", "heading_level")})
     else:
         # 配置文件等：作为整体文本窗口切分
-        chunker = DocChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "overlap")})
+        chunker = DocChunker(**{k: v for k, v in kwargs.items() if k in ("target_lines", "overlap", "heading_level")})
 
     return chunker.chunk_file(file_path, content, language, source_name)
