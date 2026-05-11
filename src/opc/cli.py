@@ -70,6 +70,11 @@ def main():
         default=None,
         help="从指定阶段恢复执行（跳过已完成阶段），如 '已定义'、'实现中'",
     )
+    run_parser.add_argument(
+        "--profile",
+        default=None,
+        help="使用指定的 profile 配置（覆盖 opc.toml 中的默认 profile）",
+    )
 
     # ---- opc index ----
     index_parser = subparsers.add_parser("index", help="构建知识索引")
@@ -143,7 +148,7 @@ def _run_workflow(args):
     else:
         project_dir = Path(".")
 
-    config = load_workflow_config(project_dir)
+    config = load_workflow_config(project_dir, profile=args.profile)
     roles = normalize_roles(config.roles)
 
     if args.ceo_review or config.ceo_review:
