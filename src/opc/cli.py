@@ -163,6 +163,7 @@ def _run_workflow(args):
         auto_confirm=auto_confirm,
         roles=roles,
         model=args.model,
+        profile=config.profile,
     )
     workflow.run(resume_from=args.resume_from)
 

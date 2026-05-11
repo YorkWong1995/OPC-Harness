@@ -168,6 +168,7 @@ class HarnessWorkflow:
         roles: set[str] | None = None,
         model: str | None = None,
         use_embedded_engineer: bool = False,
+        profile: str = "default",
     ):
         self.task = task
         self.project_dir = project_dir.resolve()
@@ -178,6 +179,11 @@ class HarnessWorkflow:
         if ceo_review:
             self.roles.add("ceo")
         if skip_architect:
+            self.roles.discard("architect")
+        self.profile = profile
+        # profile="embedded" 自动启用 embedded_engineer 并跳过 architect
+        if profile == "embedded":
+            use_embedded_engineer = True
             self.roles.discard("architect")
         self.model = model
         self.use_embedded_engineer = use_embedded_engineer
