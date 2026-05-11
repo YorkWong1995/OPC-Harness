@@ -53,6 +53,10 @@ class Agent:
         # 消息缓冲区（用于 Environment 集成）
         self.msg_buffer = MessageQueue()
 
+        # 上一次 run() 累计的 token 用量（跨多轮 tool use 调用累加）
+        self.last_input_tokens = 0
+        self.last_output_tokens = 0
+
         # 初始化 RAG
         if enable_rag and project_dir:
             self.rag = create_rag_for_project(project_dir)
@@ -101,6 +105,10 @@ class Agent:
         return bool(self.msg_buffer)
 
     def run(self, message: str) -> str:
+        # 重置本次 run 的 token 计数
+        self.last_input_tokens = 0
+        self.last_output_tokens = 0
+
         # 如果启用 RAG，先检索相关文档
         if self.rag:
             context = self.rag.get_context(message, max_tokens=2000)
@@ -135,6 +143,12 @@ class Agent:
                 error_msg = f"[{self.role}] 未知错误: {e}"
                 print(error_msg)
                 return error_msg
+
+            # 从 response.usage 提取 token 计数（多轮 tool use 时累加）
+            usage = getattr(response, "usage", None)
+            if usage is not None:
+                self.last_input_tokens += getattr(usage, "input_tokens", 0) or 0
+                self.last_output_tokens += getattr(usage, "output_tokens", 0) or 0
 
             # 收集响应中的内容块
             stop_reason = response.stop_reason
