@@ -28,4 +28,4 @@
 - [x] 在 opc.toml 配置格式中添加 profile 字段支持，在 config.py 中解析 <!-- files: src/opc/config.py -->
 - [x] 在 HarnessWorkflow.__init__ 中根据 profile="embedded" 自动启用 embedded_engineer 和跳过 architect <!-- files: src/opc/workflow.py -->
 - [x] 在 CLI 的 opc run 命令中添加 --profile 选项 <!-- files: src/opc/cli.py -->
-- [ ] 更新 opc.example.toml 添加 profile 配置示例 <!-- files: opc.example.toml -->
+- [x] 更新 opc.example.toml 添加 profile 配置示例 <!-- files: opc.example.toml -->
