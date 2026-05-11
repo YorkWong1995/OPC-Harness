@@ -125,14 +125,52 @@ class HarnessWorkflow:
             encoding="utf-8",
         )
 
-    def run(self):
-        console.print(Panel(f"[bold]任务[/]: {self.task}", title="OPC Harness 工作流启动"))
+    def run(self, resume_from: str | None = None):
+        """运行工作流。
+
+        Args:
+            resume_from: 从指定阶段继续执行，跳过该阶段之前的已完成阶段。
+                         有效值为 STATES 中的状态名，如 "已定义"、"实现中" 等。
+                         为 None 时从头开始执行。
+        """
+        if resume_from:
+            if resume_from not in STATES:
+                raise ValueError(f"无效的阶段名: {resume_from}，有效值: {STATES}")
+            # 从持久化状态恢复
+            self.workflow_state = WorkflowState.load_state(self.store.dir)
+            self.state = self.workflow_state.current_stage
+            console.print(Panel(
+                f"[bold]任务[/]: {self.task}\n[yellow]从阶段 [{resume_from}] 恢复执行[/yellow]",
+                title="OPC Harness 工作流恢复",
+            ))
+        else:
+            console.print(Panel(f"[bold]任务[/]: {self.task}", title="OPC Harness 工作流启动"))
+
+        def should_skip(stage: str) -> bool:
+            """判断是否跳过该阶段（resume_from 模式下，已完成的阶段跳过）"""
+            if not resume_from:
+                return False
+            return stage in self.workflow_state.completed_stages
+
+        def load_artifact(name: str) -> str | None:
+            """从 artifacts 目录加载已有产物内容"""
+            artifact_path = self.workflow_state.artifact_paths.get(name)
+            if artifact_path:
+                p = Path(artifact_path)
+                if p.exists():
+                    return p.read_text(encoding="utf-8")
+            return None
 
         pm_input = self.task
 
         # ---- Step 0: Growth / Research 调研（可选）----
         growth = None
-        if self.enabled("growth"):
+        if self.enabled("growth") and should_skip("已调研"):
+            growth = load_artifact("growth")
+            console.print("[dim]跳过 Growth 阶段（已完成）[/dim]")
+            if growth:
+                pm_input = f"基于以下任务和 Growth 建议产出 PRD：\n\n任务：\n{self.task}\n\nGrowth 建议：\n{growth}"
+        elif self.enabled("growth"):
             console.print("\n[bold cyan][Growth][/bold cyan] 正在产出研究建议...")
             growth = self.growth.run(f"基于以下任务产出 Growth / Research 建议：\n\n{self.task}")
             growth_path = self.store.save("growth.md", growth)
@@ -147,20 +185,28 @@ class HarnessWorkflow:
             pm_input = f"基于以下任务和 Growth 建议产出 PRD：\n\n任务：\n{self.task}\n\nGrowth 建议：\n{growth}"
 
         # ---- Step 1: PM 产出 PRD ----
-        console.print("\n[bold cyan][PM][/bold cyan] 正在产出 PRD...")
-        prd = self.pm.run(pm_input)
-        prd_path = self.store.save("prd.md", prd)
-        self.state = "已定义"
-        self.workflow_state.completed_stages.append("已定义")
-        self.workflow_state.artifact_paths["prd"] = str(prd_path)
-        self.save_state()
-        console.print(f"[green]PRD 已保存[/]: {prd_path}")
-        console.print(Panel(prd[:800] + ("..." if len(prd) > 800 else ""), title="PRD 预览"))
-        if not self.review("PM 已产出 PRD，是否继续？", prd):
-            return
+        if should_skip("已定义"):
+            prd = load_artifact("prd") or ""
+            console.print("[dim]跳过 PM/PRD 阶段（已完成）[/dim]")
+        else:
+            console.print("\n[bold cyan][PM][/bold cyan] 正在产出 PRD...")
+            prd = self.pm.run(pm_input)
+            prd_path = self.store.save("prd.md", prd)
+            self.state = "已定义"
+            self.workflow_state.completed_stages.append("已定义")
+            self.workflow_state.artifact_paths["prd"] = str(prd_path)
+            self.save_state()
+            console.print(f"[green]PRD 已保存[/]: {prd_path}")
+            console.print(Panel(prd[:800] + ("..." if len(prd) > 800 else ""), title="PRD 预览"))
+            if not self.review("PM 已产出 PRD，是否继续？", prd):
+                return
 
         # ---- Step 2: Architect 产出架构方案（可选）----
-        if self.enabled("architect"):
+        if self.enabled("architect") and should_skip("已设计"):
+            architecture = load_artifact("architecture") or ""
+            console.print("[dim]跳过 Architect 阶段（已完成）[/dim]")
+            engineer_input = f"基于以下 PRD 和架构方案完成实现：\n\nPRD:\n{prd}\n\n架构方案:\n{architecture}"
+        elif self.enabled("architect"):
             console.print("\n[bold cyan][Architect][/bold cyan] 正在基于 PRD 产出架构方案...")
             architecture = self.architect.run(f"基于以下 PRD 产出架构方案：\n\n{prd}")
             arch_path = self.store.save("architecture.md", architecture)
@@ -180,47 +226,61 @@ class HarnessWorkflow:
             engineer_input = f"基于以下 PRD 完成实现：\n\n{prd}"
 
         # ---- Step 3: Engineer 实现 ----
-        console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
-        implementation = self.engineer.run(engineer_input)
-        impl_path = self.store.save("implementation.md", implementation)
-        self.state = "实现中"
-        self.workflow_state.completed_stages.append("实现中")
-        self.workflow_state.artifact_paths["implementation"] = str(impl_path)
-        self.save_state()
-        console.print(f"[green]实现说明已保存[/]: {impl_path}")
-        console.print(Panel(implementation[:800] + ("..." if len(implementation) > 800 else ""), title="实现说明预览"))
-        if not self.review("Engineer 已完成实现，是否继续让 QA 验收？", implementation):
-            return
+        if should_skip("实现中"):
+            implementation = load_artifact("implementation") or ""
+            console.print("[dim]跳过 Engineer 阶段（已完成）[/dim]")
+        else:
+            console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
+            implementation = self.engineer.run(engineer_input)
+            impl_path = self.store.save("implementation.md", implementation)
+            self.state = "实现中"
+            self.workflow_state.completed_stages.append("实现中")
+            self.workflow_state.artifact_paths["implementation"] = str(impl_path)
+            self.save_state()
+            console.print(f"[green]实现说明已保存[/]: {impl_path}")
+            console.print(Panel(implementation[:800] + ("..." if len(implementation) > 800 else ""), title="实现说明预览"))
+            if not self.review("Engineer 已完成实现，是否继续让 QA 验收？", implementation):
+                return
 
         # ---- Step 4: QA 验收 ----
-        console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
-        acceptance = self.qa.run(
-            f"验证以下实现是否满足 PRD 要求：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}"
-        )
-        acc_path = self.store.save("acceptance.md", acceptance)
-        self.state = "待验收"
-        self.workflow_state.completed_stages.append("待验收")
-        self.workflow_state.artifact_paths["acceptance"] = str(acc_path)
-        self.save_state()
-        console.print(f"[green]验收记录已保存[/]: {acc_path}")
-        console.print(Panel(acceptance[:800] + ("..." if len(acceptance) > 800 else ""), title="验收记录预览"))
+        if should_skip("待验收"):
+            acceptance = load_artifact("acceptance") or ""
+            console.print("[dim]跳过 QA 阶段（已完成）[/dim]")
+        else:
+            console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
+            acceptance = self.qa.run(
+                f"验证以下实现是否满足 PRD 要求：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}"
+            )
+            acc_path = self.store.save("acceptance.md", acceptance)
+            self.state = "待验收"
+            self.workflow_state.completed_stages.append("待验收")
+            self.workflow_state.artifact_paths["acceptance"] = str(acc_path)
+            self.save_state()
+            console.print(f"[green]验收记录已保存[/]: {acc_path}")
+            console.print(Panel(acceptance[:800] + ("..." if len(acceptance) > 800 else ""), title="验收记录预览"))
 
         # ---- Step 5: 判断验收结果 ----
-        if "不通过" in acceptance:
-            self.state = "已退回"
-            self.workflow_state.completed_stages.append("已退回")
-            self.save_state()
-            console.print("\n[bold red]QA 验收未通过[/]，工作流暂停。请查看 acceptance.md 了解原因。")
-            return
+        if should_skip("已通过"):
+            console.print("[dim]跳过验收判断阶段（已完成）[/dim]")
+        else:
+            if "不通过" in acceptance:
+                self.state = "已退回"
+                self.workflow_state.completed_stages.append("已退回")
+                self.save_state()
+                console.print("\n[bold red]QA 验收未通过[/]，工作流暂停。请查看 acceptance.md 了解原因。")
+                return
 
-        self.state = "已通过"
-        self.workflow_state.completed_stages.append("已通过")
-        self.save_state()
-        console.print("\n[bold green]QA 验收通过[/]")
+            self.state = "已通过"
+            self.workflow_state.completed_stages.append("已通过")
+            self.save_state()
+            console.print("\n[bold green]QA 验收通过[/]")
 
         # ---- Step 6: Ops / Release 检查（可选）----
         ops_result = None
-        if self.enabled("ops"):
+        if self.enabled("ops") and should_skip("已运行检查"):
+            ops_result = load_artifact("ops")
+            console.print("[dim]跳过 Ops 阶段（已完成）[/dim]")
+        elif self.enabled("ops"):
             console.print("\n[bold cyan][Ops][/bold cyan] 正在进行发布与运行检查...")
             ops_result = self.ops.run(
                 f"基于以下材料进行发布与运行检查：\n\nPRD:\n{prd}\n\n实现说明:\n{implementation}\n\n验收记录:\n{acceptance}"
@@ -238,23 +298,26 @@ class HarnessWorkflow:
             return
 
         # ---- Step 7: 复盘 ----
-        console.print("\n[bold cyan][PM][/bold cyan] 正在进行复盘...")
-        retro_input = (
-            f"{RETROSPECTIVE_PROMPT}\n\n"
-            f"任务: {self.task}\n\n"
-            f"PRD摘要:\n{prd[:1000]}\n\n"
-            f"验收结论:\n{acceptance[:1000]}"
-        )
-        if ops_result:
-            retro_input += f"\n\nOps 检查:\n{ops_result[:1000]}"
-        retro = self.pm.run(retro_input)
-        retro_path = self.store.save("retrospective.md", retro)
-        self.state = "已复盘"
-        self.workflow_state.completed_stages.append("已复盘")
-        self.workflow_state.artifact_paths["retrospective"] = str(retro_path)
-        self.save_state()
-        console.print(f"[green]复盘记录已保存[/]: {retro_path}")
-        console.print(Panel(retro[:800] + ("..." if len(retro) > 800 else ""), title="复盘记录预览"))
+        if should_skip("已复盘"):
+            console.print("[dim]跳过复盘阶段（已完成）[/dim]")
+        else:
+            console.print("\n[bold cyan][PM][/bold cyan] 正在进行复盘...")
+            retro_input = (
+                f"{RETROSPECTIVE_PROMPT}\n\n"
+                f"任务: {self.task}\n\n"
+                f"PRD摘要:\n{prd[:1000]}\n\n"
+                f"验收结论:\n{acceptance[:1000]}"
+            )
+            if ops_result:
+                retro_input += f"\n\nOps 检查:\n{ops_result[:1000]}"
+            retro = self.pm.run(retro_input)
+            retro_path = self.store.save("retrospective.md", retro)
+            self.state = "已复盘"
+            self.workflow_state.completed_stages.append("已复盘")
+            self.workflow_state.artifact_paths["retrospective"] = str(retro_path)
+            self.save_state()
+            console.print(f"[green]复盘记录已保存[/]: {retro_path}")
+            console.print(Panel(retro[:800] + ("..." if len(retro) > 800 else ""), title="复盘记录预览"))
 
         console.print("\n[bold green]工作流完成！[/] 所有产物已保存到 artifacts/ 目录。")
 
