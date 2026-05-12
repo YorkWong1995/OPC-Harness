@@ -8,6 +8,7 @@
 
 from typing import Dict, List, Optional, Set
 from pathlib import Path
+import asyncio
 
 from .schema import Message, MessageQueue
 from .agent import Agent
@@ -72,6 +73,18 @@ class Environment:
                 if self._is_subscribed(role_name, message):
                     self._deliver_message(role_name, message)
 
+    async def publish_async(self, message: Message):
+        """异步发布消息，并并行投递给订阅角色。"""
+        self.message_history.append(message)
+        print(f"[Environment] 异步发布消息: [{message.role}] -> {message.send_to or 'all'}")
+
+        tasks = []
+        for role_name in self.roles:
+            if message.is_sent_to(role_name) and self._is_subscribed(role_name, message):
+                tasks.append(self._deliver_message_async(role_name, message))
+        if tasks:
+            await asyncio.gather(*tasks)
+
     def _is_subscribed(self, role_name: str, message: Message) -> bool:
         """检查角色是否订阅了该消息"""
         subscriptions = self._subscriptions.get(role_name, set())
@@ -96,6 +109,25 @@ class Environment:
         if hasattr(agent, "receive"):
             agent.receive(message)
             print(f"[Environment]   -> 投递给 {role_name}")
+
+    async def _deliver_message_async(self, role_name: str, message: Message):
+        """异步将消息投递给角色。"""
+        agent = self.roles[role_name]
+        if hasattr(agent, "receive"):
+            await asyncio.to_thread(agent.receive, message)
+            print(f"[Environment]   -> 异步投递给 {role_name}")
+
+    async def dispatch_pending(self) -> dict[str, list[str]]:
+        """并行驱动所有有待处理消息的 Agent。"""
+        tasks = {
+            role_name: agent.observe_think_act()
+            for role_name, agent in self.roles.items()
+            if hasattr(agent, "observe_think_act") and agent.has_pending_messages()
+        }
+        if not tasks:
+            return {}
+        results = await asyncio.gather(*tasks.values())
+        return dict(zip(tasks.keys(), results))
 
     def get_history(self, role: Optional[str] = None, limit: int = 100) -> List[Message]:
         """获取消息历史

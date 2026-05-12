@@ -15,6 +15,7 @@ import anthropic
 
 from .rag import SimpleRAG, create_rag_for_project
 from .schema import Message, MessageQueue
+from .tools.tool_registry import get_tool, list_tool_schemas, load_plugin_tools
 
 # 重试配置：遇到上游波动时等待并重试
 RETRY_MAX_ATTEMPTS = int(os.environ.get("OPC_RETRY_MAX", "3"))
@@ -56,10 +57,13 @@ class Agent:
         # 上一次 run() 累计的 token 用量（跨多轮 tool use 调用累加）
         self.last_input_tokens = 0
         self.last_output_tokens = 0
+        self.last_tool_calls = 0
 
         # 初始化 RAG
         if enable_rag and project_dir:
             self.rag = create_rag_for_project(project_dir)
+
+        load_plugin_tools(project_dir)
 
         # 支持中转地址：若设置了 ANTHROPIC_BASE_URL 则使用自定义端点
         base_url = os.environ.get("ANTHROPIC_BASE_URL")
@@ -104,10 +108,23 @@ class Agent:
         """检查是否有待处理的消息"""
         return bool(self.msg_buffer)
 
+    async def observe_think_act(self, stop_event: asyncio.Event | None = None) -> list[str]:
+        """持续处理消息缓冲区，直到空闲或收到停止信号。"""
+        results: list[str] = []
+        while self.has_pending_messages():
+            if stop_event and stop_event.is_set():
+                break
+            messages = self.msg_buffer.pop_all()
+            prompt = "\n\n".join(f"[{msg.role}] {msg.content}" for msg in messages)
+            result = await asyncio.to_thread(self.run, prompt)
+            results.append(result)
+        return results
+
     def run(self, message: str) -> str:
         # 重置本次 run 的 token 计数
         self.last_input_tokens = 0
         self.last_output_tokens = 0
+        self.last_tool_calls = 0
 
         # 如果启用 RAG，先检索相关文档
         if self.rag:
@@ -165,6 +182,7 @@ class Agent:
                 tool_results = []
                 for block in assistant_content:
                     if block.type == "tool_use":
+                        self.last_tool_calls += 1
                         result = self._execute_tool(block.name, block.input)
                         tool_results.append({
                             "type": "tool_result",
@@ -186,18 +204,13 @@ class Agent:
         return "\n".join(parts)
 
     def _execute_tool(self, name: str, inputs: dict) -> str:
-        dispatch = {
-            "read_file": self._tool_read_file,
-            "write_file": self._tool_write_file,
-            "edit_file": self._tool_edit_file,
-            "list_files": self._tool_list_files,
-            "grep": self._tool_grep,
-            "search_knowledge": self._tool_search_knowledge,
-            "run_command": self._tool_run_command,
-        }
-        handler = dispatch.get(name)
-        if not handler:
+        definition = get_tool(name)
+        if not definition:
             return f"错误：未知工具 {name}"
+        if definition.handler_name:
+            handler = getattr(self, definition.handler_name)
+        else:
+            handler = definition.handler
 
         # 日志：工具调用开始
         print(f"[DEBUG][{self.role}] 执行工具: {name}")
@@ -514,125 +527,7 @@ class Agent:
 
 # ---- 工具定义（Claude tool use 格式） ----
 
-TOOLS_READ_WRITE = [
-    {
-        "name": "read_file",
-        "description": "读取项目中的文件内容",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "相对于项目根目录的文件路径"},
-            },
-            "required": ["path"],
-        },
-    },
-    {
-        "name": "write_file",
-        "description": "创建或修改项目中的文件（完整覆盖）",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "相对于项目根目录的文件路径"},
-                "content": {"type": "string", "description": "要写入的文件内容"},
-            },
-            "required": ["path", "content"],
-        },
-    },
-    {
-        "name": "edit_file",
-        "description": "编辑文件：用 new_string 替换 old_string（diff 模式，节省 token）。优先使用此工具而非 write_file。",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "相对于项目根目录的文件路径"},
-                "old_string": {"type": "string", "description": "要替换的原始字符串（必须在文件中存在）"},
-                "new_string": {"type": "string", "description": "替换后的新字符串"},
-                "replace_all": {
-                    "type": "boolean",
-                    "description": "是否替换所有匹配项（默认 false，只替换第一个）",
-                    "default": False,
-                },
-            },
-            "required": ["path", "old_string", "new_string"],
-        },
-    },
-    {
-        "name": "list_files",
-        "description": "列出项目中的文件",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pattern": {
-                    "type": "string",
-                    "description": "glob 模式，默认 **/*",
-                    "default": "**/*",
-                },
-            },
-        },
-    },
-    {
-        "name": "grep",
-        "description": "搜索文件内容：支持正则表达式，优先使用 ripgrep（快速），回退到 Python re",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pattern": {"type": "string", "description": "正则表达式搜索模式"},
-                "file_glob": {
-                    "type": "string",
-                    "description": "文件过滤 glob 模式，默认 **/*",
-                    "default": "**/*",
-                },
-                "case_sensitive": {
-                    "type": "boolean",
-                    "description": "是否区分大小写，默认 true",
-                    "default": True,
-                },
-                "limit": {
-                    "type": "integer",
-                    "description": "最大返回结果数，默认 200",
-                    "default": 200,
-                },
-            },
-            "required": ["pattern"],
-        },
-    },
-    {
-        "name": "search_knowledge",
-        "description": "查询项目知识库，返回与问题相关的文档或代码片段及来源位置。",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "要检索的问题或关键词"},
-                "top_k": {
-                    "type": "integer",
-                    "description": "返回结果数，默认 5",
-                    "default": 5,
-                },
-                "index_name": {
-                    "type": "string",
-                    "description": "可选索引名称；默认使用当前项目目录名",
-                },
-            },
-            "required": ["query"],
-        },
-    },
-    {
-        "name": "run_command",
-        "description": "在项目目录中执行终端命令（仅限白名单命令：python, pip, npm, node, git, pytest, eslint, npx, cargo, go）。支持交互式命令检测。",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "要执行的命令"},
-                "timeout": {
-                    "type": "integer",
-                    "description": "超时时间（秒），默认 300",
-                    "default": 300,
-                },
-            },
-            "required": ["command"],
-        },
-    },
-]
+TOOLS_READ_WRITE = list_tool_schemas()
 
 TOOLS_READ_ONLY = [
     tool for tool in TOOLS_READ_WRITE if tool["name"] in {"read_file", "list_files", "grep", "search_knowledge"}

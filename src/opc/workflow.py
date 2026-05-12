@@ -1,5 +1,6 @@
 """Harness 工作流状态机：驱动 PM → Engineer → QA 的最小闭环"""
 
+import asyncio
 import json
 import time
 from dataclasses import asdict, dataclass, field
@@ -43,7 +44,7 @@ class WorkflowState:
     completed_stages: list[str] = field(default_factory=list)
     artifact_paths: dict[str, str] = field(default_factory=dict)
     task_description: str = ""
-    # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 input_tokens / output_tokens / duration_seconds
+    # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 input_tokens / output_tokens / duration_seconds / tool_calls
     stage_logs: dict[str, dict] = field(default_factory=dict)
 
     @classmethod
@@ -137,6 +138,34 @@ def generate_run_report(state: WorkflowState, artifacts_dir: Path) -> Path:
     return report_path
 
 
+def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
+    """生成 artifacts/run_metrics.json。"""
+    totals = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "duration_seconds": 0.0,
+        "tool_calls": 0,
+    }
+    for log in state.stage_logs.values():
+        totals["input_tokens"] += int(log.get("input_tokens", 0) or 0)
+        totals["output_tokens"] += int(log.get("output_tokens", 0) or 0)
+        totals["duration_seconds"] += float(log.get("duration_seconds", 0) or 0)
+        totals["tool_calls"] += int(log.get("tool_calls", 0) or 0)
+    totals["duration_seconds"] = round(totals["duration_seconds"], 2)
+
+    metrics = {
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "task_description": state.task_description,
+        "current_stage": state.current_stage,
+        "stages": state.stage_logs,
+        "totals": totals,
+        "artifacts": state.artifact_paths,
+    }
+    metrics_path = artifacts_dir / "run_metrics.json"
+    metrics_path.write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
+    return metrics_path
+
+
 # 状态流转（参照 plan.md 9.4节）
 STATES = [
     "待澄清",
@@ -211,17 +240,31 @@ class HarnessWorkflow:
 
     def _run_stage(self, agent, prompt: str, stage_name: str) -> str:
         """运行 agent 并记录耗时和 token 到 stage_logs。"""
-        start = time.time()
+        start = time.monotonic()
         result = agent.run(prompt)
-        duration = time.time() - start
+        duration = time.monotonic() - start
+        self._record_stage_metrics(agent, stage_name, duration)
+        return result
+
+    def _record_stage_metrics(self, agent, stage_name: str, duration: float):
         input_tokens = getattr(agent, "last_input_tokens", 0)
         output_tokens = getattr(agent, "last_output_tokens", 0)
+        tool_calls = getattr(agent, "last_tool_calls", 0)
         self.workflow_state.stage_logs[stage_name] = {
             "input_tokens": int(input_tokens) if isinstance(input_tokens, (int, float)) else 0,
             "output_tokens": int(output_tokens) if isinstance(output_tokens, (int, float)) else 0,
             "duration_seconds": round(duration, 2),
+            "tool_calls": int(tool_calls) if isinstance(tool_calls, (int, float)) else 0,
         }
-        return result
+
+    async def _run_stages_parallel(self, stage_specs: list[tuple[object, str, str]]) -> list[str]:
+        async def run_one(agent, prompt: str, stage_name: str) -> str:
+            start = time.monotonic()
+            result = await asyncio.to_thread(agent.run, prompt)
+            self._record_stage_metrics(agent, stage_name, time.monotonic() - start)
+            return result
+
+        return await asyncio.gather(*(run_one(*spec) for spec in stage_specs))
 
     def save_state(self):
         """将当前 WorkflowState 序列化为 JSON 写入 artifacts/.opc_state.json"""
@@ -273,11 +316,14 @@ class HarnessWorkflow:
 
         # 构建活跃阶段列表
         active_stages: list[str] = []
-        if self.enabled("growth"):
-            active_stages.append("growth")
-        active_stages.append("pm")
-        if self.enabled("architect"):
-            active_stages.append("architect")
+        if self.enabled("growth") and self.enabled("architect"):
+            active_stages.extend(["pm", "growth_architect"])
+        else:
+            if self.enabled("growth"):
+                active_stages.append("growth")
+            active_stages.append("pm")
+            if self.enabled("architect"):
+                active_stages.append("architect")
         active_stages.append("engineer")
         active_stages.append("qa")
         if self.enabled("ops"):
@@ -314,6 +360,7 @@ class HarnessWorkflow:
                 return
 
         console.print("\n[bold green]工作流完成！[/] 所有产物已保存到 artifacts/ 目录。")
+        generate_metrics(self.workflow_state, self.store.dir)
 
     @staticmethod
     def _stage_to_state_name(stage: str) -> str:
@@ -321,6 +368,7 @@ class HarnessWorkflow:
         mapping = {
             "growth": "已调研",
             "pm": "已定义",
+            "growth_architect": "已设计",
             "architect": "已设计",
             "engineer": "实现中",
             "qa": "待验收",
@@ -335,6 +383,8 @@ class HarnessWorkflow:
             self._exec_growth(outputs, should_skip, load_artifact)
         elif stage == "pm":
             self._exec_pm(outputs, should_skip, load_artifact)
+        elif stage == "growth_architect":
+            self._exec_growth_architect_parallel(outputs, should_skip, load_artifact)
         elif stage == "architect":
             self._exec_architect(outputs, should_skip, load_artifact)
         elif stage == "engineer":
@@ -345,6 +395,54 @@ class HarnessWorkflow:
             self._exec_ops(outputs, should_skip, load_artifact)
         elif stage == "retro":
             self._exec_retro(outputs, should_skip, load_artifact)
+
+    def _exec_growth_architect_parallel(self, outputs, should_skip, load_artifact):
+        """并行执行 Growth 与 Architect 阶段。"""
+        skip_growth = should_skip("已调研")
+        skip_architect = should_skip("已设计")
+        if skip_growth:
+            outputs["growth"] = load_artifact("growth") or ""
+        if skip_architect:
+            outputs["architecture"] = load_artifact("architecture") or ""
+        if skip_growth and skip_architect:
+            console.print("[dim]跳过 Growth/Architect 并行阶段（已完成）[/dim]")
+            return
+
+        growth_prompt = f"基于以下任务产出 Growth / Research 建议：\n\n{self.task}"
+        arch_prompt = f"基于以下 PRD 产出架构方案：\n\n{outputs['prd']}"
+        specs = []
+        if not skip_growth:
+            specs.append((self.growth, growth_prompt, "已调研"))
+        if not skip_architect:
+            specs.append((self.architect, arch_prompt, "已设计"))
+
+        console.print("\n[bold cyan][Growth/Architect][/bold cyan] 正在并行产出研究建议与架构方案...")
+        results = asyncio.run(self._run_stages_parallel(specs))
+        result_idx = 0
+        if not skip_growth:
+            growth = results[result_idx]
+            result_idx += 1
+            growth_path = self.store.save("growth.md", growth)
+            outputs["growth"] = growth
+            if "已调研" not in self.workflow_state.completed_stages:
+                self.workflow_state.completed_stages.append("已调研")
+            self.workflow_state.artifact_paths["growth"] = str(growth_path)
+            console.print(f"[green]研究建议已保存[/]: {growth_path}")
+        if not skip_architect:
+            architecture = results[result_idx]
+            arch_path = self.store.save("architecture.md", architecture)
+            outputs["architecture"] = architecture
+            if "已设计" not in self.workflow_state.completed_stages:
+                self.workflow_state.completed_stages.append("已设计")
+            self.workflow_state.artifact_paths["architecture"] = str(arch_path)
+            console.print(f"[green]架构说明已保存[/]: {arch_path}")
+        self.state = "已设计"
+        self.save_state()
+        decision = self.review("Growth 与 Architect 已并行产出，是否继续让 Engineer 实现？", outputs["architecture"], arch_prompt)
+        if decision == "n":
+            raise _StopWorkflow()
+        if decision == "r":
+            raise _GoBack()
 
     def _exec_growth(self, outputs, should_skip, load_artifact):
         """Growth / Research 阶段。"""

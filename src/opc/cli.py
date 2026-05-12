@@ -100,6 +100,11 @@ def main():
     del_parser = subparsers.add_parser("index-delete", help="删除索引")
     del_parser.add_argument("--name", required=True, help="索引名称")
 
+    # ---- opc ui ----
+    ui_parser = subparsers.add_parser("ui", help="启动 Streamlit 可视化控制台")
+    ui_parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认 127.0.0.1）")
+    ui_parser.add_argument("--port", type=int, default=8501, help="监听端口（默认 8501）")
+
     args = parser.parse_args()
 
     if args.command == "run":
@@ -112,6 +117,8 @@ def main():
         _run_index_list(args)
     elif args.command == "index-delete":
         _run_index_delete(args)
+    elif args.command == "ui":
+        _run_ui(args)
     else:
         parser.print_help()
 
@@ -356,6 +363,27 @@ def _run_index_delete(args):
     # 删除索引目录
     shutil.rmtree(index_root, ignore_errors=True)
     console.print(f"[green]索引 '{args.name}' 已删除[/green]")
+
+
+# ---- opc ui ----
+
+def _run_ui(args):
+    streamlit = shutil.which("streamlit")
+    if streamlit is None:
+        console.print("[red]错误：Streamlit 未安装。请先运行 pip install -e .[/red]")
+        return
+    ui_path = Path(__file__).resolve().parent / "ui.py"
+    os.execv(streamlit, [
+        streamlit,
+        "run",
+        str(ui_path),
+        "--server.address",
+        args.host,
+        "--server.port",
+        str(args.port),
+        "--server.headless",
+        "true",
+    ])
 
 
 if __name__ == "__main__":
