@@ -61,6 +61,7 @@ class Environment:
         1. 记录到历史
         2. 路由到订阅的角色
         """
+        message.validate_route(self._known_route_roles())
         # 记录到历史
         self.message_history.append(message)
         print(f"[Environment] 发布消息: [{message.role}] -> {message.send_to or 'all'}")
@@ -75,6 +76,7 @@ class Environment:
 
     async def publish_async(self, message: Message):
         """异步发布消息，并并行投递给订阅角色。"""
+        message.validate_route(self._known_route_roles())
         self.message_history.append(message)
         print(f"[Environment] 异步发布消息: [{message.role}] -> {message.send_to or 'all'}")
 
@@ -84,6 +86,9 @@ class Environment:
                 tasks.append(self._deliver_message_async(role_name, message))
         if tasks:
             await asyncio.gather(*tasks)
+
+    def _known_route_roles(self) -> set[str]:
+        return set(self.roles) | {"all", "system"}
 
     def _is_subscribed(self, role_name: str, message: Message) -> bool:
         """检查角色是否订阅了该消息"""
