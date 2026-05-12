@@ -21,6 +21,9 @@ from .roles import (
     create_growth_agent,
     RETROSPECTIVE_PROMPT,
 )
+from .config import load_workflow_config
+from .run_store import RunStore
+from .schema import QAOutput, parse_role_output
 from .store import Store
 
 console = Console()
@@ -44,6 +47,8 @@ class WorkflowState:
     completed_stages: list[str] = field(default_factory=list)
     artifact_paths: dict[str, str] = field(default_factory=dict)
     task_description: str = ""
+    run_id: str = ""
+    rework_attempts: int = 0
     # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 input_tokens / output_tokens / duration_seconds / tool_calls
     stage_logs: dict[str, dict] = field(default_factory=dict)
 
@@ -217,7 +222,11 @@ class HarnessWorkflow:
         self.model = model
         self.use_embedded_engineer = use_embedded_engineer
 
-        self.workflow_state = WorkflowState(task_description=task)
+        self.workflow_config = load_workflow_config(self.project_dir, profile)
+        self.max_rework_attempts = self.workflow_config.max_rework_attempts
+        self.max_rounds = self.workflow_config.max_rounds
+        self.run_store = RunStore(self.store.dir)
+        self.workflow_state = WorkflowState(task_description=task, run_id=self.run_store.run_id)
         self.last_edited_prompt: str = ""
 
         self.pm = create_pm_agent(model=model)
@@ -240,10 +249,21 @@ class HarnessWorkflow:
 
     def _run_stage(self, agent, prompt: str, stage_name: str) -> str:
         """运行 agent 并记录耗时和 token 到 stage_logs。"""
+        self.run_store.append("stage_started", stage=stage_name, role=getattr(agent, "role", stage_name), prompt=prompt)
         start = time.monotonic()
         result = agent.run(prompt)
         duration = time.monotonic() - start
         self._record_stage_metrics(agent, stage_name, duration)
+        self.run_store.append(
+            "stage_completed",
+            stage=stage_name,
+            role=getattr(agent, "role", stage_name),
+            duration_seconds=round(duration, 2),
+            input_tokens=getattr(agent, "last_input_tokens", 0),
+            output_tokens=getattr(agent, "last_output_tokens", 0),
+            tool_calls=getattr(agent, "last_tool_calls", 0),
+            output=result,
+        )
         return result
 
     def _record_stage_metrics(self, agent, stage_name: str, duration: float):
@@ -269,6 +289,8 @@ class HarnessWorkflow:
     def save_state(self):
         """将当前 WorkflowState 序列化为 JSON 写入 artifacts/.opc_state.json"""
         self.workflow_state.current_stage = self.state
+        if not self.workflow_state.run_id:
+            self.workflow_state.run_id = self.run_store.run_id
         state_path = self.store.dir / ".opc_state.json"
         state_path.write_text(
             json.dumps(asdict(self.workflow_state), ensure_ascii=False, indent=2),
@@ -289,6 +311,7 @@ class HarnessWorkflow:
             # 从持久化状态恢复
             self.workflow_state = WorkflowState.load_state(self.store.dir)
             self.state = self.workflow_state.current_stage
+            self.run_store = RunStore(self.store.dir, self.workflow_state.run_id or None)
             console.print(Panel(
                 f"[bold]任务[/]: {self.task}\n[yellow]从阶段 [{resume_from}] 恢复执行[/yellow]",
                 title="OPC Harness 工作流恢复",
@@ -331,7 +354,14 @@ class HarnessWorkflow:
         active_stages.append("retro")
 
         stage_idx = 0
+        rounds = 0
         while stage_idx < len(active_stages):
+            rounds += 1
+            if rounds > self.max_rounds:
+                self.state = "已退回"
+                self.run_store.append("workflow_stopped", reason="max_rounds_exceeded", max_rounds=self.max_rounds)
+                self.save_state()
+                return
             current = active_stages[stage_idx]
             try:
                 self._run_stage_by_name(current, outputs, should_skip, load_artifact)
@@ -360,7 +390,9 @@ class HarnessWorkflow:
                 return
 
         console.print("\n[bold green]工作流完成！[/] 所有产物已保存到 artifacts/ 目录。")
-        generate_metrics(self.workflow_state, self.store.dir)
+        metrics_path = generate_metrics(self.workflow_state, self.store.dir)
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        self.run_store.write_trace(final_status=self.state, metrics=metrics)
 
     @staticmethod
     def _stage_to_state_name(stage: str) -> str:
@@ -488,6 +520,7 @@ class HarnessWorkflow:
             console.print("\n[bold cyan][PM][/bold cyan] 正在产出 PRD...")
             prd = self._run_stage(self.pm, prd_prompt, "已定义")
             prd_path = self.store.save("prd.md", prd)
+            self._parse_role_output("pm", prd)
             self.state = "已定义"
             if "已定义" not in self.workflow_state.completed_stages:
                 self.workflow_state.completed_stages.append("已定义")
@@ -552,6 +585,7 @@ class HarnessWorkflow:
             console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
             implementation = self._run_stage(self.engineer, eng_prompt, "实现中")
             impl_path = self.store.save("implementation.md", implementation)
+            self._parse_role_output("engineer", implementation)
             self.state = "实现中"
             if "实现中" not in self.workflow_state.completed_stages:
                 self.workflow_state.completed_stages.append("实现中")
@@ -591,13 +625,24 @@ class HarnessWorkflow:
         console.print(Panel(acceptance[:800] + ("..." if len(acceptance) > 800 else ""), title="验收记录预览"))
 
         # 判断验收结果
-        if "不通过" in acceptance:
+        qa_output = self._parse_role_output("qa", acceptance)
+        qa_failed = qa_output.status == "fail" if isinstance(qa_output, QAOutput) else "不通过" in acceptance
+        if qa_failed:
+            self.workflow_state.rework_attempts += 1
             self.state = "已退回"
             if "已退回" not in self.workflow_state.completed_stages:
                 self.workflow_state.completed_stages.append("已退回")
+            self.run_store.append(
+                "qa_failed",
+                rework_attempts=self.workflow_state.rework_attempts,
+                defects=qa_output.defects if isinstance(qa_output, QAOutput) else [acceptance],
+            )
             self.save_state()
-            console.print("\n[bold red]QA 验收未通过[/]，工作流暂停。请查看 acceptance.md 了解原因。")
-            raise _StopWorkflow()
+            if self.workflow_state.rework_attempts > self.max_rework_attempts:
+                console.print("\n[bold red]QA 验收未通过且超过最大返工次数[/]，工作流暂停。")
+                raise _StopWorkflow()
+            outputs["implementation"] = self._run_rework(outputs, acceptance)
+            return self._exec_qa(outputs, should_skip, load_artifact)
 
         self.state = "已通过"
         if "已通过" not in self.workflow_state.completed_stages:
@@ -605,6 +650,29 @@ class HarnessWorkflow:
         self.save_state()
         console.print("\n[bold green]QA 验收通过[/]")
         outputs["acceptance"] = acceptance
+
+    def _run_rework(self, outputs: dict, acceptance: str) -> str:
+        rework_prompt = (
+            "QA 验收未通过，请根据缺陷修正实现并输出新的实现说明：\n\n"
+            f"PRD:\n{outputs['prd']}\n\n上一轮实现说明:\n{outputs['implementation']}\n\nQA 缺陷:\n{acceptance}"
+        )
+        console.print("\n[bold cyan][Engineer][/bold cyan] 正在根据 QA 缺陷返工...")
+        implementation = self._run_stage(self.engineer, rework_prompt, "实现中")
+        impl_path = self.store.save("implementation.md", implementation)
+        self._parse_role_output("engineer", implementation)
+        self.workflow_state.artifact_paths["implementation"] = str(impl_path)
+        self.state = "实现中"
+        self.save_state()
+        return implementation
+
+    def _parse_role_output(self, role: str, content: str):
+        try:
+            parsed = parse_role_output(role, content)
+            self.run_store.append("role_output_validated", role=role)
+            return parsed
+        except Exception as error:
+            self.run_store.append("role_output_validation_failed", role=role, error=str(error))
+            return None
 
     def _exec_ops(self, outputs, should_skip, load_artifact):
         """Ops / Release 检查阶段。"""

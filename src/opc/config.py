@@ -18,6 +18,53 @@ class WorkflowConfig:
     ceo_review: bool = False
     auto_confirm: bool = False
     profile: str = "default"
+    max_rework_attempts: int = 1
+    max_rounds: int = 12
+
+
+@dataclass
+class ToolConfig:
+    max_retries: int = 1
+    default_timeout_seconds: int = 300
+
+
+@dataclass
+class CostConfig:
+    workflow_token_limit: int = 200_000
+    role_token_limit: int = 50_000
+    role_call_limit: int = 10
+    api_calls_per_minute: int = 30
+
+
+@dataclass
+class OPCConfig:
+    workflow: WorkflowConfig = field(default_factory=WorkflowConfig)
+    tools: ToolConfig = field(default_factory=ToolConfig)
+    cost: CostConfig = field(default_factory=CostConfig)
+
+
+def load_project_config(project_dir: Path, profile: str | None = None) -> OPCConfig:
+    config_path = project_dir.resolve() / "opc.toml"
+    if not config_path.exists():
+        return OPCConfig(workflow=load_workflow_config(project_dir, profile))
+
+    data = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    workflow_config = load_workflow_config(project_dir, profile)
+    tools = data.get("tools", {})
+    cost = data.get("cost", {})
+    return OPCConfig(
+        workflow=workflow_config,
+        tools=ToolConfig(
+            max_retries=int(tools.get("max_retries", 1)),
+            default_timeout_seconds=int(tools.get("default_timeout_seconds", 300)),
+        ),
+        cost=CostConfig(
+            workflow_token_limit=int(cost.get("workflow_token_limit", 200_000)),
+            role_token_limit=int(cost.get("role_token_limit", 50_000)),
+            role_call_limit=int(cost.get("role_call_limit", 10)),
+            api_calls_per_minute=int(cost.get("api_calls_per_minute", 30)),
+        ),
+    )
 
 
 def load_workflow_config(project_dir: Path, profile: str | None = None) -> WorkflowConfig:
@@ -35,14 +82,11 @@ def load_workflow_config(project_dir: Path, profile: str | None = None) -> Workf
     workflow = data.get("workflow", {})
     role_flags = data.get("roles", {})
 
-    # 确定 profile：参数优先 > workflow.profile > "default"
     active_profile = profile or workflow.get("profile", "default")
 
-    # 如果存在 [profile.<name>] 节，用其内容覆盖 workflow 和 roles
     profiles = data.get("profile", {})
     if active_profile != "default" and active_profile in profiles:
         profile_data = profiles[active_profile]
-        # profile 中的 workflow 和 roles 覆盖顶层配置
         if "workflow" in profile_data:
             workflow = {**workflow, **profile_data["workflow"]}
         if "roles" in profile_data:
@@ -61,8 +105,6 @@ def load_workflow_config(project_dir: Path, profile: str | None = None) -> Workf
         else:
             roles.discard(normalized)
 
-    # 允许空角色集，实现真正的简化工作流
-    # 如果用户明确配置为空，则不添加默认角色
     if not roles:
         roles = set()
 
@@ -76,6 +118,8 @@ def load_workflow_config(project_dir: Path, profile: str | None = None) -> Workf
         ceo_review=bool(workflow.get("ceo_review", False)),
         auto_confirm=bool(workflow.get("auto_confirm", False)),
         profile=active_profile,
+        max_rework_attempts=int(workflow.get("max_rework_attempts", 1)),
+        max_rounds=int(workflow.get("max_rounds", 12)),
     )
 
 
