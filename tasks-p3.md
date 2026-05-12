@@ -25,7 +25,7 @@
 - [x] 为 QA 输出定义结构化 schema <!-- files: src/opc/schema.py, src/opc/roles.py --> <!-- context: 至少包含 pass/fail、checked_items、evidence、defects、next_action -->
 - [x] 在工作流流转前校验角色输出 schema <!-- files: src/opc/workflow.py, src/opc/schema.py --> <!-- context: 不符合 schema 时要求当前角色重试或进入人工介入 -->
 - [x] 校验 send_to 和 cause_by 字段合法性 <!-- files: src/opc/environment.py, src/opc/schema.py --> <!-- context: 防止消息路由到不存在角色或触发非法状态流转 -->
-- [ ] 实现动态角色激活策略 <!-- files: src/opc/workflow.py, src/opc/roles.py --> <!-- context: 默认只启用 PM/Engineer/QA，Architect/Ops/Growth 按任务类型或人工选择启用 -->
+- [x] 实现动态角色激活策略 <!-- files: src/opc/workflow.py, src/opc/roles.py --> <!-- context: 默认只启用 PM/Engineer/QA，Architect/Ops/Growth 按任务类型或人工选择启用 -->
 
 ## 4. 端到端工作流测试
 

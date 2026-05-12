@@ -19,6 +19,7 @@ from .roles import (
     create_ceo_agent,
     create_ops_agent,
     create_growth_agent,
+    infer_optional_roles,
     RETROSPECTIVE_PROMPT,
 )
 from .config import load_workflow_config
@@ -209,7 +210,7 @@ class HarnessWorkflow:
         self.store = Store(self.project_dir / "artifacts")
         self.state = "待澄清"
         self.auto_confirm = auto_confirm
-        self.roles = roles or set()  # 默认为空集合，不强制添加角色
+        self.roles = set(roles) if roles is not None else infer_optional_roles(task)
         if ceo_review:
             self.roles.add("ceo")
         if skip_architect:
