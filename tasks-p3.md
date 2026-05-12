@@ -32,7 +32,7 @@
 - [x] 添加 PM → Engineer → QA 正常通过的端到端测试 <!-- files: tests/ --> <!-- context: 使用固定输入和 mock LLM response，验证状态流转、产物生成、最终通过 -->
 - [x] 添加 QA 打回 Engineer 的端到端测试 <!-- files: tests/ --> <!-- context: 验证 QA fail 后能够回流 Engineer 并再次验收 -->
 - [ ] 添加 Engineer 失败终止或人工介入测试 <!-- files: tests/ --> <!-- context: 验证实现失败时不会继续进入 QA，也不会无限重试 -->
-- [ ] 添加工作流中断后恢复测试 <!-- files: tests/ --> <!-- context: 验证从持久化状态恢复后能继续执行且不会产生幽灵任务 -->
+- [x] 添加工作流中断后恢复测试 <!-- files: tests/ --> <!-- context: 验证从持久化状态恢复后能继续执行且不会产生幽灵任务 -->
 - [x] 添加角色输出契约测试 <!-- files: tests/ --> <!-- context: 验证 PM/Engineer/QA 输出缺字段、格式错误时会被拒绝 -->
 
 ## 5. Run / Event Store 与状态恢复
