@@ -19,7 +19,7 @@
 - [x] 在 Agent 的工具列表中添加 search_knowledge 工具定义 <!-- files: src/opc/agent.py --> <!-- context: 工具定义包含 query (string) 和 top_k (int) 参数 -->
 - [x] 在 agent.py 中实现 search_knowledge 工具的分发逻辑：调用 RAG 检索并返回结果 <!-- files: src/opc/agent.py, src/opc/rag.py -->
 - [x] 在 roles.py 的 Engineer 角色 prompt 中添加引导：如果不确定实现细节，使用 search_knowledge 工具查询 <!-- files: src/opc/roles.py -->
-- [ ] 在 roles.py 的 QA 角色 prompt 中添加引导：使用 search_knowledge 工具验证实现是否符合项目文档 <!-- files: src/opc/roles.py -->
+- [x] 在 roles.py 的 QA 角色 prompt 中添加引导：使用 search_knowledge 工具验证实现是否符合项目文档 <!-- files: src/opc/roles.py -->
 
 ## 12. 代码分块增强
 
