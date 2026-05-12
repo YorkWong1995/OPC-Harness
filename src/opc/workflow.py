@@ -151,12 +151,14 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         "output_tokens": 0,
         "duration_seconds": 0.0,
         "tool_calls": 0,
+        "api_calls": 0,
     }
     for log in state.stage_logs.values():
         totals["input_tokens"] += int(log.get("input_tokens", 0) or 0)
         totals["output_tokens"] += int(log.get("output_tokens", 0) or 0)
         totals["duration_seconds"] += float(log.get("duration_seconds", 0) or 0)
         totals["tool_calls"] += int(log.get("tool_calls", 0) or 0)
+        totals["api_calls"] += int(log.get("api_calls", 0) or 0)
     totals["duration_seconds"] = round(totals["duration_seconds"], 2)
 
     metrics = {
@@ -263,6 +265,7 @@ class HarnessWorkflow:
             input_tokens=getattr(agent, "last_input_tokens", 0),
             output_tokens=getattr(agent, "last_output_tokens", 0),
             tool_calls=getattr(agent, "last_tool_calls", 0),
+            api_calls=getattr(agent, "last_api_calls", 0),
             output=result,
         )
         return result
@@ -271,11 +274,13 @@ class HarnessWorkflow:
         input_tokens = getattr(agent, "last_input_tokens", 0)
         output_tokens = getattr(agent, "last_output_tokens", 0)
         tool_calls = getattr(agent, "last_tool_calls", 0)
+        api_calls = getattr(agent, "last_api_calls", 0)
         self.workflow_state.stage_logs[stage_name] = {
             "input_tokens": int(input_tokens) if isinstance(input_tokens, (int, float)) else 0,
             "output_tokens": int(output_tokens) if isinstance(output_tokens, (int, float)) else 0,
             "duration_seconds": round(duration, 2),
             "tool_calls": int(tool_calls) if isinstance(tool_calls, (int, float)) else 0,
+            "api_calls": int(api_calls) if isinstance(api_calls, (int, float)) else 0,
         }
 
     async def _run_stages_parallel(self, stage_specs: list[tuple[object, str, str]]) -> list[str]:

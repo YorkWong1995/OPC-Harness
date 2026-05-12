@@ -57,7 +57,7 @@
 
 - [x] 记录每个 Agent 的输入、输出、耗时和状态 <!-- files: src/opc/agent.py, src/opc/workflow.py --> <!-- context: 可按 run_id 复盘每个角色的执行链路 -->
 - [ ] 记录每次工具调用的名称、参数、结果、耗时和错误 <!-- files: src/opc/tools/, src/opc/workflow.py --> <!-- context: 支持工具层审计和失败定位 -->
-- [ ] 记录 token 用量和 API 调用次数 <!-- files: src/opc/agent.py, src/opc/workflow.py --> <!-- context: 用于成本评估和预算控制 -->
+- [x] 记录 token 用量和 API 调用次数 <!-- files: src/opc/agent.py, src/opc/workflow.py --> <!-- context: 用于成本评估和预算控制 -->
 - [x] 生成结构化 run trace 文件 <!-- files: src/opc/workflow.py, artifacts/ --> <!-- context: 包含 messages、events、tool_calls、metrics、final_status -->
 - [ ] 增加工作流质量指标 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 包括 QA 通过率、返工次数、人工介入次数、失败类型分布 -->
 - [ ] 在 UI 或历史记录中展示 run trace <!-- files: src/opc/ui.py, src/opc/ --> <!-- context: 如果现有 UI 已支持历史记录，应接入统一 run trace -->

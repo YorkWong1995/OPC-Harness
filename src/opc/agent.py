@@ -58,6 +58,7 @@ class Agent:
         self.last_input_tokens = 0
         self.last_output_tokens = 0
         self.last_tool_calls = 0
+        self.last_api_calls = 0
 
         # 初始化 RAG
         if enable_rag and project_dir:
@@ -125,6 +126,7 @@ class Agent:
         self.last_input_tokens = 0
         self.last_output_tokens = 0
         self.last_tool_calls = 0
+        self.last_api_calls = 0
 
         # 如果启用 RAG，先检索相关文档
         if self.rag:
@@ -147,6 +149,7 @@ class Agent:
                 kwargs["tools"] = self.tools
 
             try:
+                self.last_api_calls += 1
                 response = self._call_with_retry(**kwargs)
             except anthropic.APITimeoutError as e:
                 error_msg = f"[{self.role}] API 调用超时（已重试 {RETRY_MAX_ATTEMPTS} 次）: {e}"
