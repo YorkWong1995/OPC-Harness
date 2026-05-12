@@ -31,7 +31,7 @@
 
 - [x] 添加 PM → Engineer → QA 正常通过的端到端测试 <!-- files: tests/ --> <!-- context: 使用固定输入和 mock LLM response，验证状态流转、产物生成、最终通过 -->
 - [x] 添加 QA 打回 Engineer 的端到端测试 <!-- files: tests/ --> <!-- context: 验证 QA fail 后能够回流 Engineer 并再次验收 -->
-- [ ] 添加 Engineer 失败终止或人工介入测试 <!-- files: tests/ --> <!-- context: 验证实现失败时不会继续进入 QA，也不会无限重试 -->
+- [x] 添加 Engineer 失败终止或人工介入测试 <!-- files: tests/ --> <!-- context: 验证实现失败时不会继续进入 QA，也不会无限重试 -->
 - [x] 添加工作流中断后恢复测试 <!-- files: tests/ --> <!-- context: 验证从持久化状态恢复后能继续执行且不会产生幽灵任务 -->
 - [x] 添加角色输出契约测试 <!-- files: tests/ --> <!-- context: 验证 PM/Engineer/QA 输出缺字段、格式错误时会被拒绝 -->
 
@@ -47,7 +47,7 @@
 ## 6. 错误处理、返工与循环控制
 
 - [ ] 区分 API 失败、工具失败、角色失败、协议失败、QA 失败 <!-- files: src/opc/workflow.py, src/opc/agent.py --> <!-- context: 不同失败类型应有不同处理策略和可观测记录 -->
-- [ ] 实现 Engineer 失败报告机制 <!-- files: src/opc/workflow.py, src/opc/roles.py --> <!-- context: Engineer 无法完成时输出 failure_reason、blocked_by、suggested_next_step -->
+- [x] 实现 Engineer 失败报告机制 <!-- files: src/opc/workflow.py, src/opc/roles.py --> <!-- context: Engineer 无法完成时输出 failure_reason、blocked_by、suggested_next_step -->
 - [x] 实现 QA 不通过后自动回流 Engineer <!-- files: src/opc/workflow.py --> <!-- context: QA defects 应作为 Engineer 下一轮输入 -->
 - [x] 增加最大返工次数限制 <!-- files: src/opc/workflow.py, src/opc/config.py --> <!-- context: 超过阈值后进入人工介入，避免死循环 -->
 - [ ] 增加工具调用最大重试次数 <!-- files: src/opc/tools/, src/opc/config.py --> <!-- context: 区分可重试失败和不可重试失败 -->

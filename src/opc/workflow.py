@@ -24,7 +24,7 @@ from .roles import (
 )
 from .config import load_workflow_config
 from .run_store import RunStore
-from .schema import QAOutput, parse_role_output
+from .schema import EngineerOutput, QAOutput, parse_role_output
 from .store import Store
 
 console = Console()
@@ -586,8 +586,20 @@ class HarnessWorkflow:
             console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
             implementation = self._run_stage(self.engineer, eng_prompt, "实现中")
             impl_path = self.store.save("implementation.md", implementation)
-            self._parse_role_output("engineer", implementation)
+            engineer_output = self._parse_role_output("engineer", implementation)
             self.state = "实现中"
+            if isinstance(engineer_output, EngineerOutput) and engineer_output.failure_reason:
+                self.state = "已退回"
+                self.run_store.append(
+                    "engineer_failed",
+                    failure_reason=engineer_output.failure_reason,
+                    blocked_by=engineer_output.blocked_by,
+                    suggested_next_step=engineer_output.suggested_next_step,
+                )
+                self.workflow_state.artifact_paths["implementation"] = str(impl_path)
+                self.save_state()
+                console.print("\n[bold red]Engineer 报告实现失败[/]，工作流暂停。")
+                raise _StopWorkflow()
             if "实现中" not in self.workflow_state.completed_stages:
                 self.workflow_state.completed_stages.append("实现中")
             self.workflow_state.artifact_paths["implementation"] = str(impl_path)

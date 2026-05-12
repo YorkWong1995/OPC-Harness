@@ -62,6 +62,19 @@ def test_message_route_validation_rejects_unknown_target():
         Message(content="x", role="pm", send_to="ghost").validate_route()
 
 
+def test_engineer_failure_stops_before_qa(project_dir, mock_agents):
+    mock_agents["engineer"].run.return_value = (
+        '{"changed_files":[],"implementation_summary":"blocked","test_result":"not run",'
+        '"known_limits":[],"failure_reason":"缺少必要信息","blocked_by":["user"],'
+        '"suggested_next_step":"补充需求"}'
+    )
+    wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
+    wf.run()
+
+    assert wf.state == "已退回"
+    mock_agents["qa"].run.assert_not_called()
+
+
 def test_qa_fail_reworks_engineer_once(project_dir, mock_agents):
     mock_agents["qa"].run.side_effect = [
         '{"status":"fail","checked_items":["ok"],"evidence":[],"defects":["缺陷"],"next_action":"rework"}',
