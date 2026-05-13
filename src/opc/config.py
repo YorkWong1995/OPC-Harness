@@ -32,6 +32,14 @@ class WorkflowConfig:
 
 
 @dataclass
+class ModelConfig:
+    default: str = "claude-sonnet-4-6"
+    fallback: str = ""
+    temperature: float = 0.0
+    max_tokens: int = 4096
+
+
+@dataclass
 class ToolConfig:
     max_retries: int = 1
     default_timeout_seconds: int = 300
@@ -46,10 +54,31 @@ class CostConfig:
 
 
 @dataclass
+class SecurityConfig:
+    workspace_boundary: bool = True
+    command_whitelist: list[str] = field(default_factory=lambda: [
+        "python", "pip", "npm", "node", "git", "pytest", "eslint", "npx",
+        "cargo", "go", "gcc", "g++", "cmake", "make",
+    ])
+    audit_dangerous_commands: bool = True
+    block_env_file_write: bool = True
+
+
+@dataclass
+class MemoryConfig:
+    enable_rag: bool = True
+    max_context_tokens: int = 2000
+    strict_ingestion: bool = True
+
+
+@dataclass
 class OPCConfig:
     workflow: WorkflowConfig = field(default_factory=WorkflowConfig)
+    model: ModelConfig = field(default_factory=ModelConfig)
     tools: ToolConfig = field(default_factory=ToolConfig)
     cost: CostConfig = field(default_factory=CostConfig)
+    security: SecurityConfig = field(default_factory=SecurityConfig)
+    memory: MemoryConfig = field(default_factory=MemoryConfig)
 
 
 def load_project_config(
@@ -66,8 +95,17 @@ def load_project_config(
         workflow_config = load_workflow_config(project_dir, profile)
         tools = data.get("tools", {})
         cost = data.get("cost", {})
+        model = data.get("model", {})
+        security = data.get("security", {})
+        memory = data.get("memory", {})
         config = OPCConfig(
             workflow=workflow_config,
+            model=ModelConfig(
+                default=str(model.get("default", "claude-sonnet-4-6")),
+                fallback=str(model.get("fallback", "")),
+                temperature=float(model.get("temperature", 0.0)),
+                max_tokens=int(model.get("max_tokens", 4096)),
+            ),
             tools=ToolConfig(
                 max_retries=int(tools.get("max_retries", 1)),
                 default_timeout_seconds=int(tools.get("default_timeout_seconds", 300)),
@@ -77,6 +115,17 @@ def load_project_config(
                 role_token_limit=int(cost.get("role_token_limit", 50_000)),
                 role_call_limit=int(cost.get("role_call_limit", 10)),
                 api_calls_per_minute=int(cost.get("api_calls_per_minute", 30)),
+            ),
+            security=SecurityConfig(
+                workspace_boundary=bool(security.get("workspace_boundary", True)),
+                command_whitelist=security.get("command_whitelist", SecurityConfig().command_whitelist),
+                audit_dangerous_commands=bool(security.get("audit_dangerous_commands", True)),
+                block_env_file_write=bool(security.get("block_env_file_write", True)),
+            ),
+            memory=MemoryConfig(
+                enable_rag=bool(memory.get("enable_rag", True)),
+                max_context_tokens=int(memory.get("max_context_tokens", 2000)),
+                strict_ingestion=bool(memory.get("strict_ingestion", True)),
             ),
         )
 
