@@ -206,17 +206,27 @@ python run_opc.py
 ANTHROPIC_API_KEY=your_api_key_here
 ```
 
+> **安全规则**：API Key 等敏感信息只能通过环境变量或 secret provider 注入。禁止将敏感信息写入 opc.toml 或任何版本控制文件。OPC 运行时会阻止对 .env 文件的写入操作。
+
 ### OPC 配置（opc.example.toml）
 
 ```toml
-[opc]
-model = "claude-opus-4"
+[model]
+default = "claude-sonnet-4-6"
 max_tokens = 4096
-temperature = 0.7
 
 [memory]
 enable_rag = true
-top_k = 5
+max_context_tokens = 2000
+
+[cost]
+workflow_token_limit = 200000
+role_token_limit = 50000
+
+[security]
+workspace_boundary = true
+audit_dangerous_commands = true
+block_env_file_write = true
 ```
 
 ## 开发指南
