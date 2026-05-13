@@ -50,6 +50,7 @@ class Agent:
         project_dir: Path | None = None,
         model: str | None = None,
         enable_rag: bool = False,
+        tool_max_retries: int = 1,
     ):
         self.role = role
         self.system_prompt = system_prompt
@@ -58,6 +59,7 @@ class Agent:
         self.model = model or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         self.enable_rag = enable_rag
         self.rag: SimpleRAG | None = None
+        self.tool_max_retries = tool_max_retries
 
         # 消息缓冲区（用于 Environment 集成）
         self.msg_buffer = MessageQueue()
@@ -246,24 +248,38 @@ class Agent:
             print(f"  -> 命令: {inputs.get('command', 'N/A')}")
 
         start_time = time.time()
-        try:
-            result = handler(**inputs)
-            elapsed = time.time() - start_time
-            # 日志：工具调用成功
-            result_preview = str(result)[:200] if result else "None"
-            print(f"[DEBUG][{self.role}] 工具执行成功，结果预览: {result_preview}...")
+        last_error = None
+        max_attempts = self.tool_max_retries + 1
 
-            # 记录工具调用和结果（用于持久化）
-            self._record_tool_call(name, inputs, result, elapsed, tool_use_id, error=None)
-            return result
-        except Exception as e:
-            elapsed = time.time() - start_time
-            error_msg = f"工具执行错误：{e}"
-            print(f"[ERROR][{self.role}] {error_msg}")
+        for attempt in range(1, max_attempts + 1):
+            try:
+                result = handler(**inputs)
+                elapsed = time.time() - start_time
+                result_preview = str(result)[:200] if result else "None"
+                print(f"[DEBUG][{self.role}] 工具执行成功，结果预览: {result_preview}...")
+                self._record_tool_call(name, inputs, result, elapsed, tool_use_id, error=None)
+                return result
+            except Exception as e:
+                last_error = e
+                is_retryable = self._is_tool_retryable(e)
+                if is_retryable and attempt < max_attempts:
+                    print(f"[WARN][{self.role}] 工具 {name} 第 {attempt} 次失败（可重试）: {e}")
+                    time.sleep(min(2 ** attempt, 10))
+                    continue
+                break
 
-            # 记录工具调用失败
-            self._record_tool_call(name, inputs, None, elapsed, tool_use_id, error=str(e))
-            return error_msg
+        elapsed = time.time() - start_time
+        error_msg = f"工具执行错误：{last_error}"
+        print(f"[ERROR][{self.role}] {error_msg}")
+        self._record_tool_call(name, inputs, None, elapsed, tool_use_id, error=str(last_error))
+        return error_msg
+
+    @staticmethod
+    def _is_tool_retryable(error: Exception) -> bool:
+        """判断工具执行错误是否可重试"""
+        error_str = str(error).lower()
+        non_retryable = ("不存在", "not found", "permission denied", "不允许", "未找到", "是目录")
+        return not any(keyword in error_str for keyword in non_retryable)
 
     def _record_tool_call(self, name: str, inputs: dict, result: str | None, elapsed: float,
                           tool_use_id: str | None, error: str | None):
