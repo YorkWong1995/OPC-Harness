@@ -23,6 +23,7 @@ from .roles import (
     RETROSPECTIVE_PROMPT,
 )
 from .config import load_workflow_config
+from .config import load_project_config, OPCConfig
 from .run_store import RunStore
 from .schema import EngineerOutput, QAOutput, parse_role_output
 from .store import Store
@@ -238,6 +239,7 @@ class HarnessWorkflow:
         self.use_embedded_engineer = use_embedded_engineer
 
         self.workflow_config = load_workflow_config(self.project_dir, profile)
+        self.opc_config = load_project_config(self.project_dir, profile)
         self.max_rework_attempts = self.workflow_config.max_rework_attempts
         self.max_rounds = self.workflow_config.max_rounds
         self.run_store = RunStore(self.store.dir)
@@ -307,6 +309,28 @@ class HarnessWorkflow:
             "tool_calls": int(tool_calls) if isinstance(tool_calls, (int, float)) else 0,
             "api_calls": int(api_calls) if isinstance(api_calls, (int, float)) else 0,
         }
+        self._observe_cost_limits(stage_name, input_tokens + output_tokens, api_calls)
+
+    def _observe_cost_limits(self, stage_name: str, stage_tokens: int, stage_api_calls: int):
+        """观测成本限制（P3 仅记录警告，不强制中断）"""
+        cost = self.opc_config.cost
+
+        # 计算工作流总 token
+        total_tokens = sum(
+            int(log.get("input_tokens", 0) or 0) + int(log.get("output_tokens", 0) or 0)
+            for key, log in self.workflow_state.stage_logs.items()
+            if isinstance(log, dict) and not key.startswith("_")
+        )
+
+        if total_tokens > cost.workflow_token_limit:
+            print(f"[WARN] 工作流 token 用量 ({total_tokens}) 超过配置上限 ({cost.workflow_token_limit})")
+            self.run_store.append("cost_warning", kind="workflow_token_limit",
+                                 current=total_tokens, limit=cost.workflow_token_limit)
+
+        if stage_tokens > cost.role_token_limit:
+            print(f"[WARN] 角色 {stage_name} token 用量 ({stage_tokens}) 超过配置上限 ({cost.role_token_limit})")
+            self.run_store.append("cost_warning", kind="role_token_limit",
+                                 stage=stage_name, current=stage_tokens, limit=cost.role_token_limit)
 
     async def _run_stages_parallel(self, stage_specs: list[tuple[object, str, str]]) -> list[str]:
         async def run_one(agent, prompt: str, stage_name: str) -> str:
