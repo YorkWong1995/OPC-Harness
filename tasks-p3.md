@@ -77,7 +77,7 @@
 - [x] 整合 TOOLS_READ_ONLY 和 TOOLS_READ_WRITE 定义 <!-- files: src/opc/tools/, src/opc/agent.py --> <!-- context: 避免工具定义分散且权限语义不一致 --> <!-- order: 依赖工具注册协议字段统一 -->
 - [x] 增加 Git status/diff/log 工具 <!-- files: src/opc/tools/ --> <!-- context: 支撑真实软件开发中的变更检查和上下文理解 --> <!-- order: 依赖工具注册协议统一；需纳入权限和审计 -->
 - [x] 增加测试执行工具 <!-- files: src/opc/tools/ --> <!-- context: 支持 pytest 或项目配置中的测试命令 --> <!-- order: 依赖工具注册协议统一；需纳入超时和审计 -->
-- [ ] 增加构建、lint、type check 工具 <!-- files: src/opc/tools/ --> <!-- context: 支持软件交付前的基础验证 -->
+- [x] 增加构建、lint、type check 工具 <!-- files: src/opc/tools/ --> <!-- context: 支持软件交付前的基础验证 --> <!-- order: 依赖工具注册协议统一；需按项目配置决定可用命令 -->
 - [ ] 为 run_command 增加参数级白名单校验 <!-- files: src/opc/tools/ --> <!-- context: 不能只校验命令名，还要限制危险参数和 shell 注入 -->
 - [ ] 限制命令执行工作目录和文件访问范围 <!-- files: src/opc/tools/ --> <!-- context: 默认限制在项目 workspace 内 -->
 - [ ] 对危险命令增加人工确认机制 <!-- files: src/opc/tools/, src/opc/workflow.py --> <!-- context: 删除、推送、修改 Git 历史、安装依赖等操作需要确认 -->

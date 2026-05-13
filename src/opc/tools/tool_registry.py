@@ -282,6 +282,53 @@ BUILTIN_TOOLS = [
         handler_name="_tool_git_log",
     ),
     ToolDefinition(
+        name="run_lint",
+        description="执行项目 lint 检查（支持 eslint、ruff、flake8 等，按项目配置自动选择）。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "可选的项目内文件或目录相对路径"},
+                "timeout": {"type": "integer", "description": "超时时间（秒），默认 120", "default": 120},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="execute",
+        side_effect="process",
+        timeout=120,
+        handler_name="_tool_run_lint",
+    ),
+    ToolDefinition(
+        name="run_typecheck",
+        description="执行项目类型检查（支持 mypy、pyright、tsc 等，按项目配置自动选择）。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "可选的项目内文件或目录相对路径"},
+                "timeout": {"type": "integer", "description": "超时时间（秒），默认 120", "default": 120},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="execute",
+        side_effect="process",
+        timeout=120,
+        handler_name="_tool_run_typecheck",
+    ),
+    ToolDefinition(
+        name="run_build",
+        description="执行项目构建命令（支持 pip install -e .、npm run build、cargo build 等，按项目配置自动选择）。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "timeout": {"type": "integer", "description": "超时时间（秒），默认 300", "default": 300},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="execute",
+        side_effect="process",
+        timeout=300,
+        handler_name="_tool_run_build",
+    ),
+    ToolDefinition(
         name="run_tests",
         description="使用 pytest 执行项目测试，可限定项目内相对路径。",
         input_schema={
