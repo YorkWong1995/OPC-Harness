@@ -71,4 +71,16 @@ def test_workspace_boundary_allows_relative_path(tmp_path):
     agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
 
     result = agent._tool_run_command("python hello.py")
-    assert "workspace 外" not in result
+    assert "workspace" not in result
+
+
+def test_dangerous_command_writes_audit_log(tmp_path):
+    agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
+
+    agent._tool_run_command("git push --force origin main")
+
+    assert len(agent.audit_log) == 1
+    entry = agent.audit_log[0]
+    assert entry["event"] == "dangerous_command"
+    assert "push --force" in entry["matched_patterns"]
+    assert entry["role"] == "test"

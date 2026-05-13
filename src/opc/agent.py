@@ -62,6 +62,9 @@ class Agent:
         # 消息缓冲区（用于 Environment 集成）
         self.msg_buffer = MessageQueue()
 
+        # 审计日志：记录危险命令和工具调用事件
+        self.audit_log: list[dict] = []
+
         # 上一次 run() 累计的 token 用量（跨多轮 tool use 调用累加）
         self.last_input_tokens = 0
         self.last_output_tokens = 0
@@ -687,6 +690,12 @@ class Agent:
         if matched:
             warning = f"检测到危险参数: {', '.join(matched)}"
             print(f"[AUDIT][{self.role}] {warning} | 命令: {full_command}")
+            self.audit_log.append({
+                "event": "dangerous_command",
+                "role": self.role,
+                "command": full_command,
+                "matched_patterns": matched,
+            })
             return warning
         return None
 
