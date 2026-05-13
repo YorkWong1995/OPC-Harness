@@ -282,6 +282,23 @@ BUILTIN_TOOLS = [
         handler_name="_tool_git_log",
     ),
     ToolDefinition(
+        name="run_tests",
+        description="使用 pytest 执行项目测试，可限定项目内相对路径。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "可选的项目内测试文件或目录相对路径"},
+                "timeout": {"type": "integer", "description": "超时时间（秒），默认 300", "default": 300},
+                "quiet": {"type": "boolean", "description": "是否使用 pytest -q，默认 true", "default": True},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="execute",
+        side_effect="process",
+        timeout=300,
+        handler_name="_tool_run_tests",
+    ),
+    ToolDefinition(
         name="run_command",
         description="在项目目录中执行终端命令（仅限白名单命令：python, pip, npm, node, git, pytest, eslint, npx, cargo, go）。支持交互式命令检测。",
         input_schema={

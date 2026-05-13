@@ -227,6 +227,8 @@ class Agent:
             print(f"  -> 查询: {inputs.get('query', 'N/A')}")
         elif name in {"git_status", "git_diff", "git_log"}:
             print(f"  -> Git 工具: {name}")
+        elif name == "run_tests":
+            print(f"  -> 测试目标: {inputs.get('target', 'all')}")
         elif name == "run_command":
             print(f"  -> 命令: {inputs.get('command', 'N/A')}")
 
@@ -444,6 +446,34 @@ class Agent:
             output = f"{output}\n[stderr]\n{result.stderr.strip()}" if output else f"[stderr]\n{result.stderr.strip()}"
         if result.returncode != 0:
             output = f"{output}\n[exit code: {result.returncode}]" if output else f"[exit code: {result.returncode}]"
+        return output or "(无输出)"
+
+    def _tool_run_tests(self, target: str | None = None, timeout: int = 300, quiet: bool = True) -> str:
+        if not self.project_dir:
+            return "错误：未设置项目目录"
+        command = [sys.executable, "-m", "pytest"]
+        if quiet:
+            command.append("-q")
+        if target:
+            resolved_target = self._resolve_safe_path(target)
+            command.append(str(resolved_target.relative_to(self.project_dir.resolve())))
+        bounded_timeout = max(1, min(int(timeout), 1800))
+        result = subprocess.run(
+            command,
+            cwd=str(self.project_dir),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=bounded_timeout,
+        )
+        output = result.stdout.strip()
+        if result.stderr.strip():
+            output = f"{output}\n[stderr]\n{result.stderr.strip()}" if output else f"[stderr]\n{result.stderr.strip()}"
+        if result.returncode != 0:
+            output = f"{output}\n[exit code: {result.returncode}]" if output else f"[exit code: {result.returncode}]"
+        if len(output) > 12000:
+            output = output[:12000] + "\n...[输出已截断]..."
         return output or "(无输出)"
 
     def _tool_run_command(self, command: str, timeout: int = 300) -> str:
