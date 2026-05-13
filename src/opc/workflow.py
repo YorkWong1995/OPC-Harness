@@ -281,6 +281,7 @@ class HarnessWorkflow:
                     role=getattr(agent, "role", stage_name),
                     **tool_record
                 )
+                self._write_tool_audit(stage_name, getattr(agent, "role", stage_name), tool_record)
             # 清空审计日志，避免重复记录
             agent.audit_log.clear()
 
@@ -310,6 +311,22 @@ class HarnessWorkflow:
             "api_calls": int(api_calls) if isinstance(api_calls, (int, float)) else 0,
         }
         self._observe_cost_limits(stage_name, input_tokens + output_tokens, api_calls)
+
+    def _write_tool_audit(self, stage: str, role: str, record: dict):
+        """将工具调用写入独立审计日志文件"""
+        audit_path = self.store.dir / "tool_audit.jsonl"
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "run_id": self.run_store.run_id,
+            "stage": stage,
+            "role": role,
+            "tool_name": record.get("tool_name"),
+            "inputs": record.get("inputs"),
+            "elapsed": record.get("elapsed"),
+            "error": record.get("error"),
+        }
+        with audit_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def _observe_cost_limits(self, stage_name: str, stage_tokens: int, stage_api_calls: int):
         """观测成本限制（P3 仅记录警告，不强制中断）"""
