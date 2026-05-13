@@ -1,7 +1,16 @@
-"""OPC 项目级配置读取。"""
+"""OPC 项目级配置读取。
+
+配置优先级（从低到高）：
+1. 默认配置（dataclass 默认值）
+2. opc.toml 文件
+3. 环境变量（OPC_ 前缀）
+4. CLI 参数（通过 cli_overrides 传入）
+5. 运行时覆盖（通过 runtime_overrides 传入）
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import os
 
 try:
     import tomllib
@@ -43,28 +52,82 @@ class OPCConfig:
     cost: CostConfig = field(default_factory=CostConfig)
 
 
-def load_project_config(project_dir: Path, profile: str | None = None) -> OPCConfig:
+def load_project_config(
+    project_dir: Path,
+    profile: str | None = None,
+    cli_overrides: dict | None = None,
+    runtime_overrides: dict | None = None,
+) -> OPCConfig:
     config_path = project_dir.resolve() / "opc.toml"
     if not config_path.exists():
-        return OPCConfig(workflow=load_workflow_config(project_dir, profile))
+        config = OPCConfig(workflow=load_workflow_config(project_dir, profile))
+    else:
+        data = tomllib.loads(config_path.read_text(encoding="utf-8"))
+        workflow_config = load_workflow_config(project_dir, profile)
+        tools = data.get("tools", {})
+        cost = data.get("cost", {})
+        config = OPCConfig(
+            workflow=workflow_config,
+            tools=ToolConfig(
+                max_retries=int(tools.get("max_retries", 1)),
+                default_timeout_seconds=int(tools.get("default_timeout_seconds", 300)),
+            ),
+            cost=CostConfig(
+                workflow_token_limit=int(cost.get("workflow_token_limit", 200_000)),
+                role_token_limit=int(cost.get("role_token_limit", 50_000)),
+                role_call_limit=int(cost.get("role_call_limit", 10)),
+                api_calls_per_minute=int(cost.get("api_calls_per_minute", 30)),
+            ),
+        )
 
-    data = tomllib.loads(config_path.read_text(encoding="utf-8"))
-    workflow_config = load_workflow_config(project_dir, profile)
-    tools = data.get("tools", {})
-    cost = data.get("cost", {})
-    return OPCConfig(
-        workflow=workflow_config,
-        tools=ToolConfig(
-            max_retries=int(tools.get("max_retries", 1)),
-            default_timeout_seconds=int(tools.get("default_timeout_seconds", 300)),
-        ),
-        cost=CostConfig(
-            workflow_token_limit=int(cost.get("workflow_token_limit", 200_000)),
-            role_token_limit=int(cost.get("role_token_limit", 50_000)),
-            role_call_limit=int(cost.get("role_call_limit", 10)),
-            api_calls_per_minute=int(cost.get("api_calls_per_minute", 30)),
-        ),
-    )
+    _apply_env_overrides(config)
+    _apply_dict_overrides(config, cli_overrides)
+    _apply_dict_overrides(config, runtime_overrides)
+    return config
+
+
+def _apply_env_overrides(config: OPCConfig) -> None:
+    if val := os.environ.get("OPC_MAX_REWORK_ATTEMPTS"):
+        config.workflow.max_rework_attempts = int(val)
+    if val := os.environ.get("OPC_MAX_ROUNDS"):
+        config.workflow.max_rounds = int(val)
+    if val := os.environ.get("OPC_AUTO_CONFIRM"):
+        config.workflow.auto_confirm = val.lower() in ("1", "true", "yes")
+    if val := os.environ.get("OPC_WORKFLOW_TOKEN_LIMIT"):
+        config.cost.workflow_token_limit = int(val)
+    if val := os.environ.get("OPC_ROLE_TOKEN_LIMIT"):
+        config.cost.role_token_limit = int(val)
+    if val := os.environ.get("OPC_ROLE_CALL_LIMIT"):
+        config.cost.role_call_limit = int(val)
+    if val := os.environ.get("OPC_API_CALLS_PER_MINUTE"):
+        config.cost.api_calls_per_minute = int(val)
+    if val := os.environ.get("OPC_TOOL_MAX_RETRIES"):
+        config.tools.max_retries = int(val)
+    if val := os.environ.get("OPC_TOOL_TIMEOUT"):
+        config.tools.default_timeout_seconds = int(val)
+
+
+def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
+    if not overrides:
+        return
+    if "max_rework_attempts" in overrides:
+        config.workflow.max_rework_attempts = int(overrides["max_rework_attempts"])
+    if "max_rounds" in overrides:
+        config.workflow.max_rounds = int(overrides["max_rounds"])
+    if "auto_confirm" in overrides:
+        config.workflow.auto_confirm = bool(overrides["auto_confirm"])
+    if "workflow_token_limit" in overrides:
+        config.cost.workflow_token_limit = int(overrides["workflow_token_limit"])
+    if "role_token_limit" in overrides:
+        config.cost.role_token_limit = int(overrides["role_token_limit"])
+    if "role_call_limit" in overrides:
+        config.cost.role_call_limit = int(overrides["role_call_limit"])
+    if "api_calls_per_minute" in overrides:
+        config.cost.api_calls_per_minute = int(overrides["api_calls_per_minute"])
+    if "tool_max_retries" in overrides:
+        config.tools.max_retries = int(overrides["tool_max_retries"])
+    if "tool_timeout" in overrides:
+        config.tools.default_timeout_seconds = int(overrides["tool_timeout"])
 
 
 def load_workflow_config(project_dir: Path, profile: str | None = None) -> WorkflowConfig:

@@ -64,7 +64,7 @@
 
 ## 8. 配置、成本与预算控制
 
-- [ ] 统一配置优先级 <!-- files: src/opc/config.py, opc.toml, README.md --> <!-- context: 默认配置 → opc.toml → 环境变量 → CLI 参数 → 运行时覆盖 -->
+- [x] 统一配置优先级 <!-- files: src/opc/config.py, opc.toml, README.md --> <!-- context: 默认配置 → opc.toml → 环境变量 → CLI 参数 → 运行时覆盖；用户确认 CLI 可覆盖配置 --> <!-- decision: CLI 可覆盖 -->
 - [ ] 拆分 model、roles、tools、workflow、memory、security、cost 配置区块 <!-- files: src/opc/config.py, opc.toml --> <!-- context: 降低配置分散和硬编码风险 -->
 - [ ] 增加 workflow token 上限配置 <!-- files: src/opc/config.py, src/opc/workflow.py --> <!-- context: 超过阈值时暂停并请求人工确认 -->
 - [ ] 增加单角色最大 token 和最大调用次数配置 <!-- files: src/opc/config.py, src/opc/agent.py --> <!-- context: 防止单个 Agent 消耗失控 -->
