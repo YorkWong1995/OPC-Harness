@@ -14,7 +14,7 @@
 ## 2. 文档真实性与示例可运行性
 
 - [x] 检查 README 中所有 API 示例是否与实际代码一致 <!-- files: README.md, src/opc/ --> <!-- context: 移除或修正不存在的 API，例如未实现的 opc.run_as_role() --> <!-- auto: 可直接逐项核对 README 与 src/opc 当前 API -->
-- [ ] 为 Quickstart 添加最小可运行示例 <!-- files: README.md, examples/ --> <!-- context: 示例应能真实触发 PM → Engineer → QA 或当前可用的最小工作流 -->
+- [x] 为 Quickstart 添加最小可运行示例 <!-- files: README.md, examples/ --> <!-- context: 示例应能真实触发 PM → Engineer → QA 或当前可用的最小工作流 --> <!-- order: 依赖 README API 示例核对；新增 examples 需同时补 smoke test -->
 - [ ] 将 README 中未实现能力统一标注为 Roadmap <!-- files: README.md --> <!-- context: 区分 available、experimental、planned 三类能力 -->
 - [ ] 增加文档示例验证测试 <!-- files: tests/ --> <!-- context: 对 README/Quickstart 中的核心示例做 smoke test，防止文档再次漂移 -->
 

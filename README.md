@@ -59,6 +59,20 @@ opc run "补充登录功能验收标准" --project-dir . --skip-architect
 
 当前公开入口以 CLI 为主；Python 包入口仅暴露版本信息，暂不提供 `OPC()`、`run_as_role()`、`run_with_tools()` 等高级 API。
 
+### 最小可运行示例
+
+仓库提供一个安全的 Quickstart 脚本，默认只打印将要执行的命令，不会调用 API 或修改 workspace：
+
+```bash
+python examples/quickstart_minimal.py
+```
+
+确认命令无误后，可以用 `--execute` 触发当前可用的 PM → Engineer → QA 工作流：
+
+```bash
+python examples/quickstart_minimal.py --execute --auto-confirm
+```
+
 ### 知识索引与检索
 
 ```bash
