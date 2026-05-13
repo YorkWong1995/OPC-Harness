@@ -1,6 +1,6 @@
 """测试工具注册协议。"""
 
-from opc.agent import TOOLS_READ_ONLY, TOOLS_READ_WRITE
+from opc.agent import TOOLS_READ_ONLY, TOOLS_READ_WRITE, Agent
 from opc.tools import list_tool_definitions, list_tool_schemas
 
 
@@ -32,3 +32,22 @@ def test_read_only_tools_are_derived_from_permissions():
 
     assert read_only_names == registry_read_names
     assert read_only_names.isdisjoint(write_or_execute_names)
+
+
+def test_dangerous_params_detected_in_run_command(tmp_path):
+    from pathlib import Path
+
+    agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
+
+    result = agent._tool_run_command("git push --force origin main")
+    assert "[WARNING]" in result
+    assert "push --force" in result
+
+
+def test_safe_command_has_no_warning(tmp_path):
+    from pathlib import Path
+
+    agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
+
+    result = agent._tool_run_command("python --version")
+    assert "[WARNING]" not in result

@@ -30,6 +30,14 @@ COMMAND_WHITELIST = {
     "gcc", "g++", "cmake", "make", "cl", "clang", "clang++", "nmake", "msbuild"
 }
 
+# 危险参数模式：命令 -> 需要审计的参数关键词
+DANGEROUS_PARAMS: dict[str, list[str]] = {
+    "git": ["push --force", "reset --hard", "clean -f", "branch -D"],
+    "pip": ["install --pre", "install --force-reinstall"],
+    "npm": ["publish", "unpublish"],
+    "rm": ["-rf", "-r"],
+}
+
 
 class Agent:
     """调用 Claude API 的角色 Agent，支持 tool use 和 RAG"""
@@ -568,6 +576,9 @@ class Agent:
         if cmd_name not in COMMAND_WHITELIST:
             return f"错误：命令 '{cmd_name}' 不在白名单中，允许的命令：{', '.join(sorted(COMMAND_WHITELIST))}"
 
+        # 危险参数检测（轻限制：仅记录警告，不阻断执行）
+        danger_warning = self._check_dangerous_params(cmd_name, command)
+
         try:
             # 使用 asyncio 运行命令（支持更好的超时控制）
             if sys.platform == "win32":
@@ -578,6 +589,8 @@ class Agent:
             asyncio.set_event_loop(loop)
             try:
                 output = loop.run_until_complete(self._run_command_async(command, timeout))
+                if danger_warning:
+                    output = f"[WARNING] {danger_warning}\n{output}"
                 return output
             finally:
                 loop.close()
@@ -660,6 +673,16 @@ class Agent:
                 f"示例：{command} --yes"
             )
 
+        return None
+
+    def _check_dangerous_params(self, cmd_name: str, full_command: str) -> str | None:
+        patterns = DANGEROUS_PARAMS.get(cmd_name, [])
+        lowered = full_command.lower()
+        matched = [p for p in patterns if p in lowered]
+        if matched:
+            warning = f"检测到危险参数: {', '.join(matched)}"
+            print(f"[AUDIT][{self.role}] {warning} | 命令: {full_command}")
+            return warning
         return None
 
     def _resolve_safe_path(self, path: str) -> Path:
