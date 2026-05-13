@@ -83,18 +83,30 @@ def get_tool_schema(name: str) -> dict | None:
     return definition.to_schema() if definition else None
 
 
-def list_tool_schemas(names: set[str] | None = None) -> list[dict]:
-    definitions = _TOOL_REGISTRY.values()
+def _filter_definitions(
+    names: set[str] | None = None,
+    permissions: set[ToolPermission] | None = None,
+) -> list[ToolDefinition]:
+    definitions = list(_TOOL_REGISTRY.values())
     if names is not None:
         definitions = [definition for definition in definitions if definition.name in names]
-    return [definition.to_schema() for definition in definitions]
+    if permissions is not None:
+        definitions = [definition for definition in definitions if definition.permission in permissions]
+    return definitions
 
 
-def list_tool_definitions(names: set[str] | None = None) -> list[dict]:
-    definitions = _TOOL_REGISTRY.values()
-    if names is not None:
-        definitions = [definition for definition in definitions if definition.name in names]
-    return [definition.to_registry_entry() for definition in definitions]
+def list_tool_schemas(
+    names: set[str] | None = None,
+    permissions: set[ToolPermission] | None = None,
+) -> list[dict]:
+    return [definition.to_schema() for definition in _filter_definitions(names, permissions)]
+
+
+def list_tool_definitions(
+    names: set[str] | None = None,
+    permissions: set[ToolPermission] | None = None,
+) -> list[dict]:
+    return [definition.to_registry_entry() for definition in _filter_definitions(names, permissions)]
 
 
 def register_builtin_tools(agent_cls: type) -> None:

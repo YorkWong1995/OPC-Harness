@@ -532,6 +532,4 @@ class Agent:
 
 TOOLS_READ_WRITE = list_tool_schemas()
 
-TOOLS_READ_ONLY = [
-    tool for tool in TOOLS_READ_WRITE if tool["name"] in {"read_file", "list_files", "grep", "search_knowledge"}
-]
+TOOLS_READ_ONLY = list_tool_schemas(permissions={"read"})
