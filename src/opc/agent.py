@@ -579,6 +579,11 @@ class Agent:
         # 危险参数检测（轻限制：仅记录警告，不阻断执行）
         danger_warning = self._check_dangerous_params(cmd_name, command)
 
+        # 工作目录边界检查：拒绝引用 workspace 外绝对路径的命令
+        workspace_violation = self._check_workspace_boundary(parts[1:])
+        if workspace_violation:
+            return workspace_violation
+
         try:
             # 使用 asyncio 运行命令（支持更好的超时控制）
             if sys.platform == "win32":
@@ -683,6 +688,23 @@ class Agent:
             warning = f"检测到危险参数: {', '.join(matched)}"
             print(f"[AUDIT][{self.role}] {warning} | 命令: {full_command}")
             return warning
+        return None
+
+    def _check_workspace_boundary(self, args: list[str]) -> str | None:
+        if not self.project_dir:
+            return None
+        workspace = self.project_dir.resolve()
+        for arg in args:
+            if arg.startswith("-"):
+                continue
+            candidate = Path(arg)
+            if candidate.is_absolute():
+                try:
+                    resolved = candidate.resolve()
+                    if not str(resolved).startswith(str(workspace)):
+                        return f"错误：命令参数引用了 workspace 外的路径: {arg}"
+                except (OSError, ValueError):
+                    pass
         return None
 
     def _resolve_safe_path(self, path: str) -> Path:

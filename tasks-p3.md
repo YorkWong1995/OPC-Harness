@@ -79,7 +79,7 @@
 - [x] 增加测试执行工具 <!-- files: src/opc/tools/ --> <!-- context: 支持 pytest 或项目配置中的测试命令 --> <!-- order: 依赖工具注册协议统一；需纳入超时和审计 -->
 - [x] 增加构建、lint、type check 工具 <!-- files: src/opc/tools/ --> <!-- context: 支持软件交付前的基础验证 --> <!-- order: 依赖工具注册协议统一；需按项目配置决定可用命令 -->
 - [x] 为 run_command 增加参数级白名单校验 <!-- files: src/opc/tools/ --> <!-- context: 采用轻限制：保留命令名白名单和基础危险参数识别，主要依赖审计日志追踪 --> <!-- decision: 轻限制 -->
-- [ ] 限制命令执行工作目录和文件访问范围 <!-- files: src/opc/tools/ --> <!-- context: 默认限制在项目 workspace 内 -->
+- [x] 限制命令执行工作目录和文件访问范围 <!-- files: src/opc/tools/ --> <!-- context: 默认限制在项目 workspace 内 --> <!-- auto: 可直接增强安全边界并补测试 -->
 - [ ] 对危险命令增加人工确认机制 <!-- files: src/opc/tools/, src/opc/workflow.py --> <!-- context: 删除、推送、修改 Git 历史、安装依赖等操作需要确认 -->
 - [ ] 增加工具审计日志 <!-- files: src/opc/tools/, src/opc/workflow.py --> <!-- context: 记录谁在何时以什么参数调用了什么工具以及结果 -->
 

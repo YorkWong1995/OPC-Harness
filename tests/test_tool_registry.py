@@ -51,3 +51,24 @@ def test_safe_command_has_no_warning(tmp_path):
 
     result = agent._tool_run_command("python --version")
     assert "[WARNING]" not in result
+
+
+def test_workspace_boundary_rejects_outside_path(tmp_path):
+    import sys
+    agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
+
+    if sys.platform == "win32":
+        outside_path = "C:\\Windows\\System32\\calc.exe"
+    else:
+        outside_path = "/etc/passwd"
+
+    result = agent._tool_run_command(f"python {outside_path}")
+    assert "workspace" in result
+
+
+def test_workspace_boundary_allows_relative_path(tmp_path):
+    (tmp_path / "hello.py").write_text("print('hi')\n", encoding="utf-8")
+    agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
+
+    result = agent._tool_run_command("python hello.py")
+    assert "workspace 外" not in result
