@@ -1,0 +1,101 @@
+"""Python 代码符号搜索：提取函数、类、方法定义并支持按名称搜索"""
+
+from __future__ import annotations
+
+import ast
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+
+@dataclass
+class Symbol:
+    name: str
+    kind: str  # "function", "class", "method"
+    file_path: str
+    line: int
+    signature: str
+
+
+class SymbolIndex:
+    """基于 AST 的 Python 符号索引"""
+
+    def __init__(self):
+        self.symbols: list[Symbol] = []
+
+    def index_file(self, file_path: Path) -> list[Symbol]:
+        """解析单个 Python 文件，提取符号"""
+        try:
+            source = file_path.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(file_path))
+        except (SyntaxError, UnicodeDecodeError):
+            return []
+
+        found: list[Symbol] = []
+        rel_path = str(file_path)
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+                # 判断是否是方法（在 class 内部）
+                kind = "function"
+                for parent in ast.walk(tree):
+                    if isinstance(parent, ast.ClassDef):
+                        if node in ast.iter_child_nodes(parent):
+                            kind = "method"
+                            break
+                sig = self._get_function_signature(node)
+                found.append(Symbol(name=node.name, kind=kind, file_path=rel_path, line=node.lineno, signature=sig))
+            elif isinstance(node, ast.ClassDef):
+                bases = ", ".join(self._get_name(b) for b in node.bases)
+                sig = f"class {node.name}({bases})" if bases else f"class {node.name}"
+                found.append(Symbol(name=node.name, kind="class", file_path=rel_path, line=node.lineno, signature=sig))
+
+        self.symbols.extend(found)
+        return found
+
+    def index_directory(self, directory: Path, pattern: str = "**/*.py") -> int:
+        """索引目录下所有 Python 文件"""
+        count = 0
+        for py_file in directory.glob(pattern):
+            if py_file.name.startswith("_") and py_file.name != "__init__.py":
+                continue
+            symbols = self.index_file(py_file)
+            count += len(symbols)
+        return count
+
+    def search(self, query: str, kind: str | None = None, limit: int = 20) -> list[Symbol]:
+        """按名称搜索符号（支持模糊匹配）"""
+        query_lower = query.lower()
+        results = []
+        for sym in self.symbols:
+            if kind and sym.kind != kind:
+                continue
+            if query_lower in sym.name.lower():
+                results.append(sym)
+        results.sort(key=lambda s: (s.name.lower() != query_lower, len(s.name), s.name))
+        return results[:limit]
+
+    def _get_function_signature(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
+        args = []
+        for arg in node.args.args:
+            annotation = ""
+            if arg.annotation:
+                annotation = f": {self._get_name(arg.annotation)}"
+            args.append(f"{arg.arg}{annotation}")
+        prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
+        ret = ""
+        if node.returns:
+            ret = f" -> {self._get_name(node.returns)}"
+        return f"{prefix} {node.name}({', '.join(args)}){ret}"
+
+    @staticmethod
+    def _get_name(node) -> str:
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            return f"{SymbolIndex._get_name(node.value)}.{node.attr}"
+        if isinstance(node, ast.Constant):
+            return repr(node.value)
+        if isinstance(node, ast.Subscript):
+            return f"{SymbolIndex._get_name(node.value)}[{SymbolIndex._get_name(node.slice)}]"
+        return ast.dump(node)
