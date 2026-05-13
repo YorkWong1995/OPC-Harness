@@ -153,7 +153,9 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         "tool_calls": 0,
         "api_calls": 0,
     }
-    for log in state.stage_logs.values():
+    for key, log in state.stage_logs.items():
+        if key.startswith("_") or not isinstance(log, dict):
+            continue
         totals["input_tokens"] += int(log.get("input_tokens", 0) or 0)
         totals["output_tokens"] += int(log.get("output_tokens", 0) or 0)
         totals["duration_seconds"] += float(log.get("duration_seconds", 0) or 0)
@@ -161,12 +163,22 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         totals["api_calls"] += int(log.get("api_calls", 0) or 0)
     totals["duration_seconds"] = round(totals["duration_seconds"], 2)
 
+    # 质量指标
+    qa_passed = state.current_stage in ("已通过", "已运行检查", "已复盘")
+    quality = {
+        "qa_passed": qa_passed,
+        "rework_attempts": state.rework_attempts,
+        "human_interventions": state.stage_logs.get("_human_interventions", 0),
+        "failure_types": state.stage_logs.get("_failure_types", {}),
+    }
+
     metrics = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         "task_description": state.task_description,
         "current_stage": state.current_stage,
-        "stages": state.stage_logs,
+        "stages": {k: v for k, v in state.stage_logs.items() if not k.startswith("_")},
         "totals": totals,
+        "quality": quality,
         "artifacts": state.artifact_paths,
     }
     metrics_path = artifacts_dir / "run_metrics.json"
