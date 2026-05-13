@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from .workflow import HarnessWorkflow
+from .workflow import HarnessWorkflow, WorkflowState
 from .config import load_workflow_config, normalize_roles, ALL_OPTIONAL_ROLES
 
 console = Console()
@@ -76,6 +76,29 @@ def main():
         help="使用指定的 profile 配置（覆盖 opc.toml 中的默认 profile）",
     )
 
+    # ---- opc resume ----
+    resume_parser = subparsers.add_parser("resume", help="从上次中断处恢复工作流执行")
+    resume_parser.add_argument(
+        "--project",
+        default=None,
+        help="项目名称（workspace/ 下的目录）",
+    )
+    resume_parser.add_argument(
+        "--project-dir",
+        default=None,
+        help="项目目录（指定已有目录，与 --project 二选一）",
+    )
+    resume_parser.add_argument(
+        "--model",
+        default=None,
+        help="模型名称",
+    )
+    resume_parser.add_argument(
+        "--auto-confirm",
+        action="store_true",
+        help="自动确认所有节点",
+    )
+
     # ---- opc index ----
     index_parser = subparsers.add_parser("index", help="构建知识索引")
     index_parser.add_argument("--name", required=True, help="索引名称")
@@ -109,6 +132,8 @@ def main():
 
     if args.command == "run":
         _run_workflow(args)
+    elif args.command == "resume":
+        _run_resume(args)
     elif args.command == "index":
         _run_index(args)
     elif args.command == "query":
@@ -179,6 +204,55 @@ def _run_workflow(args):
         profile=config.profile,
     )
     workflow.run(resume_from=args.resume_from)
+
+
+# ---- opc resume ----
+
+def _run_resume(args):
+    """从上次中断处恢复工作流执行"""
+    if args.project:
+        opc_root = Path(__file__).resolve().parent.parent.parent
+        project_dir = opc_root / "workspace" / args.project
+    elif args.project_dir:
+        project_dir = Path(args.project_dir)
+    else:
+        project_dir = Path(".")
+
+    artifacts_dir = project_dir / "artifacts"
+    state_path = artifacts_dir / ".opc_state.json"
+
+    if not state_path.exists():
+        console.print("[red]错误：未找到可恢复的工作流状态。[/red]")
+        console.print(f"[dim]查找路径: {state_path}[/dim]")
+        return
+
+    try:
+        saved_state = WorkflowState.load_state(artifacts_dir)
+    except Exception as e:
+        console.print(f"[red]错误：无法加载工作流状态: {e}[/red]")
+        return
+
+    console.print(Panel(
+        f"[bold]任务[/]: {saved_state.task_description}\n"
+        f"[bold]Run ID[/]: {saved_state.run_id}\n"
+        f"[bold]当前阶段[/]: {saved_state.current_stage}\n"
+        f"[bold]已完成[/]: {' → '.join(saved_state.completed_stages) if saved_state.completed_stages else '无'}",
+        title="检测到中断的工作流",
+    ))
+
+    config = load_workflow_config(project_dir)
+    roles = normalize_roles(config.roles)
+    auto_confirm = args.auto_confirm or config.auto_confirm
+
+    workflow = HarnessWorkflow(
+        task=saved_state.task_description,
+        project_dir=project_dir,
+        auto_confirm=auto_confirm,
+        roles=roles,
+        model=args.model,
+        profile=config.profile,
+    )
+    workflow.run(resume_from=saved_state.current_stage)
 
 
 # ---- opc index ----
