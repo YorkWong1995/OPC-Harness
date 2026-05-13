@@ -7,7 +7,7 @@
 
 - [x] 修订 README 中的项目定位：项目对外名称保持 OPC，不再改成新的中文/英文主标题 <!-- files: README.md --> <!-- context: 明确操作系统是远期隐喻，当前能力是软件交付编排层；用户确认“就叫 OPC 就行” --> <!-- decision: 对外名称为 OPC -->
 - [x] 在 docs/plan/vision.md 中区分当前能力、实验能力和长期愿景 <!-- files: docs/plan/vision.md --> <!-- context: 避免将 Roadmap 能力描述为已实现能力；能力分级采用严格标准：有代码、有测试、可本地复现才算当前能力 --> <!-- decision: 严格标准 -->
-- [ ] 定义 MVP 边界：明确 PM → Engineer → QA 是最小可验证交付闭环 <!-- files: docs/plan/roadmap.md, docs/plan/workflow.md --> <!-- context: 说明输入、输出、验收标准、失败路径，以及为什么不是单 Agent + 工具链 -->
+- [x] 定义 MVP 边界：明确 PM → Engineer → QA 是最小可验证交付闭环，并保留 Architect/Ops/Growth 等动态多角色入口 <!-- files: docs/plan/roadmap.md, docs/plan/workflow.md --> <!-- context: 说明输入、输出、验收标准、失败路径；用户确认 MVP 保留多角色，但默认最小闭环仍是 PM/Engineer/QA --> <!-- decision: 保留多角色 -->
 - [ ] 梳理并降级超出 MVP 的承诺：将未实现的 OS 级能力移动到 Roadmap <!-- files: README.md, docs/plan/roadmap.md --> <!-- context: 包括资源调度、权限隔离、进程管理、多租户等尚未完整实现的能力 -->
 - [ ] 补充 Harness Engineering 方法论定义：说明其与 SDLC、DevOps、Agile 的本质区别 <!-- files: docs/plan/architecture.md, docs/plan/execution.md --> <!-- context: 强调可执行、可验证、可恢复、可观测的 AI 工作流约束系统 -->
 
