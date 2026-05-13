@@ -5,7 +5,12 @@ from __future__ import annotations
 import importlib.util
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
+
+ToolPermission = Literal["read", "write", "execute"]
+ToolSideEffect = Literal["none", "filesystem_read", "filesystem_write", "process"]
+
+TEXT_OUTPUT_SCHEMA = {"type": "string"}
 
 
 @dataclass(frozen=True)
@@ -13,6 +18,10 @@ class ToolDefinition:
     name: str
     description: str
     input_schema: dict
+    output_schema: dict
+    permission: ToolPermission
+    side_effect: ToolSideEffect
+    timeout: int
     handler_name: str | None = None
     handler: Callable | None = None
 
@@ -23,6 +32,17 @@ class ToolDefinition:
             "input_schema": self.input_schema,
         }
 
+    def to_registry_entry(self) -> dict:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "input_schema": self.input_schema,
+            "output_schema": self.output_schema,
+            "permission": self.permission,
+            "side_effect": self.side_effect,
+            "timeout": self.timeout,
+        }
+
 
 _TOOL_REGISTRY: dict[str, ToolDefinition] = {}
 
@@ -31,6 +51,10 @@ def register_tool(
     name: str,
     description: str,
     input_schema: dict,
+    output_schema: dict | None = None,
+    permission: ToolPermission = "read",
+    side_effect: ToolSideEffect = "none",
+    timeout: int = 300,
     handler_name: str | None = None,
 ):
     def decorator(func: Callable) -> Callable:
@@ -38,6 +62,10 @@ def register_tool(
             name=name,
             description=description,
             input_schema=input_schema,
+            output_schema=output_schema or TEXT_OUTPUT_SCHEMA,
+            permission=permission,
+            side_effect=side_effect,
+            timeout=timeout,
             handler_name=handler_name,
             handler=func,
         )
@@ -60,6 +88,13 @@ def list_tool_schemas(names: set[str] | None = None) -> list[dict]:
     if names is not None:
         definitions = [definition for definition in definitions if definition.name in names]
     return [definition.to_schema() for definition in definitions]
+
+
+def list_tool_definitions(names: set[str] | None = None) -> list[dict]:
+    definitions = _TOOL_REGISTRY.values()
+    if names is not None:
+        definitions = [definition for definition in definitions if definition.name in names]
+    return [definition.to_registry_entry() for definition in definitions]
 
 
 def register_builtin_tools(agent_cls: type) -> None:
@@ -96,6 +131,10 @@ BUILTIN_TOOLS = [
             "properties": {"path": {"type": "string", "description": "相对于项目根目录的文件路径"}},
             "required": ["path"],
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=30,
         handler_name="_tool_read_file",
     ),
     ToolDefinition(
@@ -109,6 +148,10 @@ BUILTIN_TOOLS = [
             },
             "required": ["path", "content"],
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="write",
+        side_effect="filesystem_write",
+        timeout=30,
         handler_name="_tool_write_file",
     ),
     ToolDefinition(
@@ -124,6 +167,10 @@ BUILTIN_TOOLS = [
             },
             "required": ["path", "old_string", "new_string"],
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="write",
+        side_effect="filesystem_write",
+        timeout=30,
         handler_name="_tool_edit_file",
     ),
     ToolDefinition(
@@ -133,6 +180,10 @@ BUILTIN_TOOLS = [
             "type": "object",
             "properties": {"pattern": {"type": "string", "description": "glob 模式，默认 **/*", "default": "**/*"}},
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=30,
         handler_name="_tool_list_files",
     ),
     ToolDefinition(
@@ -148,6 +199,10 @@ BUILTIN_TOOLS = [
             },
             "required": ["pattern"],
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=30,
         handler_name="_tool_grep",
     ),
     ToolDefinition(
@@ -162,6 +217,10 @@ BUILTIN_TOOLS = [
             },
             "required": ["query"],
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=60,
         handler_name="_tool_search_knowledge",
     ),
     ToolDefinition(
@@ -175,6 +234,10 @@ BUILTIN_TOOLS = [
             },
             "required": ["command"],
         },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="execute",
+        side_effect="process",
+        timeout=300,
         handler_name="_tool_run_command",
     ),
 ]

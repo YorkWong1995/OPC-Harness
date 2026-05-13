@@ -73,7 +73,7 @@
 
 ## 9. 工具链完整性与安全
 
-- [ ] 统一工具注册协议字段 <!-- files: src/opc/tools/ --> <!-- context: 每个工具需包含 name、description、input_schema、output_schema、permission、side_effect、timeout -->
+- [x] 统一工具注册协议字段 <!-- files: src/opc/tools/ --> <!-- context: 每个工具需包含 name、description、input_schema、output_schema、permission、side_effect、timeout --> <!-- order: 工具链后续任务的前置项 -->
 - [ ] 整合 TOOLS_READ_ONLY 和 TOOLS_READ_WRITE 定义 <!-- files: src/opc/tools/, src/opc/agent.py --> <!-- context: 避免工具定义分散且权限语义不一致 -->
 - [ ] 增加 Git status/diff/log 工具 <!-- files: src/opc/tools/ --> <!-- context: 支撑真实软件开发中的变更检查和上下文理解 -->
 - [ ] 增加测试执行工具 <!-- files: src/opc/tools/ --> <!-- context: 支持 pytest 或项目配置中的测试命令 -->
