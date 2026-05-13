@@ -12,12 +12,17 @@ OPC 是一个面向"单人软件公司"的软件交付编排层。它通过 Harn
 
 ## 核心特性
 
-- **多角色协作体系**：CEO、PM、Architect、Engineer、QA、Ops、Growth 等角色明确分工
-- **Harness 工作流**：任务拆解 → 执行 → 验证 → 反馈的完整闭环
-- **结构化产出**：PRD、架构文档、任务清单、验收文档等标准化交付物
-- **人工监督节点**：关键决策点支持人工确认、拒绝、回滚
-- **记忆与上下文管理**：基于 BM25 的 RAG 检索，支持长期记忆
-- **工具链集成**：文件操作、Shell 执行、代码分析等嵌入式开发工具
+OPC 按严格标准标注能力状态：有代码、有测试、可本地复现的能力标为 **Available**；已有部分实现但仍在收敛的能力标为 **Experimental**；尚未完整实现的能力标为 **Planned / Roadmap**。
+
+| 状态 | 能力 | 说明 |
+| --- | --- | --- |
+| Available | PM → Engineer → QA 最小工作流 | 支持结构化需求、实现、验收、QA 退回与轮次限制 |
+| Available | 结构化角色输出 | PM、Engineer、QA 具备 schema 校验与契约测试 |
+| Available | Run trace 与基础指标 | 记录 workflow state、events、role outputs、token 用量和 API 调用次数 |
+| Available | 知识索引与检索 | 支持 `opc index`、`opc query` 和 BM25/向量混合检索 |
+| Experimental | 动态多角色入口 | Architect、Ops、Growth 可按任务或配置启用，但不作为默认主链路 |
+| Experimental | 工具链集成 | 文件操作、Shell 执行、代码分析等工具可用，协议、安全和审计仍在收敛 |
+| Planned / Roadmap | OS 级运行时能力 | 资源调度、权限隔离、进程管理、多租户、自定义 workflow、完整恢复入口等进入 Roadmap |
 
 ## 快速开始
 
