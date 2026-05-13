@@ -5,7 +5,7 @@
 
 ## 1. 定位与 MVP 收敛
 
-- [ ] 修订 README 中的项目定位：将“单人软件公司 AI 操作系统”调整为“AI 软件交付 Harness / Agentic Software Delivery Runtime” <!-- files: README.md --> <!-- context: 明确操作系统是远期隐喻，当前能力是软件交付编排层 -->
+- [x] 修订 README 中的项目定位：项目对外名称保持 OPC，不再改成新的中文/英文主标题 <!-- files: README.md --> <!-- context: 明确操作系统是远期隐喻，当前能力是软件交付编排层；用户确认“就叫 OPC 就行” --> <!-- decision: 对外名称为 OPC -->
 - [ ] 在 docs/plan/vision.md 中区分当前能力、实验能力和长期愿景 <!-- files: docs/plan/vision.md --> <!-- context: 避免将 Roadmap 能力描述为已实现能力 -->
 - [ ] 定义 MVP 边界：明确 PM → Engineer → QA 是最小可验证交付闭环 <!-- files: docs/plan/roadmap.md, docs/plan/workflow.md --> <!-- context: 说明输入、输出、验收标准、失败路径，以及为什么不是单 Agent + 工具链 -->
 - [ ] 梳理并降级超出 MVP 的承诺：将未实现的 OS 级能力移动到 Roadmap <!-- files: README.md, docs/plan/roadmap.md --> <!-- context: 包括资源调度、权限隔离、进程管理、多租户等尚未完整实现的能力 -->

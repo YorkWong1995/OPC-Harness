@@ -1,10 +1,12 @@
-# OPC-Harness
+# OPC
 
-> A Harness Engineering framework for building one-person software companies with AI agents
+> A Harness Engineering framework for orchestrating one-person software delivery with AI agents
 
 ## 项目定位
 
-OPC-Harness 是一个面向"单人软件公司"的 AI 操作系统，通过 Harness Engineering 方法论，将产品、架构、研发、测试、运维、增长等职责拆分为可协作的 AI Agent 角色，形成可计划、可执行、可验证、可干预的软件生产体系。
+OPC 是一个面向"单人软件公司"的软件交付编排层。它通过 Harness Engineering 方法论，将产品、架构、研发、测试、运维、增长等职责拆分为可协作的 AI Agent 角色，形成可计划、可执行、可验证、可干预的软件生产体系。
+
+"操作系统"是 OPC 的长期隐喻和远期愿景；当前阶段的核心能力，是围绕软件交付流程提供角色协作、工作流约束、可观测记录和人工介入边界。
 
 **核心理念：** 不追求"更聪明"的 Agent，而是构建"更可靠"的 Agent 公司系统。
 
