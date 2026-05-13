@@ -40,7 +40,7 @@
 - [x] 设计统一 RunStore / ExecutionStore <!-- files: src/opc/ --> <!-- context: 统一管理 workflow state、messages、role outputs、tool calls、tool results、artifacts、errors -->
 - [x] 为每次工作流执行生成 run_id <!-- files: src/opc/workflow.py --> <!-- context: 所有状态、消息、工具调用、产物都应关联 run_id -->
 - [x] 将工作流状态变化记录为 append-only event log <!-- files: src/opc/ --> <!-- context: 支持复盘、恢复、调试和后续 UI 展示 -->
-- [ ] 将 Agent 消息缓冲区纳入统一持久化 <!-- files: src/opc/agent.py, src/opc/environment.py --> <!-- context: 避免仅持久化 WorkflowState 导致恢复后上下文缺失 -->
+- [x] 将 Agent 消息缓冲区纳入统一持久化 <!-- files: src/opc/agent.py, src/opc/environment.py --> <!-- context: 避免仅持久化 WorkflowState 导致恢复后上下文缺失 --> <!-- order: 依赖 RunStore 事件模型稳定；先完成消息历史写入再做恢复读取 -->
 - [ ] 将工具调用和工具结果纳入统一持久化 <!-- files: src/opc/tools/, src/opc/workflow.py --> <!-- context: 恢复和复盘时能看到每次工具输入、输出、失败原因 -->
 - [ ] 实现中断恢复入口 <!-- files: src/opc/cli.py, src/opc/workflow.py --> <!-- context: 支持根据 run_id 恢复未完成工作流 -->
 

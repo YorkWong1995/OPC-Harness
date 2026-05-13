@@ -12,6 +12,7 @@ import asyncio
 
 from .schema import Message, MessageQueue
 from .agent import Agent
+from .run_store import RunStore
 
 
 class Environment:
@@ -23,11 +24,12 @@ class Environment:
     3. 记录消息历史
     """
 
-    def __init__(self, project_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Optional[Path] = None, run_store: Optional[RunStore] = None):
         self.project_dir = project_dir
         self.roles: Dict[str, Agent] = {}  # 角色名 -> Agent
         self.message_history: List[Message] = []  # 全局消息历史
         self._subscriptions: Dict[str, Set[str]] = {}  # 角色名 -> 订阅的消息类型
+        self.run_store = run_store or self._create_run_store(project_dir)
 
     def add_role(self, name: str, agent: Agent):
         """添加角色到环境"""
@@ -64,6 +66,7 @@ class Environment:
         message.validate_route(self._known_route_roles())
         # 记录到历史
         self.message_history.append(message)
+        self._persist_message("message_published", message)
         print(f"[Environment] 发布消息: [{message.role}] -> {message.send_to or 'all'}")
 
         # 路由到订阅的角色
@@ -78,6 +81,7 @@ class Environment:
         """异步发布消息，并并行投递给订阅角色。"""
         message.validate_route(self._known_route_roles())
         self.message_history.append(message)
+        self._persist_message("message_published", message)
         print(f"[Environment] 异步发布消息: [{message.role}] -> {message.send_to or 'all'}")
 
         tasks = []
@@ -86,6 +90,29 @@ class Environment:
                 tasks.append(self._deliver_message_async(role_name, message))
         if tasks:
             await asyncio.gather(*tasks)
+
+    def _create_run_store(self, project_dir: Optional[Path]) -> Optional[RunStore]:
+        if project_dir is None:
+            return None
+        return RunStore(project_dir / "artifacts")
+
+    def _persist_message(self, event_type: str, message: Message):
+        if self.run_store is None:
+            return
+        self.run_store.append(event_type, message=self._message_payload(message))
+
+    def _persist_delivery(self, role_name: str, message: Message, buffer_size: int):
+        if self.run_store is None:
+            return
+        self.run_store.append(
+            "message_delivered",
+            recipient=role_name,
+            buffer_size=buffer_size,
+            message=self._message_payload(message),
+        )
+
+    def _message_payload(self, message: Message) -> dict:
+        return message.model_dump(mode="json")
 
     def _known_route_roles(self) -> set[str]:
         return set(self.roles) | {"all", "system"}
@@ -113,6 +140,7 @@ class Environment:
         agent = self.roles[role_name]
         if hasattr(agent, "receive"):
             agent.receive(message)
+            self._persist_delivery(role_name, message, len(agent.msg_buffer))
             print(f"[Environment]   -> 投递给 {role_name}")
 
     async def _deliver_message_async(self, role_name: str, message: Message):
@@ -120,6 +148,7 @@ class Environment:
         agent = self.roles[role_name]
         if hasattr(agent, "receive"):
             await asyncio.to_thread(agent.receive, message)
+            self._persist_delivery(role_name, message, len(agent.msg_buffer))
             print(f"[Environment]   -> 异步投递给 {role_name}")
 
     async def dispatch_pending(self) -> dict[str, list[str]]:
