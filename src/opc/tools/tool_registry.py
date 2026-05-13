@@ -236,6 +236,52 @@ BUILTIN_TOOLS = [
         handler_name="_tool_search_knowledge",
     ),
     ToolDefinition(
+        name="git_status",
+        description="查看当前项目 Git 工作区状态。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "porcelain": {"type": "boolean", "description": "是否使用短格式输出，默认 true", "default": True},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=30,
+        handler_name="_tool_git_status",
+    ),
+    ToolDefinition(
+        name="git_diff",
+        description="查看当前项目 Git diff，可选择 staged diff 或指定相对路径。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "cached": {"type": "boolean", "description": "是否查看暂存区 diff，默认 false", "default": False},
+                "path": {"type": "string", "description": "可选的项目内相对路径"},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=30,
+        handler_name="_tool_git_diff",
+    ),
+    ToolDefinition(
+        name="git_log",
+        description="查看当前项目最近 Git 提交记录。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "最多返回多少条提交，默认 5", "default": 5},
+            },
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=30,
+        handler_name="_tool_git_log",
+    ),
+    ToolDefinition(
         name="run_command",
         description="在项目目录中执行终端命令（仅限白名单命令：python, pip, npm, node, git, pytest, eslint, npx, cargo, go）。支持交互式命令检测。",
         input_schema={
