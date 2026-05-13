@@ -46,16 +46,18 @@ cp .env.example .env
 
 ### 基础使用
 
-```python
-from src.opc import OPC
+```bash
+# 在当前目录运行最小 harness 工作流
+opc run "帮我设计一个用户登录功能"
 
-# 初始化 OPC 实例
-opc = OPC()
+# 指定 workspace/ 下的项目目录
+opc run "帮我设计一个用户登录功能" --project demo-login
 
-# 运行任务
-result = opc.run("帮我设计一个用户登录功能")
-print(result)
+# 指定已有项目目录，并跳过 Architect 环节
+opc run "补充登录功能验收标准" --project-dir . --skip-architect
 ```
+
+当前公开入口以 CLI 为主；Python 包入口仅暴露版本信息，暂不提供 `OPC()`、`run_as_role()`、`run_with_tools()` 等高级 API。
 
 ### 知识索引与检索
 
@@ -154,46 +156,28 @@ Harness Engineering 是本项目的核心方法论，强调：
 
 ## 使用场景
 
-### 场景 1：需求到实现的完整流程
+### 场景 1：需求到实现的最小流程
 
-```python
-# 1. CEO 确定目标
-opc.run_as_role("CEO", "我们需要一个用户认证系统")
-
-# 2. PM 编写 PRD
-opc.run_as_role("PM", "基于 CEO 的目标，编写用户认证系统的 PRD")
-
-# 3. Architect 设计架构
-opc.run_as_role("Architect", "基于 PRD，设计认证系统的技术架构")
-
-# 4. Engineer 实现代码
-opc.run_as_role("Engineer", "基于架构文档，实现用户登录功能")
-
-# 5. QA 验证功能
-opc.run_as_role("QA", "验证登录功能是否符合 PRD 要求")
+```bash
+opc run "为示例项目补充用户登录功能的需求、实现和验收记录" --project demo-login --auto-confirm
 ```
 
-### 场景 2：嵌入式开发辅助
+该命令使用当前实现的 PM → Engineer → QA 工作流。Architect、Ops、Growth 等角色按配置或任务类型动态启用，不通过 `run_as_role()` 手动调用。
 
-```python
-# 使用嵌入式工具链
-opc.run_with_tools([
-    "read_file",      # 读取代码文件
-    "write_file",     # 写入代码文件
-    "execute_shell",  # 执行编译命令
-    "analyze_code"    # 分析代码结构
-], "帮我优化这段 C++ 代码的性能")
+### 场景 2：知识索引与上下文检索
+
+```bash
+opc index --name myproject --dirs src/opc docs --extensions .py .md
+opc query "PM 输出 schema 包含哪些字段" --name myproject --no-llm
 ```
 
-### 场景 3：基于记忆的上下文检索
+### 场景 3：交互式运行
 
-```python
-# 保存项目知识
-opc.memory.add("用户认证采用 JWT 方案")
-
-# 后续任务自动检索相关上下文
-opc.run("实现用户登出功能")  # 自动检索到 JWT 相关信息
+```bash
+python run_opc.py
 ```
+
+交互式入口适合逐步确认需求、方案、实现和验收；长期记忆写入与自动检索能力仍按 Roadmap 逐步收敛。
 
 ## 配置说明
 
