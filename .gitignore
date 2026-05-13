@@ -46,6 +46,7 @@ opc.toml
 *.local.toml
 
 # Internal documentation (keep local only)
+docs/runs/
 docs/plan/
 docs/claude/
 docs/*_summary.md
@@ -64,7 +65,7 @@ plan.md
 analyze_*.py
 demo_*.py
 run_wn2384t_*.py
-test_*.py
+/test_*.py
 QUICK_UPLOAD.md
 UPLOAD_CHECKLIST.md
 pre_upload_check.sh

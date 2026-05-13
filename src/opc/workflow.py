@@ -257,6 +257,19 @@ class HarnessWorkflow:
         result = agent.run(prompt)
         duration = time.monotonic() - start
         self._record_stage_metrics(agent, stage_name, duration)
+
+        # 记录工具调用和结果
+        if hasattr(agent, "audit_log") and agent.audit_log:
+            for tool_record in agent.audit_log:
+                self.run_store.append(
+                    "tool_call",
+                    stage=stage_name,
+                    role=getattr(agent, "role", stage_name),
+                    **tool_record
+                )
+            # 清空审计日志，避免重复记录
+            agent.audit_log.clear()
+
         self.run_store.append(
             "stage_completed",
             stage=stage_name,

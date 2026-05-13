@@ -197,7 +197,7 @@ class Agent:
                 for block in assistant_content:
                     if block.type == "tool_use":
                         self.last_tool_calls += 1
-                        result = self._execute_tool(block.name, block.input)
+                        result = self._execute_tool(block.name, block.input, tool_use_id=block.id)
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": block.id,
@@ -217,7 +217,7 @@ class Agent:
                 parts.append(block.text)
         return "\n".join(parts)
 
-    def _execute_tool(self, name: str, inputs: dict) -> str:
+    def _execute_tool(self, name: str, inputs: dict, tool_use_id: str | None = None) -> str:
         definition = get_tool(name)
         if not definition:
             return f"错误：未知工具 {name}"
@@ -245,16 +245,39 @@ class Agent:
         elif name == "run_command":
             print(f"  -> 命令: {inputs.get('command', 'N/A')}")
 
+        start_time = time.time()
         try:
             result = handler(**inputs)
+            elapsed = time.time() - start_time
             # 日志：工具调用成功
             result_preview = str(result)[:200] if result else "None"
             print(f"[DEBUG][{self.role}] 工具执行成功，结果预览: {result_preview}...")
+
+            # 记录工具调用和结果（用于持久化）
+            self._record_tool_call(name, inputs, result, elapsed, tool_use_id, error=None)
             return result
         except Exception as e:
+            elapsed = time.time() - start_time
             error_msg = f"工具执行错误：{e}"
             print(f"[ERROR][{self.role}] {error_msg}")
+
+            # 记录工具调用失败
+            self._record_tool_call(name, inputs, None, elapsed, tool_use_id, error=str(e))
             return error_msg
+
+    def _record_tool_call(self, name: str, inputs: dict, result: str | None, elapsed: float,
+                          tool_use_id: str | None, error: str | None):
+        """记录工具调用和结果（供 RunStore 持久化）"""
+        record = {
+            "tool_name": name,
+            "inputs": inputs,
+            "result": result[:500] if result else None,  # 限制结果长度
+            "elapsed": round(elapsed, 3),
+            "tool_use_id": tool_use_id,
+            "error": error,
+        }
+        # 将记录添加到审计日志（后续可由 workflow 写入 RunStore）
+        self.audit_log.append(record)
 
     def _tool_read_file(self, path: str) -> str:
         target = self._resolve_safe_path(path)
