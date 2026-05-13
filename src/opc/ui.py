@@ -149,12 +149,66 @@ def render_artifacts(st, artifacts_dir: Path) -> None:
         col2.metric("Output Tokens", totals.get("output_tokens", 0))
         col3.metric("耗时(s)", totals.get("duration_seconds", 0))
         col4.metric("工具调用", totals.get("tool_calls", 0))
+
+        # 质量指标
+        quality = metrics.get("quality", {})
+        if quality:
+            qcol1, qcol2, qcol3 = st.columns(3)
+            qcol1.metric("QA 通过", "是" if quality.get("qa_passed") else "否")
+            qcol2.metric("返工次数", quality.get("rework_attempts", 0))
+            qcol3.metric("人工介入", quality.get("human_interventions", 0))
+
         stages = metrics.get("stages", {})
         if stages:
             st.dataframe([
                 {"阶段": name, **values}
                 for name, values in stages.items()
             ], use_container_width=True, hide_index=True)
+
+    # Run Trace 展示
+    trace_path = artifacts_dir / "run_trace.json"
+    if trace_path.exists():
+        with st.expander("Run Trace", expanded=False):
+            trace = json.loads(trace_path.read_text(encoding="utf-8"))
+            st.write(f"**Run ID**: {trace.get('run_id', 'N/A')}")
+            st.write(f"**最终状态**: {trace.get('final_status', 'N/A')}")
+            events = trace.get("events", [])
+            if events:
+                # 按类型分组展示
+                tool_calls = [e for e in events if e.get("type") == "tool_call"]
+                stage_events = [e for e in events if e.get("type") in ("stage_started", "stage_completed")]
+
+                if stage_events:
+                    st.write(f"**阶段事件**: {len(stage_events)} 条")
+                    st.dataframe([
+                        {
+                            "类型": e["type"],
+                            "阶段": e.get("payload", {}).get("stage", ""),
+                            "角色": e.get("payload", {}).get("role", ""),
+                            "时间": e.get("timestamp", ""),
+                        }
+                        for e in stage_events
+                    ], use_container_width=True, hide_index=True)
+
+                if tool_calls:
+                    st.write(f"**工具调用**: {len(tool_calls)} 次")
+                    st.dataframe([
+                        {
+                            "工具": e.get("payload", {}).get("tool_name", ""),
+                            "阶段": e.get("payload", {}).get("stage", ""),
+                            "耗时(s)": e.get("payload", {}).get("elapsed", ""),
+                            "错误": e.get("payload", {}).get("error", "") or "",
+                        }
+                        for e in tool_calls
+                    ], use_container_width=True, hide_index=True)
+
+    # 事件日志
+    events_path = artifacts_dir / "run_events.jsonl"
+    if events_path.exists():
+        with st.expander("事件日志 (JSONL)"):
+            lines = events_path.read_text(encoding="utf-8").strip().split("\n")
+            st.write(f"共 {len(lines)} 条事件")
+            st.code("\n".join(lines[-20:]), language="json")
 
     for path in sorted(artifacts_dir.glob("*.md")):
         with st.expander(path.name, expanded=path.name == "run_report.md"):
