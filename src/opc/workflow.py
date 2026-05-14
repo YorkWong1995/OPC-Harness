@@ -390,6 +390,15 @@ class HarnessWorkflow:
             next_step=next_step,
         )
 
+    def _record_stage_summary(self, key: str, summary: StageSummary) -> None:
+        self.stage_summaries[key] = summary
+        self.run_store.append(
+            "stage_summary_created",
+            key=key,
+            stage=summary.stage,
+            summary=summary.model_dump(),
+        )
+
     def run(self, resume_from: str | None = None):
         """运行工作流。
 
@@ -619,13 +628,16 @@ class HarnessWorkflow:
                 self.workflow_state.completed_stages.append("已定义")
             self.workflow_state.artifact_paths["prd"] = str(prd_path)
             if isinstance(pm_output, PMOutput):
-                self.stage_summaries["pm"] = self._create_stage_summary(
-                    stage="pm",
-                    goal=pm_output.goal,
-                    decisions=pm_output.scope,
-                    validation=pm_output.acceptance_criteria,
-                    risks=pm_output.risks,
-                    next_step="engineer",
+                self._record_stage_summary(
+                    "pm",
+                    self._create_stage_summary(
+                        stage="pm",
+                        goal=pm_output.goal,
+                        decisions=pm_output.scope,
+                        validation=pm_output.acceptance_criteria,
+                        risks=pm_output.risks,
+                        next_step="engineer",
+                    ),
                 )
             self.save_state()
             console.print(f"[green]PRD 已保存[/]: {prd_path}")
@@ -694,14 +706,17 @@ class HarnessWorkflow:
                 if engineer_output.failure_reason:
                     engineer_risks.append(f"failure_reason: {engineer_output.failure_reason}")
                 engineer_risks.extend(f"blocked_by: {item}" for item in engineer_output.blocked_by)
-                self.stage_summaries["engineer"] = self._create_stage_summary(
-                    stage="engineer",
-                    goal="实现 PM 阶段定义的需求",
-                    decisions=[engineer_output.implementation_summary],
-                    changed_files=engineer_output.changed_files,
-                    validation=[engineer_output.test_result] if engineer_output.test_result else [],
-                    risks=engineer_risks,
-                    next_step=engineer_output.suggested_next_step or "qa",
+                self._record_stage_summary(
+                    "engineer",
+                    self._create_stage_summary(
+                        stage="engineer",
+                        goal="实现 PM 阶段定义的需求",
+                        decisions=[engineer_output.implementation_summary],
+                        changed_files=engineer_output.changed_files,
+                        validation=[engineer_output.test_result] if engineer_output.test_result else [],
+                        risks=engineer_risks,
+                        next_step=engineer_output.suggested_next_step or "qa",
+                    ),
                 )
             if isinstance(engineer_output, EngineerOutput) and engineer_output.failure_reason:
                 self.state = "已退回"
@@ -763,9 +778,9 @@ class HarnessWorkflow:
                 risks=qa_output.defects,
                 next_step=qa_output.next_action,
             )
-            self.stage_summaries["qa"] = qa_summary
+            self._record_stage_summary("qa", qa_summary)
             if qa_output.status == "fail":
-                self.stage_summaries[f"qa_fail_{self.workflow_state.rework_attempts + 1}"] = qa_summary
+                self._record_stage_summary(f"qa_fail_{self.workflow_state.rework_attempts + 1}", qa_summary)
         qa_failed = qa_output.status == "fail" if isinstance(qa_output, QAOutput) else "不通过" in acceptance
         if qa_failed:
             self.workflow_state.rework_attempts += 1
