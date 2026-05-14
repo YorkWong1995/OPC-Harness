@@ -689,6 +689,20 @@ class HarnessWorkflow:
             impl_path = self.store.save("implementation.md", implementation)
             engineer_output = self._parse_role_output("engineer", implementation)
             self.state = "实现中"
+            if isinstance(engineer_output, EngineerOutput):
+                engineer_risks = list(engineer_output.known_limits)
+                if engineer_output.failure_reason:
+                    engineer_risks.append(f"failure_reason: {engineer_output.failure_reason}")
+                engineer_risks.extend(f"blocked_by: {item}" for item in engineer_output.blocked_by)
+                self.stage_summaries["engineer"] = self._create_stage_summary(
+                    stage="engineer",
+                    goal="实现 PM 阶段定义的需求",
+                    decisions=[engineer_output.implementation_summary],
+                    changed_files=engineer_output.changed_files,
+                    validation=[engineer_output.test_result] if engineer_output.test_result else [],
+                    risks=engineer_risks,
+                    next_step=engineer_output.suggested_next_step or "qa",
+                )
             if isinstance(engineer_output, EngineerOutput) and engineer_output.failure_reason:
                 self.state = "已退回"
                 self.run_store.append(
