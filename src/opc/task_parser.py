@@ -39,6 +39,7 @@ def task_to_spec(task: Task) -> TaskSpec:
         risk=metadata.get("risk", ""),
         owner_role=metadata.get("owner_role", "engineer"),
         validation_commands=_split_metadata_list(metadata.get("validation_commands", "")),
+        validation_evidence=_split_metadata_list(metadata.get("validation_evidence", "")),
         run_id=metadata.get("run_id", ""),
     )
 

@@ -137,6 +137,17 @@ def _text_summary(value: str, limit: int = 500) -> str:
     return compact[:limit]
 
 
+def _validation_evidence(success: bool, stdout: str = "", stderr: str = "", skipped: bool = False) -> list[str]:
+    if skipped:
+        return ["task skipped before execution"]
+    evidence = ["claude cli exit status: success" if success else "claude cli exit status: failed"]
+    if stdout:
+        evidence.append(f"stdout: {_text_summary(stdout, 200)}")
+    if stderr:
+        evidence.append(f"stderr: {_text_summary(stderr, 200)}")
+    return evidence
+
+
 def trace_task_run(
     config: Config,
     task: Task,
@@ -155,6 +166,7 @@ def trace_task_run(
         "prompt_summary": _text_summary(prompt),
         "stdout_summary": _text_summary(stdout),
         "stderr_summary": _text_summary(stderr),
+        "validation_evidence": _validation_evidence(success, stdout, stderr, skipped),
     }
     config.trace_file.parent.mkdir(parents=True, exist_ok=True)
     with config.trace_file.open("a", encoding="utf-8") as stream:

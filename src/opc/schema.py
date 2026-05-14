@@ -127,6 +127,7 @@ class TaskSpec(BaseModel):
     risk: str = ""
     owner_role: str = "engineer"
     validation_commands: list[str] = Field(default_factory=list)
+    validation_evidence: list[str] = Field(default_factory=list)
     run_id: str = ""
 
 
