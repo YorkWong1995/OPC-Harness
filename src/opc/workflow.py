@@ -25,7 +25,7 @@ from .roles import (
 from .config import load_workflow_config
 from .config import load_project_config, OPCConfig
 from .run_store import RunStore
-from .schema import EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
+from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
 
 console = Console()

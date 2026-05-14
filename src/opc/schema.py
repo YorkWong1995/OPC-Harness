@@ -126,6 +126,18 @@ class StageSummary(BaseModel):
     next_step: str = ""
 
 
+class ContextPack(BaseModel):
+    task_goal: str = ""
+    acceptance: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    stage_summary: dict[str, Any] = Field(default_factory=dict)
+    related_files: list[str] = Field(default_factory=list)
+    diff_summary: str = ""
+    validation: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    history_summary: str = ""
+
+
 ROLE_OUTPUT_SCHEMAS = {
     "pm": PMOutput,
     "engineer": EngineerOutput,
