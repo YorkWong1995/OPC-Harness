@@ -731,15 +731,14 @@ class HarnessWorkflow:
             console.print("[dim]跳过 Engineer 阶段（已完成）[/dim]")
             return
         if outputs["architecture"]:
-            engineer_input = (
-                "基于以下滑动窗口上下文完成实现；如需原文细节，请读取已保存的 PRD 或架构产物：\n\n"
-                + self._build_sliding_context("engineer", f"必要架构摘要：\n{outputs['architecture']}")
-            )
+            context_pack = self._build_context_pack("engineer", "实现中", f"必要架构摘要：\n{outputs['architecture']}")
         else:
-            engineer_input = (
-                "基于以下滑动窗口上下文完成实现；如需原文细节，请读取已保存的 PRD 产物：\n\n"
-                + self._build_sliding_context("engineer")
-            )
+            context_pack = self._build_context_pack("engineer", "实现中")
+        engineer_input = (
+            "使用以下 Context Pack 完成实现。重点关注 task_goal、acceptance、constraints、"
+            "stage_summary、validation 和 risks；如需原文细节，请读取已保存产物。\n\n"
+            f"{context_pack.model_dump_json(indent=2)}"
+        )
         eng_prompt = engineer_input
         while True:
             console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
