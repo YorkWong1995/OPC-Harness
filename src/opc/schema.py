@@ -116,6 +116,20 @@ class QAOutput(BaseModel):
     next_action: Literal["done", "rework", "human_intervention"] = "done"
 
 
+class TaskSpec(BaseModel):
+    id: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    status: Literal["pending", "completed", "skipped", "failed"] = "pending"
+    files: list[str] = Field(default_factory=list)
+    context: str = ""
+    depends_on: list[str] = Field(default_factory=list)
+    acceptance: list[str] = Field(default_factory=list)
+    risk: str = ""
+    owner_role: str = "engineer"
+    validation_commands: list[str] = Field(default_factory=list)
+    run_id: str = ""
+
+
 class StageSummary(BaseModel):
     stage: str = Field(min_length=1)
     goal: str = ""
