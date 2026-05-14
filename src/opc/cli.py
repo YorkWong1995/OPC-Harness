@@ -389,11 +389,7 @@ def _run_query(args):
 # ---- opc task ----
 
 def _load_task_file(task_file: Path):
-    try:
-        from run_tasks import parse_tasks
-    except ImportError as error:
-        console.print(f"[red]错误：无法导入 run_tasks.py: {error}[/red]")
-        return None
+    from .task_parser import parse_tasks
 
     if not task_file.exists():
         console.print(f"[red]错误：任务清单不存在 {task_file}[/red]")
