@@ -25,7 +25,7 @@ from .roles import (
 from .config import load_workflow_config
 from .config import load_project_config, OPCConfig
 from .run_store import RunStore
-from .schema import EngineerOutput, QAOutput, StageSummary, parse_role_output
+from .schema import EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
 
 console = Console()
@@ -244,6 +244,7 @@ class HarnessWorkflow:
         self.max_rounds = self.workflow_config.max_rounds
         self.run_store = RunStore(self.store.dir)
         self.workflow_state = WorkflowState(task_description=task, run_id=self.run_store.run_id)
+        self.stage_summaries: dict[str, StageSummary] = {}
         self.last_edited_prompt: str = ""
 
         self.pm = create_pm_agent(model=model)
@@ -612,11 +613,20 @@ class HarnessWorkflow:
             console.print("\n[bold cyan][PM][/bold cyan] 正在产出 PRD...")
             prd = self._run_stage(self.pm, prd_prompt, "已定义")
             prd_path = self.store.save("prd.md", prd)
-            self._parse_role_output("pm", prd)
+            pm_output = self._parse_role_output("pm", prd)
             self.state = "已定义"
             if "已定义" not in self.workflow_state.completed_stages:
                 self.workflow_state.completed_stages.append("已定义")
             self.workflow_state.artifact_paths["prd"] = str(prd_path)
+            if isinstance(pm_output, PMOutput):
+                self.stage_summaries["pm"] = self._create_stage_summary(
+                    stage="pm",
+                    goal=pm_output.goal,
+                    decisions=pm_output.scope,
+                    validation=pm_output.acceptance_criteria,
+                    risks=pm_output.risks,
+                    next_step="engineer",
+                )
             self.save_state()
             console.print(f"[green]PRD 已保存[/]: {prd_path}")
             console.print(Panel(prd[:800] + ("..." if len(prd) > 800 else ""), title="PRD 预览"))
