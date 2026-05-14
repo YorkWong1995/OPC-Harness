@@ -709,9 +709,15 @@ class HarnessWorkflow:
             console.print("[dim]跳过 Engineer 阶段（已完成）[/dim]")
             return
         if outputs["architecture"]:
-            engineer_input = f"基于以下 PRD 和架构方案完成实现：\n\nPRD:\n{outputs['prd']}\n\n架构方案:\n{outputs['architecture']}"
+            engineer_input = (
+                "基于以下滑动窗口上下文完成实现；如需原文细节，请读取已保存的 PRD 或架构产物：\n\n"
+                + self._build_sliding_context("engineer", f"必要架构摘要：\n{outputs['architecture']}")
+            )
         else:
-            engineer_input = f"基于以下 PRD 完成实现：\n\n{outputs['prd']}"
+            engineer_input = (
+                "基于以下滑动窗口上下文完成实现；如需原文细节，请读取已保存的 PRD 产物：\n\n"
+                + self._build_sliding_context("engineer")
+            )
         eng_prompt = engineer_input
         while True:
             console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
