@@ -25,6 +25,7 @@ from .roles import (
 from .config import load_workflow_config
 from .config import load_project_config, OPCConfig
 from .run_store import RunStore
+from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
 
@@ -427,6 +428,20 @@ class HarnessWorkflow:
             related_files.extend(summary.changed_files)
             validation.extend(summary.validation)
             risks.extend(summary.risks)
+        impact_summary = "impact_analysis=not_run"
+        if related_files:
+            try:
+                impact = ImpactAnalyzer(self.project_dir).analyze(sorted(set(related_files)))
+                related_files.extend(impact.related_files)
+                related_files.extend(impact.related_tests)
+                validation.extend(impact.validation_commands)
+                risks.extend(impact.risk_points)
+                impact_summary = (
+                    f"impact_analysis=related_files:{len(impact.related_files)},"
+                    f"tests:{len(impact.related_tests)},risks:{len(impact.risk_points)}"
+                )
+            except Exception as error:
+                impact_summary = f"impact_analysis=failed:{error}"
         pack = ContextPack(
             task_goal=pm_summary.goal if pm_summary else self.task,
             acceptance=pm_summary.validation if pm_summary else [],
@@ -436,7 +451,7 @@ class HarnessWorkflow:
             diff_summary=recent_detail,
             validation=validation,
             risks=risks,
-            history_summary=f"role={role}; stage={stage}; summaries={', '.join(stage_summary) or 'none'}",
+            history_summary=f"role={role}; stage={stage}; summaries={', '.join(stage_summary) or 'none'}; {impact_summary}",
         )
         if hasattr(self, "run_store"):
             self.run_store.append(
@@ -456,6 +471,7 @@ class HarnessWorkflow:
                 ],
                 source_artifacts=list(getattr(self.workflow_state, "artifact_paths", {}).keys()),
                 summary_used=list(stage_summary.keys()),
+                impact_summary=impact_summary,
                 excluded_reason="historical full text replaced by stage_summary; only recent_detail is carried",
             )
         return pack
