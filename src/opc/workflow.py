@@ -756,7 +756,15 @@ class HarnessWorkflow:
             return parsed
         except Exception as error:
             self.run_store.append("role_output_validation_failed", role=role, error=str(error))
-            return None
+            self.workflow_state.stage_logs["_human_interventions"] = (
+                self.workflow_state.stage_logs.get("_human_interventions", 0) + 1
+            )
+            failure_types = self.workflow_state.stage_logs.setdefault("_failure_types", {})
+            failure_types["protocol"] = failure_types.get("protocol", 0) + 1
+            self.state = "已退回"
+            self.save_state()
+            console.print(f"\n[bold red]{role} 输出协议校验失败[/]，工作流暂停。")
+            raise _StopWorkflow() from error
 
     def _exec_ops(self, outputs, should_skip, load_artifact):
         """Ops / Release 检查阶段。"""
