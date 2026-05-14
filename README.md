@@ -240,10 +240,10 @@ block_env_file_write = true
 
 ### 添加新工具
 
-1. 在 `src/tools/` 创建工具文件
-2. 继承 `BaseTool` 类
-3. 实现 `run()` 方法
-4. 在工具注册表中注册
+1. 在 `src/opc/tools/tool_registry.py` 中用 `register_tool(...)` 注册工具函数，或新增 `ToolDefinition`
+2. 为工具声明 `input_schema`、`output_schema`、`permission`、`side_effect` 和 `timeout`
+3. 将工具函数实现为可调用 handler，并通过注册表暴露给 Agent
+4. 需要外部插件时，放入项目的 `opc_plugins/` 并通过现有插件加载逻辑注册
 
 ### 运行测试
 
