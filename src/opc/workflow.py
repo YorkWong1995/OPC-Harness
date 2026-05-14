@@ -25,7 +25,7 @@ from .roles import (
 from .config import load_workflow_config
 from .config import load_project_config, OPCConfig
 from .run_store import RunStore
-from .schema import EngineerOutput, QAOutput, parse_role_output
+from .schema import EngineerOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
 
 console = Console()
@@ -367,6 +367,26 @@ class HarnessWorkflow:
         state_path.write_text(
             json.dumps(asdict(self.workflow_state), ensure_ascii=False, indent=2),
             encoding="utf-8",
+        )
+
+    def _create_stage_summary(
+        self,
+        stage: str,
+        goal: str = "",
+        decisions: list[str] | None = None,
+        changed_files: list[str] | None = None,
+        validation: list[str] | None = None,
+        risks: list[str] | None = None,
+        next_step: str = "",
+    ) -> StageSummary:
+        return StageSummary(
+            stage=stage,
+            goal=goal,
+            decisions=decisions or [],
+            changed_files=changed_files or [],
+            validation=validation or [],
+            risks=risks or [],
+            next_step=next_step,
         )
 
     def run(self, resume_from: str | None = None):

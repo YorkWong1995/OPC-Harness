@@ -116,6 +116,16 @@ class QAOutput(BaseModel):
     next_action: Literal["done", "rework", "human_intervention"] = "done"
 
 
+class StageSummary(BaseModel):
+    stage: str = Field(min_length=1)
+    goal: str = ""
+    decisions: list[str] = Field(default_factory=list)
+    changed_files: list[str] = Field(default_factory=list)
+    validation: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    next_step: str = ""
+
+
 ROLE_OUTPUT_SCHEMAS = {
     "pm": PMOutput,
     "engineer": EngineerOutput,
