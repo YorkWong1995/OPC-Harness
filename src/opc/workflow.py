@@ -427,7 +427,7 @@ class HarnessWorkflow:
             related_files.extend(summary.changed_files)
             validation.extend(summary.validation)
             risks.extend(summary.risks)
-        return ContextPack(
+        pack = ContextPack(
             task_goal=pm_summary.goal if pm_summary else self.task,
             acceptance=pm_summary.validation if pm_summary else [],
             constraints=pm_summary.risks if pm_summary else [],
@@ -438,6 +438,27 @@ class HarnessWorkflow:
             risks=risks,
             history_summary=f"role={role}; stage={stage}; summaries={', '.join(stage_summary) or 'none'}",
         )
+        if hasattr(self, "run_store"):
+            self.run_store.append(
+                "context_pack_created",
+                role=role,
+                stage=stage,
+                included_sections=[
+                    "task_goal",
+                    "acceptance",
+                    "constraints",
+                    "stage_summary",
+                    "related_files",
+                    "diff_summary",
+                    "validation",
+                    "risks",
+                    "history_summary",
+                ],
+                source_artifacts=list(getattr(self.workflow_state, "artifact_paths", {}).keys()),
+                summary_used=list(stage_summary.keys()),
+                excluded_reason="historical full text replaced by stage_summary; only recent_detail is carried",
+            )
+        return pack
 
     def run(self, resume_from: str | None = None):
         """运行工作流。
