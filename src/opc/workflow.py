@@ -799,10 +799,12 @@ class HarnessWorkflow:
             console.print("[dim]跳过 QA 阶段（已完成）[/dim]")
             return
         console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
-        qa_context = self._build_sliding_context("qa", f"最近实现说明：\n{outputs['implementation']}")
+        context_pack = self._build_context_pack("qa", "待验收", f"最近实现说明：\n{outputs['implementation']}")
         acceptance = self._run_stage(
             self.qa,
-            f"基于以下验收上下文判断实现是否通过，必须给出 pass/fail：\n\n{qa_context}",
+            "使用以下 Context Pack 验收实现，重点关注 acceptance、stage_summary、"
+            "related_files、validation 和 risks，必须给出 pass/fail：\n\n"
+            f"{context_pack.model_dump_json(indent=2)}",
             "待验收",
         )
         acc_path = self.store.save("acceptance.md", acceptance)
