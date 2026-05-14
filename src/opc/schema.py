@@ -144,7 +144,7 @@ def _extract_json_object(content: str) -> dict[str, Any]:
         if start == -1 or end == -1 or end < start:
             raise ValueError("角色输出不是 JSON 对象")
         stripped = stripped[start : end + 1]
-    data = json.loads(stripped)
+    data, _ = json.JSONDecoder().raw_decode(stripped)
     if not isinstance(data, dict):
         raise ValueError("角色输出必须是 JSON 对象")
     return data
