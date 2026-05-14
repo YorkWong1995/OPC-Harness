@@ -856,11 +856,16 @@ class HarnessWorkflow:
         outputs["acceptance"] = acceptance
 
     def _run_rework(self, outputs: dict, acceptance: str) -> str:
-        rework_context = self._build_sliding_context(
+        context_pack = self._build_context_pack(
+            "engineer",
             "rework",
-            f"QA 缺陷：\n{acceptance}\n\n最近实现摘要：\n{outputs['implementation']}",
+            f"QA defects：\n{acceptance}\n\n最近实现摘要：\n{outputs['implementation']}",
         )
-        rework_prompt = f"请根据以下滑动窗口上下文修正实现，并输出新的结构化实现说明：\n\n{rework_context}"
+        rework_prompt = (
+            "使用以下 Context Pack 进行返工。重点关注 QA defects、最近实现摘要、"
+            "task_goal、constraints、history_summary 和 risks，并输出新的结构化实现说明：\n\n"
+            f"{context_pack.model_dump_json(indent=2)}"
+        )
         console.print("\n[bold cyan][Engineer][/bold cyan] 正在根据 QA 缺陷返工...")
         implementation = self._run_stage(self.engineer, rework_prompt, "实现中")
         impl_path = self.store.save("implementation.md", implementation)
