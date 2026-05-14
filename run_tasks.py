@@ -1,12 +1,14 @@
 """Autonomous task runner — executes a markdown task list via claude CLI."""
 
 import argparse
+import json
 import os
 import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 try:
     from opc.task_parser import TASK_PATTERN, Task, parse_tasks
@@ -32,6 +34,7 @@ class Config:
     auto_commit: bool = True
     timeout: int = 600
     log_file: Path = Path("task_run.log")
+    trace_file: Path = Path("task_trace.jsonl")
     dry_run: bool = False
     verbose: bool = False
 
@@ -129,6 +132,35 @@ def mark_task_done(path: Path, task: Task) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _text_summary(value: str, limit: int = 500) -> str:
+    compact = " ".join(value.split())
+    return compact[:limit]
+
+
+def trace_task_run(
+    config: Config,
+    task: Task,
+    run_id: str,
+    prompt: str,
+    success: bool,
+    stdout: str = "",
+    stderr: str = "",
+    skipped: bool = False,
+) -> None:
+    event = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "run_id": run_id,
+        "task": task.description,
+        "status": "skipped" if skipped else ("success" if success else "failed"),
+        "prompt_summary": _text_summary(prompt),
+        "stdout_summary": _text_summary(stdout),
+        "stderr_summary": _text_summary(stderr),
+    }
+    config.trace_file.parent.mkdir(parents=True, exist_ok=True)
+    with config.trace_file.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
 def log_result(result: TaskResult, log_file: Path) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     status = "OK" if result.success else "FAIL"
@@ -155,16 +187,20 @@ def run_all(config: Config) -> list[TaskResult]:
     results = []
 
     for i, task in enumerate(pending, 1):
+        run_id = task.metadata.get("run_id") or f"task-{uuid4().hex[:12]}"
         print(f"[{i}/{len(pending)}] {task.description}")
 
         if "decision" in task.metadata:
             print(f"  Skipped (needs decision): {task.metadata['decision']}")
+            prompt = build_prompt(task, config)
+            trace_task_run(config, task, run_id, prompt, success=False, skipped=True)
             results.append(TaskResult(task=task, success=False, skipped=True))
             continue
 
         if config.dry_run:
             prompt = build_prompt(task, config)
             print(f"  Prompt preview:\n{prompt[:200]}...\n")
+            trace_task_run(config, task, run_id, prompt, success=True, skipped=True)
             results.append(TaskResult(task=task, success=True, skipped=True))
             continue
 
@@ -195,6 +231,7 @@ def run_all(config: Config) -> list[TaskResult]:
 
         tr = TaskResult(task=task, success=success, output=stdout, error=stderr)
         results.append(tr)
+        trace_task_run(config, task, run_id, prompt, success, stdout=stdout, stderr=stderr)
         log_result(tr, config.log_file)
 
     return results
@@ -284,6 +321,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Parse and show prompts only")
     parser.add_argument("--timeout", type=int, default=600, help="Per-task timeout in seconds")
     parser.add_argument("--log", type=Path, default=Path("task_run.log"), help="Log file path")
+    parser.add_argument("--trace", type=Path, default=Path("task_trace.jsonl"), help="Task trace JSONL path")
     parser.add_argument("--verbose", action="store_true", help="Print Claude output")
     parser.add_argument("--plan-and-run", type=str, metavar="GOAL",
                         help="Plan tasks then immediately execute them")
@@ -295,6 +333,7 @@ def main():
         auto_commit=not args.no_commit,
         timeout=args.timeout,
         log_file=args.log,
+        trace_file=args.trace,
         dry_run=args.dry_run,
         verbose=args.verbose,
     )
