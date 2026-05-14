@@ -116,6 +116,15 @@ def main():
     query_parser.add_argument("--no-llm", action="store_true", help="不调用 LLM 生成答案，仅显示检索结果")
     query_parser.add_argument("--model", default=None, help="覆盖 LLM 模型")
 
+    # ---- opc task ----
+    task_parser = subparsers.add_parser("task", help="查看 markdown 任务清单")
+    task_subparsers = task_parser.add_subparsers(dest="task_command")
+    task_list_parser = task_subparsers.add_parser("list", help="列出任务清单")
+    task_list_parser.add_argument("--tasks", type=Path, default=Path("tasks.md"), help="任务清单路径")
+    task_list_parser.add_argument("--all", action="store_true", help="显示已完成任务")
+    task_status_parser = task_subparsers.add_parser("status", help="显示任务统计")
+    task_status_parser.add_argument("--tasks", type=Path, default=Path("tasks.md"), help="任务清单路径")
+
     # ---- opc index-list ----
     subparsers.add_parser("index-list", help="列出所有已有索引")
 
@@ -138,6 +147,8 @@ def main():
         _run_index(args)
     elif args.command == "query":
         _run_query(args)
+    elif args.command == "task":
+        _run_task(args)
     elif args.command == "index-list":
         _run_index_list(args)
     elif args.command == "index-delete":
@@ -373,6 +384,54 @@ def _run_query(args):
             console.print(r.chunk.content[:500])
             if len(r.chunk.content) > 500:
                 console.print("[dim]... (截断)[/dim]")
+
+
+# ---- opc task ----
+
+def _load_task_file(task_file: Path):
+    try:
+        from run_tasks import parse_tasks
+    except ImportError as error:
+        console.print(f"[red]错误：无法导入 run_tasks.py: {error}[/red]")
+        return None
+
+    if not task_file.exists():
+        console.print(f"[red]错误：任务清单不存在 {task_file}[/red]")
+        return None
+
+    return parse_tasks(task_file)
+
+
+def _run_task(args):
+    if args.task_command is None:
+        console.print("[yellow]请使用 opc task list 或 opc task status[/yellow]")
+        return
+
+    tasks = _load_task_file(args.tasks)
+    if tasks is None:
+        return
+
+    if args.task_command == "list":
+        table = Table(title=f"任务清单: {args.tasks}")
+        table.add_column("行号", style="dim", justify="right")
+        table.add_column("状态", width=8)
+        table.add_column("任务")
+        for task in tasks:
+            if task.completed and not args.all:
+                continue
+            table.add_row(str(task.line_number + 1), "done" if task.completed else "pending", task.description)
+        console.print(table)
+        return
+
+    if args.task_command == "status":
+        completed = sum(1 for task in tasks if task.completed)
+        pending = len(tasks) - completed
+        console.print(Panel(
+            f"[bold]任务总数[/]: {len(tasks)}\n"
+            f"[bold green]已完成[/]: {completed}\n"
+            f"[bold yellow]待处理[/]: {pending}",
+            title=f"任务状态: {args.tasks}",
+        ))
 
 
 # ---- opc index-list ----
