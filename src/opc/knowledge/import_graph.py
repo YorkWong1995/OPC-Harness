@@ -25,11 +25,15 @@ class ImportGraph:
 
     def index_directory(self, directory: Path, pattern: str = "**/*.py") -> int:
         """索引目录下所有 Python 文件的 import 关系"""
-        py_files = list(directory.glob(pattern))
-        self._register_modules(py_files, directory)
+        return self.index_files(list(directory.glob(pattern)), directory)
+
+    def index_files(self, files: list[Path], root: Path) -> int:
+        """索引一组 Python 文件的 import 关系"""
+        py_files = [file_path for file_path in files if file_path.suffix == ".py"]
+        self._register_modules(py_files, root)
         count = 0
         for py_file in py_files:
-            edges = self.index_file(py_file, root=directory)
+            edges = self.index_file(py_file)
             count += len(edges)
         return count
 

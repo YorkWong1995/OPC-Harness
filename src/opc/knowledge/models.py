@@ -26,6 +26,7 @@ class IndexMeta:
     created_at: str
     updated_at: str
     file_manifest: dict[str, dict] = field(default_factory=dict)
+    file_dependencies: dict[str, dict[str, list[str]]] = field(default_factory=dict)
 
 
 @dataclass

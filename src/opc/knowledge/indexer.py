@@ -13,6 +13,7 @@ from .chunker import chunk_file
 from .bm25_index import BM25Index
 from .vector_store import VectorStore
 from .embedder import get_model_info
+from .import_graph import ImportGraph
 
 
 class Indexer:
@@ -84,6 +85,8 @@ class Indexer:
             all_chunks.extend(chunks)
             file_manifest[rel_path] = self._file_signature(file_path, chunks)
 
+        file_dependencies = self._build_file_dependencies(files)
+
         if verbose:
             print(f"  生成 {len(all_chunks)} 个分块")
 
@@ -98,6 +101,7 @@ class Indexer:
                 created_at=datetime.now(timezone.utc).isoformat(),
                 updated_at=datetime.now(timezone.utc).isoformat(),
                 file_manifest=file_manifest,
+                file_dependencies=file_dependencies,
             )
             self._save_meta(meta)
             return meta
@@ -128,6 +132,7 @@ class Indexer:
             created_at=datetime.now(timezone.utc).isoformat(),
             updated_at=datetime.now(timezone.utc).isoformat(),
             file_manifest=file_manifest,
+            file_dependencies=file_dependencies,
         )
         self._save_meta(meta)
 
@@ -202,6 +207,7 @@ class Indexer:
         vs.add_chunks(changed_chunks)
 
         model_name, _ = get_model_info()
+        file_dependencies = self._build_file_dependencies(files)
         meta = IndexMeta(
             index_name=self.index_name,
             source_dirs=[str(d) for d in source_dirs],
@@ -211,6 +217,7 @@ class Indexer:
             created_at=previous_meta.created_at,
             updated_at=datetime.now(timezone.utc).isoformat(),
             file_manifest=current_manifest,
+            file_dependencies=file_dependencies,
         )
         self._save_meta(meta)
 
@@ -219,6 +226,39 @@ class Indexer:
             print(f"  增量索引完成，耗时 {elapsed:.1f}s")
 
         return meta
+
+    def _build_file_dependencies(self, files: list[tuple[Path, Path]]) -> dict[str, dict[str, list[str]]]:
+        by_source: dict[Path, list[Path]] = {}
+        for file_path, source_dir in files:
+            if file_path.suffix == ".py":
+                by_source.setdefault(source_dir, []).append(file_path)
+
+        result: dict[str, dict[str, list[str]]] = {}
+        for source_dir, py_files in by_source.items():
+            graph = ImportGraph()
+            graph.index_files(py_files, source_dir)
+            for file_path in py_files:
+                rel_path = self._relative_path(file_path, source_dir)
+                dependencies = [self._relative_path(Path(dep), source_dir) for dep in graph.file_dependencies_of(str(file_path))]
+                dependents = [self._relative_path(Path(dep), source_dir) for dep in graph.file_dependents_of(str(file_path))]
+                result[rel_path] = {
+                    "dependencies": sorted(set(dependencies)),
+                    "dependents": sorted(set(dependents)),
+                }
+        return result
+
+    def get_file_dependencies(self, file_path: str) -> dict[str, list[str]]:
+        meta = self.load_meta(self.index_root)
+        if meta is None:
+            return {"dependencies": [], "dependents": []}
+        return meta.file_dependencies.get(file_path, {"dependencies": [], "dependents": []})
+
+    @staticmethod
+    def _relative_path(file_path: Path, source_dir: Path) -> str:
+        try:
+            return str(file_path.relative_to(source_dir))
+        except ValueError:
+            return file_path.name
 
     def _discover_files(self, source_dirs: list[Path], ext_filter: set[str]) -> list[tuple[Path, Path]]:
         """递归发现文件，返回 (文件路径, 所属源目录) 列表"""
@@ -281,6 +321,7 @@ class Indexer:
                 "created_at": meta.created_at,
                 "updated_at": meta.updated_at,
                 "file_manifest": meta.file_manifest,
+                "file_dependencies": meta.file_dependencies,
             }, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
