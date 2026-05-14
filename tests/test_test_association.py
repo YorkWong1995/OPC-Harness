@@ -42,6 +42,38 @@ def test_find_tests_by_import(tmp_path):
     assert str(tests_dir / "test_e2e.py") in results
 
 
+def test_find_tests_by_mirrored_src_path(tmp_path):
+    """根据 src 下的相对路径找到镜像测试文件"""
+    src_dir = tmp_path / "src" / "opc"
+    src_dir.mkdir(parents=True)
+    (src_dir / "workflow.py").write_text("def run(): pass\n", encoding="utf-8")
+
+    test_dir = tmp_path / "tests" / "opc"
+    test_dir.mkdir(parents=True)
+    (test_dir / "test_workflow.py").write_text("def test_run(): pass\n", encoding="utf-8")
+
+    assoc = TestFileAssociator(tmp_path)
+    results = assoc.find_tests_for(str(src_dir / "workflow.py"))
+
+    assert str(test_dir / "test_workflow.py") in results
+
+
+def test_find_tests_by_recursive_import(tmp_path):
+    """递归扫描 tests 子目录中的 import 关联"""
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    (src_dir / "settings.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    nested = tmp_path / "tests" / "unit"
+    nested.mkdir(parents=True)
+    (nested / "test_settings_flow.py").write_text("import settings\n", encoding="utf-8")
+
+    assoc = TestFileAssociator(tmp_path)
+    results = assoc.find_tests_for(str(src_dir / "settings.py"))
+
+    assert str(nested / "test_settings_flow.py") in results
+
+
 def test_no_tests_found(tmp_path):
     """没有关联测试时返回空列表"""
     src_dir = tmp_path / "src"

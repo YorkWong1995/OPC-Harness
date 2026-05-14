@@ -17,27 +17,37 @@ class TestFileAssociator:
         stem = source_path.stem
         candidates = []
 
-        # 策略 1: test_<name>.py 在 tests/ 目录
         for test_dir in self._find_test_dirs():
-            test_file = test_dir / f"test_{stem}.py"
-            if test_file.exists():
-                candidates.append(str(test_file))
+            for test_file in self._name_candidates(test_dir, source_path):
+                if test_file.exists():
+                    candidates.append(str(test_file))
 
-        # 策略 2: <name>_test.py 在同目录或 tests/ 目录
-        for test_dir in self._find_test_dirs():
-            test_file = test_dir / f"{stem}_test.py"
-            if test_file.exists():
-                candidates.append(str(test_file))
-
-        # 策略 3: 同目录下的 test_<name>.py
         same_dir_test = source_path.parent / f"test_{stem}.py"
         if same_dir_test.exists() and str(same_dir_test) not in candidates:
             candidates.append(str(same_dir_test))
 
-        # 策略 4: grep 测试文件中 import 了该模块的
         candidates.extend(self._find_by_import(stem))
 
         return list(dict.fromkeys(candidates))  # 去重保序
+
+    def _name_candidates(self, test_dir: Path, source_path: Path) -> list[Path]:
+        stem = source_path.stem
+        candidates = [
+            test_dir / f"test_{stem}.py",
+            test_dir / f"{stem}_test.py",
+        ]
+        try:
+            rel = source_path.relative_to(self.project_dir)
+        except ValueError:
+            rel = source_path
+        if rel.parts and rel.parts[0] == "src":
+            rel = Path(*rel.parts[1:])
+        if rel.parent != Path("."):
+            candidates.extend([
+                test_dir / rel.parent / f"test_{stem}.py",
+                test_dir / rel.parent / f"{stem}_test.py",
+            ])
+        return candidates
 
     def _find_test_dirs(self) -> list[Path]:
         """查找项目中的测试目录"""
@@ -52,7 +62,7 @@ class TestFileAssociator:
         """在测试文件中查找 import 了指定模块的文件"""
         results = []
         for test_dir in self._find_test_dirs():
-            for test_file in test_dir.glob("test_*.py"):
+            for test_file in test_dir.rglob("test_*.py"):
                 try:
                     content = test_file.read_text(encoding="utf-8")
                     if f"import {module_name}" in content or f"from" in content and module_name in content:
