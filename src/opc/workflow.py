@@ -417,6 +417,28 @@ class HarnessWorkflow:
             sections.append(f"最近一轮详细内容：\n{recent_detail}")
         return "\n\n".join(sections)
 
+    def _build_context_pack(self, role: str, stage: str, recent_detail: str = "") -> ContextPack:
+        pm_summary = self.stage_summaries.get("pm")
+        stage_summary = {key: summary.model_dump() for key, summary in self.stage_summaries.items()}
+        related_files: list[str] = []
+        validation: list[str] = []
+        risks: list[str] = []
+        for summary in self.stage_summaries.values():
+            related_files.extend(summary.changed_files)
+            validation.extend(summary.validation)
+            risks.extend(summary.risks)
+        return ContextPack(
+            task_goal=pm_summary.goal if pm_summary else self.task,
+            acceptance=pm_summary.validation if pm_summary else [],
+            constraints=pm_summary.risks if pm_summary else [],
+            stage_summary=stage_summary,
+            related_files=sorted(set(related_files)),
+            diff_summary=recent_detail,
+            validation=validation,
+            risks=risks,
+            history_summary=f"role={role}; stage={stage}; summaries={', '.join(stage_summary) or 'none'}",
+        )
+
     def run(self, resume_from: str | None = None):
         """运行工作流。
 
