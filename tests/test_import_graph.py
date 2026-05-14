@@ -60,6 +60,24 @@ from .config import Settings
     assert ".config" in deps
 
 
+def test_file_dependency_queries(tmp_path):
+    """测试按文件查询项目内直接依赖和被依赖文件"""
+    (tmp_path / "app.py").write_text("from .config import Settings\nimport utils\n", encoding="utf-8")
+    (tmp_path / "config.py").write_text("class Settings: pass\n", encoding="utf-8")
+    (tmp_path / "utils.py").write_text("def helper(): pass\n", encoding="utf-8")
+
+    graph = ImportGraph()
+    graph.index_directory(tmp_path)
+
+    app = str(tmp_path / "app.py")
+    config = str(tmp_path / "config.py")
+    utils = str(tmp_path / "utils.py")
+
+    assert graph.file_dependencies_of(app) == [config, utils]
+    assert graph.file_dependents_of(config) == [app]
+    assert graph.file_dependents_of(utils) == [app]
+
+
 def test_syntax_error_skipped(tmp_path):
     """语法错误文件不崩溃"""
     bad = tmp_path / "bad.py"
