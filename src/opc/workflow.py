@@ -399,6 +399,24 @@ class HarnessWorkflow:
             summary=summary.model_dump(),
         )
 
+    def _build_sliding_context(self, purpose: str, recent_detail: str = "") -> str:
+        pm_summary = self.stage_summaries.get("pm")
+        goal = pm_summary.goal if pm_summary else self.task
+        acceptance = pm_summary.validation if pm_summary else []
+        summaries = [
+            f"- {key}: {summary.model_dump_json()}"
+            for key, summary in self.stage_summaries.items()
+        ]
+        sections = [
+            f"用途：{purpose}",
+            f"任务目标：{goal}",
+            "验收标准：\n" + ("\n".join(f"- {item}" for item in acceptance) if acceptance else "- 未提供"),
+            "历史阶段摘要：\n" + ("\n".join(summaries) if summaries else "- 暂无"),
+        ]
+        if recent_detail:
+            sections.append(f"最近一轮详细内容：\n{recent_detail}")
+        return "\n\n".join(sections)
+
     def run(self, resume_from: str | None = None):
         """运行工作流。
 
