@@ -778,8 +778,10 @@ class HarnessWorkflow:
             console.print("[dim]跳过 QA 阶段（已完成）[/dim]")
             return
         console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
-        acceptance = self._run_stage(self.qa,
-            f"验证以下实现是否满足 PRD 要求：\n\nPRD:\n{outputs['prd']}\n\n实现说明:\n{outputs['implementation']}",
+        qa_context = self._build_sliding_context("qa", f"最近实现说明：\n{outputs['implementation']}")
+        acceptance = self._run_stage(
+            self.qa,
+            f"基于以下验收上下文判断实现是否通过，必须给出 pass/fail：\n\n{qa_context}",
             "待验收",
         )
         acc_path = self.store.save("acceptance.md", acceptance)
