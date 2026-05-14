@@ -407,23 +407,26 @@ def _run_task(args):
     if tasks is None:
         return
 
+    from .task_parser import tasks_to_specs
+    specs = tasks_to_specs(tasks)
+
     if args.task_command == "list":
         table = Table(title=f"任务清单: {args.tasks}")
         table.add_column("行号", style="dim", justify="right")
         table.add_column("状态", width=8)
         table.add_column("任务")
-        for task in tasks:
-            if task.completed and not args.all:
+        for task, spec in zip(tasks, specs):
+            if spec.status == "completed" and not args.all:
                 continue
-            table.add_row(str(task.line_number + 1), "done" if task.completed else "pending", task.description)
+            table.add_row(str(task.line_number + 1), "done" if spec.status == "completed" else spec.status, spec.description)
         console.print(table)
         return
 
     if args.task_command == "status":
-        completed = sum(1 for task in tasks if task.completed)
-        pending = len(tasks) - completed
+        completed = sum(1 for spec in specs if spec.status == "completed")
+        pending = len(specs) - completed
         console.print(Panel(
-            f"[bold]任务总数[/]: {len(tasks)}\n"
+            f"[bold]任务总数[/]: {len(specs)}\n"
             f"[bold green]已完成[/]: {completed}\n"
             f"[bold yellow]待处理[/]: {pending}",
             title=f"任务状态: {args.tasks}",

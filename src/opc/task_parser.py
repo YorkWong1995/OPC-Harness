@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .schema import TaskSpec
+
 TASK_PATTERN = re.compile(r"^- \[([ x])\] (.+?)(?:\s*<!--(.+?)-->\s*)*$")
 METADATA_BLOCK = re.compile(r"<!--(.+?)-->")
 METADATA_KV = re.compile(r"(\w+):\s*(.+)")
@@ -18,6 +20,31 @@ class Task:
     completed: bool
     metadata: dict[str, str] = field(default_factory=dict)
     raw_line: str = ""
+
+
+def _split_metadata_list(value: str) -> list[str]:
+    return [item.strip() for item in re.split(r"[,;]", value) if item.strip()]
+
+
+def task_to_spec(task: Task) -> TaskSpec:
+    metadata = task.metadata
+    return TaskSpec(
+        id=metadata.get("id", f"task-{task.line_number + 1}"),
+        description=task.description,
+        status="completed" if task.completed else "pending",
+        files=_split_metadata_list(metadata.get("files", "")),
+        context=metadata.get("context", ""),
+        depends_on=_split_metadata_list(metadata.get("depends_on", "")),
+        acceptance=_split_metadata_list(metadata.get("acceptance", "")),
+        risk=metadata.get("risk", ""),
+        owner_role=metadata.get("owner_role", "engineer"),
+        validation_commands=_split_metadata_list(metadata.get("validation_commands", "")),
+        run_id=metadata.get("run_id", ""),
+    )
+
+
+def tasks_to_specs(tasks: list[Task]) -> list[TaskSpec]:
+    return [task_to_spec(task) for task in tasks]
 
 
 def parse_tasks(path: Path) -> list[Task]:
