@@ -52,6 +52,30 @@ def test_parse_pm_output_contract():
     assert output.goal == "g"
 
 
+def test_parse_engineer_output_accepts_markdown_wrapped_json():
+    output = parse_role_output(
+        "engineer",
+        (
+            '```json\n'
+            '{"changed_files":["src/opc/roles.py"],"implementation_summary":"done",'
+            '"test_result":"passed","known_limits":[],"failure_reason":"",'
+            '"blocked_by":[],"suggested_next_step":""}'
+            '\n```\n\n## 补充说明'
+        ),
+    )
+
+    assert output.changed_files == ["src/opc/roles.py"]
+    assert output.implementation_summary == "done"
+
+
+def test_parse_pm_output_rejects_missing_required_field():
+    with pytest.raises(Exception):
+        parse_role_output(
+            "pm",
+            '{"background":"b","scope":[],"non_goals":[],"acceptance_criteria":[],"risks":[]}',
+        )
+
+
 def test_parse_qa_output_rejects_invalid_status():
     with pytest.raises(Exception):
         parse_role_output("qa", '{"status":"unknown"}')
@@ -73,6 +97,17 @@ def test_engineer_failure_stops_before_qa(project_dir, mock_agents):
 
     assert wf.state == "已退回"
     mock_agents["qa"].run.assert_not_called()
+
+
+def test_role_output_validation_failure_blocks_workflow(project_dir, mock_agents):
+    mock_agents["pm"].run.return_value = "not json"
+    wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
+    wf.run()
+
+    assert wf.state == "已退回"
+    assert wf.workflow_state.stage_logs["_human_interventions"] == 1
+    assert wf.workflow_state.stage_logs["_failure_types"]["protocol"] == 1
+    mock_agents["engineer"].run.assert_not_called()
 
 
 def test_qa_fail_reworks_engineer_once(project_dir, mock_agents):
