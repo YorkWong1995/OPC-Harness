@@ -15,6 +15,7 @@ class Symbol:
     file_path: str
     line: int
     signature: str
+    owner: str = ""
 
 
 class SymbolIndex:
@@ -36,15 +37,10 @@ class SymbolIndex:
 
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
-                # 判断是否是方法（在 class 内部）
-                kind = "function"
-                for parent in ast.walk(tree):
-                    if isinstance(parent, ast.ClassDef):
-                        if node in ast.iter_child_nodes(parent):
-                            kind = "method"
-                            break
+                owner = self._find_owner_class(tree, node)
+                kind = "method" if owner else "function"
                 sig = self._get_function_signature(node)
-                found.append(Symbol(name=node.name, kind=kind, file_path=rel_path, line=node.lineno, signature=sig))
+                found.append(Symbol(name=node.name, kind=kind, file_path=rel_path, line=node.lineno, signature=sig, owner=owner))
             elif isinstance(node, ast.ClassDef):
                 bases = ", ".join(self._get_name(b) for b in node.bases)
                 sig = f"class {node.name}({bases})" if bases else f"class {node.name}"
@@ -75,6 +71,28 @@ class SymbolIndex:
         results.sort(key=lambda s: (s.name.lower() != query_lower, len(s.name), s.name))
         return results[:limit]
 
+    def find_definition(self, name: str, kind: str | None = None) -> Symbol | None:
+        """查找符号定义，优先返回精确匹配"""
+        matches = [sym for sym in self.symbols if sym.name == name and (kind is None or sym.kind == kind)]
+        if matches:
+            return sorted(matches, key=lambda sym: (sym.file_path, sym.line))[0]
+        results = self.search(name, kind=kind, limit=1)
+        return results[0] if results else None
+
+    def definitions_in_file(self, file_path: str, kind: str | None = None) -> list[Symbol]:
+        """查询指定文件中的符号定义"""
+        return sorted(
+            [sym for sym in self.symbols if sym.file_path == file_path and (kind is None or sym.kind == kind)],
+            key=lambda sym: (sym.line, sym.name),
+        )
+
+    def methods_of_class(self, class_name: str) -> list[Symbol]:
+        """查询类的方法定义"""
+        return sorted(
+            [sym for sym in self.symbols if sym.kind == "method" and sym.owner == class_name],
+            key=lambda sym: (sym.file_path, sym.line, sym.name),
+        )
+
     def _get_function_signature(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
         args = []
         for arg in node.args.args:
@@ -87,6 +105,13 @@ class SymbolIndex:
         if node.returns:
             ret = f" -> {self._get_name(node.returns)}"
         return f"{prefix} {node.name}({', '.join(args)}){ret}"
+
+    @staticmethod
+    def _find_owner_class(tree: ast.AST, target: ast.AST) -> str:
+        for parent in ast.walk(tree):
+            if isinstance(parent, ast.ClassDef) and target in ast.iter_child_nodes(parent):
+                return parent.name
+        return ""
 
     @staticmethod
     def _get_name(node) -> str:

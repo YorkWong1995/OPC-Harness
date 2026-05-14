@@ -83,6 +83,36 @@ def test_index_directory(tmp_path):
     assert count == 2
 
 
+def test_definition_queries(tmp_path):
+    """测试定义定位、文件归属和类方法查询"""
+    code = '''
+class UserService:
+    def get_user(self, user_id: int):
+        return user_id
+
+def get_user(user_id):
+    return user_id
+'''
+    py_file = tmp_path / "users.py"
+    py_file.write_text(code, encoding="utf-8")
+
+    idx = SymbolIndex()
+    idx.index_file(py_file)
+
+    definition = idx.find_definition("get_user", kind="function")
+    assert definition is not None
+    assert definition.file_path == str(py_file)
+    assert definition.line == 6
+
+    methods = idx.methods_of_class("UserService")
+    assert len(methods) == 1
+    assert methods[0].name == "get_user"
+    assert methods[0].owner == "UserService"
+
+    file_symbols = idx.definitions_in_file(str(py_file))
+    assert [symbol.name for symbol in file_symbols] == ["UserService", "get_user", "get_user"]
+
+
 def test_syntax_error_file(tmp_path):
     """语法错误文件不崩溃"""
     bad_file = tmp_path / "bad.py"
