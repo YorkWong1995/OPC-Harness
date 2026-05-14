@@ -233,10 +233,10 @@ block_env_file_write = true
 
 ### 添加新角色
 
-1. 在 `src/roles/` 创建角色文件
-2. 继承 `BaseRole` 类
-3. 实现 `execute()` 方法
-4. 在 `docs/claude/roles.md` 添加角色文档
+1. 在 `src/opc/roles.py` 中新增或调整对应的 `*_SYSTEM_PROMPT`
+2. 添加 `create_*_agent(...) -> Agent` 工厂函数，并按需选择 `TOOLS_READ_ONLY` 或 `TOOLS_READ_WRITE`
+3. 只有需要进入编排流程时，才在 workflow 或配置中接入该角色
+4. 如果角色职责或交付物发生变化，同步更新 `docs/claude/roles.md`
 
 ### 添加新工具
 
