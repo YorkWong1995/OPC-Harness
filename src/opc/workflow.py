@@ -833,10 +833,11 @@ class HarnessWorkflow:
         outputs["acceptance"] = acceptance
 
     def _run_rework(self, outputs: dict, acceptance: str) -> str:
-        rework_prompt = (
-            "QA 验收未通过，请根据缺陷修正实现并输出新的实现说明：\n\n"
-            f"PRD:\n{outputs['prd']}\n\n上一轮实现说明:\n{outputs['implementation']}\n\nQA 缺陷:\n{acceptance}"
+        rework_context = self._build_sliding_context(
+            "rework",
+            f"QA 缺陷：\n{acceptance}\n\n最近实现摘要：\n{outputs['implementation']}",
         )
+        rework_prompt = f"请根据以下滑动窗口上下文修正实现，并输出新的结构化实现说明：\n\n{rework_context}"
         console.print("\n[bold cyan][Engineer][/bold cyan] 正在根据 QA 缺陷返工...")
         implementation = self._run_stage(self.engineer, rework_prompt, "实现中")
         impl_path = self.store.save("implementation.md", implementation)
