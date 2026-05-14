@@ -754,6 +754,18 @@ class HarnessWorkflow:
 
         # 判断验收结果
         qa_output = self._parse_role_output("qa", acceptance)
+        if isinstance(qa_output, QAOutput):
+            qa_summary = self._create_stage_summary(
+                stage="qa",
+                goal="验证实现满足验收标准",
+                decisions=[f"status: {qa_output.status}", f"next_action: {qa_output.next_action}"],
+                validation=qa_output.checked_items + qa_output.evidence,
+                risks=qa_output.defects,
+                next_step=qa_output.next_action,
+            )
+            self.stage_summaries["qa"] = qa_summary
+            if qa_output.status == "fail":
+                self.stage_summaries[f"qa_fail_{self.workflow_state.rework_attempts + 1}"] = qa_summary
         qa_failed = qa_output.status == "fail" if isinstance(qa_output, QAOutput) else "不通过" in acceptance
         if qa_failed:
             self.workflow_state.rework_attempts += 1
