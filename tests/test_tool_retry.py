@@ -99,3 +99,45 @@ def test_is_tool_retryable():
     assert Agent._is_tool_retryable(FileNotFoundError("文件不存在")) is False
     assert Agent._is_tool_retryable(PermissionError("permission denied")) is False
     assert Agent._is_tool_retryable(ValueError("不允许写入")) is False
+
+
+def test_max_tool_rounds_truncation(tmp_path):
+    """工具循环超过 max_tool_rounds 后应中止并返回 [TRUNCATED]"""
+    agent = Agent(
+        role="test",
+        system_prompt="test",
+        tools=[{"name": "noop", "description": "noop", "input_schema": {"type": "object"}}],
+        project_dir=tmp_path,
+        max_tool_rounds=2,
+    )
+
+    # 构造一个 stop_reason=tool_use 的伪响应：始终返回一个 tool_use block
+    class _Block:
+        type = "tool_use"
+        name = "noop"
+        input = {}
+        id = "tu_1"
+
+    class _Usage:
+        input_tokens = 1
+        output_tokens = 1
+
+    class _Resp:
+        stop_reason = "tool_use"
+        content = [_Block()]
+        usage = _Usage()
+
+    call_count = 0
+
+    def fake_call(**kwargs):
+        nonlocal call_count
+        call_count += 1
+        return _Resp()
+
+    agent._call_with_retry = fake_call
+    agent._execute_tool = lambda *args, **kwargs: "ok"
+
+    result = agent.run("loop forever")
+    assert "[TRUNCATED]" in result
+    # 调用次数应等于 max_tool_rounds + 1（最后一轮触发截断）
+    assert call_count == 3

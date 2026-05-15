@@ -1,5 +1,7 @@
 """Agent 基类：封装 Claude API 调用与 tool use 循环"""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 import re
@@ -51,6 +53,8 @@ class Agent:
         model: str | None = None,
         enable_rag: bool = False,
         tool_max_retries: int = 1,
+        max_tool_rounds: int | None = None,
+        run_store: "RunStore | None" = None,
     ):
         self.role = role
         self.system_prompt = system_prompt
@@ -60,6 +64,11 @@ class Agent:
         self.enable_rag = enable_rag
         self.rag: SimpleRAG | None = None
         self.tool_max_retries = tool_max_retries
+        # 工具循环上限：防止 Agent 失控烧 token；可通过环境变量覆盖
+        if max_tool_rounds is None:
+            max_tool_rounds = int(os.environ.get("OPC_MAX_TOOL_ROUNDS", "15"))
+        self.max_tool_rounds = max_tool_rounds
+        self.run_store = run_store
 
         # 消息缓冲区（用于 Environment 集成）
         self.msg_buffer = MessageQueue()
@@ -150,6 +159,7 @@ class Agent:
 
         messages = [{"role": "user", "content": message}]
 
+        tool_rounds = 0
         while True:
             kwargs = {
                 "model": self.model,
@@ -191,6 +201,25 @@ class Agent:
                 return self._extract_text(assistant_content)
 
             if stop_reason == "tool_use":
+                tool_rounds += 1
+                if tool_rounds > self.max_tool_rounds:
+                    truncated_msg = (
+                        f"[TRUNCATED] 工具调用轮次已超过上限 {self.max_tool_rounds}，"
+                        f"中止以避免失控；可通过 max_tool_rounds 或 OPC_MAX_TOOL_ROUNDS 调整。"
+                    )
+                    print(f"[WARN][{self.role}] {truncated_msg}")
+                    if self.run_store is not None:
+                        try:
+                            self.run_store.append(
+                                "tool_rounds_truncated",
+                                role=self.role,
+                                max_tool_rounds=self.max_tool_rounds,
+                            )
+                        except Exception:
+                            pass
+                    existing = self._extract_text(assistant_content)
+                    return f"{existing}\n{truncated_msg}" if existing else truncated_msg
+
                 # 把 assistant 回复加入消息历史
                 messages.append({"role": "assistant", "content": assistant_content})
 
