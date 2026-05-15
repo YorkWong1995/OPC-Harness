@@ -852,45 +852,74 @@ class HarnessWorkflow:
                 raise _GoBack()
 
     def _exec_qa(self, outputs, should_skip, load_artifact):
-        """QA 验收阶段。"""
+        """QA 验收阶段：循环执行验收 → rework，直到通过或超出 rework 上限。
+
+        旧实现以递归方式调用 self._exec_qa(...)，依赖 completed_stages 这种隐式
+        不变量来保证不会重复进入；改为显式循环 + 显式状态变量更易理解和验证。
+        """
         if should_skip("待验收") and should_skip("已通过"):
             outputs["acceptance"] = load_artifact("acceptance") or ""
             console.print("[dim]跳过 QA 阶段（已完成）[/dim]")
             return
-        console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
-        context_pack = self._build_context_pack("qa", "待验收", f"最近实现说明：\n{outputs['implementation']}")
-        acceptance = self._run_stage(
-            self.qa,
-            "使用以下 Context Pack 验收实现，重点关注 acceptance、stage_summary、"
-            "related_files、validation 和 risks，必须给出 pass/fail：\n\n"
-            f"{context_pack.model_dump_json(indent=2)}",
-            "待验收",
-        )
-        acc_path = self.store.save("acceptance.md", acceptance)
-        self.state = "待验收"
-        if "待验收" not in self.workflow_state.completed_stages:
-            self.workflow_state.completed_stages.append("待验收")
-        self.workflow_state.artifact_paths["acceptance"] = str(acc_path)
-        self.save_state()
-        console.print(f"[green]验收记录已保存[/]: {acc_path}")
-        console.print(Panel(acceptance[:800] + ("..." if len(acceptance) > 800 else ""), title="验收记录预览"))
 
-        # 判断验收结果
-        qa_output = self._parse_role_output("qa", acceptance)
-        if isinstance(qa_output, QAOutput):
-            qa_summary = self._create_stage_summary(
-                stage="qa",
-                goal="验证实现满足验收标准",
-                decisions=[f"status: {qa_output.status}", f"next_action: {qa_output.next_action}"],
-                validation=qa_output.checked_items + qa_output.evidence,
-                risks=qa_output.defects,
-                next_step=qa_output.next_action,
+        while True:
+            console.print("\n[bold cyan][QA][/bold cyan] 正在基于验收标准检查实现...")
+            context_pack = self._build_context_pack(
+                "qa", "待验收", f"最近实现说明：\n{outputs['implementation']}"
             )
-            self._record_stage_summary("qa", qa_summary)
-            if qa_output.status == "fail":
-                self._record_stage_summary(f"qa_fail_{self.workflow_state.rework_attempts + 1}", qa_summary)
-        qa_failed = qa_output.status == "fail" if isinstance(qa_output, QAOutput) else "不通过" in acceptance
-        if qa_failed:
+            acceptance = self._run_stage(
+                self.qa,
+                "使用以下 Context Pack 验收实现，重点关注 acceptance、stage_summary、"
+                "related_files、validation 和 risks，必须给出 pass/fail：\n\n"
+                f"{context_pack.model_dump_json(indent=2)}",
+                "待验收",
+            )
+            acc_path = self.store.save("acceptance.md", acceptance)
+            self.state = "待验收"
+            if "待验收" not in self.workflow_state.completed_stages:
+                self.workflow_state.completed_stages.append("待验收")
+            self.workflow_state.artifact_paths["acceptance"] = str(acc_path)
+            self.save_state()
+            console.print(f"[green]验收记录已保存[/]: {acc_path}")
+            console.print(
+                Panel(acceptance[:800] + ("..." if len(acceptance) > 800 else ""), title="验收记录预览")
+            )
+
+            # 判断验收结果
+            qa_output = self._parse_role_output("qa", acceptance)
+            if isinstance(qa_output, QAOutput):
+                qa_summary = self._create_stage_summary(
+                    stage="qa",
+                    goal="验证实现满足验收标准",
+                    decisions=[
+                        f"status: {qa_output.status}",
+                        f"next_action: {qa_output.next_action}",
+                    ],
+                    validation=qa_output.checked_items + qa_output.evidence,
+                    risks=qa_output.defects,
+                    next_step=qa_output.next_action,
+                )
+                self._record_stage_summary("qa", qa_summary)
+                if qa_output.status == "fail":
+                    self._record_stage_summary(
+                        f"qa_fail_{self.workflow_state.rework_attempts + 1}", qa_summary
+                    )
+
+            qa_failed = (
+                qa_output.status == "fail"
+                if isinstance(qa_output, QAOutput)
+                else "不通过" in acceptance
+            )
+            if not qa_failed:
+                self.state = "已通过"
+                if "已通过" not in self.workflow_state.completed_stages:
+                    self.workflow_state.completed_stages.append("已通过")
+                self.save_state()
+                console.print("\n[bold green]QA 验收通过[/]")
+                outputs["acceptance"] = acceptance
+                return
+
+            # QA 不通过 → 触发 rework
             self.workflow_state.rework_attempts += 1
             self.state = "已退回"
             if "已退回" not in self.workflow_state.completed_stages:
@@ -905,14 +934,7 @@ class HarnessWorkflow:
                 console.print("\n[bold red]QA 验收未通过且超过最大返工次数[/]，工作流暂停。")
                 raise _StopWorkflow()
             outputs["implementation"] = self._run_rework(outputs, acceptance)
-            return self._exec_qa(outputs, should_skip, load_artifact)
-
-        self.state = "已通过"
-        if "已通过" not in self.workflow_state.completed_stages:
-            self.workflow_state.completed_stages.append("已通过")
-        self.save_state()
-        console.print("\n[bold green]QA 验收通过[/]")
-        outputs["acceptance"] = acceptance
+            # 继续下一轮 QA
 
     def _run_rework(self, outputs: dict, acceptance: str) -> str:
         context_pack = self._build_context_pack(
