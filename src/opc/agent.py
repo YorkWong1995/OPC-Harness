@@ -778,7 +778,7 @@ class Agent:
             if candidate.is_absolute():
                 try:
                     resolved = candidate.resolve()
-                    if not str(resolved).startswith(str(workspace)):
+                    if not resolved.is_relative_to(workspace):
                         return f"错误：命令参数引用了 workspace 外的路径: {arg}"
                 except (OSError, ValueError):
                     pass
@@ -787,9 +787,18 @@ class Agent:
     def _resolve_safe_path(self, path: str) -> Path:
         base = self.project_dir or Path.cwd()
         target = (base / path).resolve()
-        # 防止路径穿越
-        if not str(target).startswith(str(base.resolve())):
-            raise ValueError(f"路径穿越：{path} 不在项目目录内")
+        # 防止路径穿越：使用 is_relative_to（Python 3.9+），避免 startswith 前缀误匹配
+        # 例如：/home/user/projectX 不能因为 startswith /home/user/proj 而被放行
+        try:
+            if not target.is_relative_to(base.resolve()):
+                raise ValueError(f"路径穿越：{path} 不在项目目录内")
+        except AttributeError:
+            # Python < 3.9 兜底（项目要求 3.9+，理论上不会进入）
+            base_resolved = base.resolve()
+            try:
+                target.relative_to(base_resolved)
+            except ValueError:
+                raise ValueError(f"路径穿越：{path} 不在项目目录内")
         return target
 
 
