@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 from typing import Any, Dict, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 VALID_ROLES = {"ceo", "pm", "architect", "engineer", "qa", "ops", "growth", "system", "all"}
@@ -114,6 +114,15 @@ class QAOutput(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     defects: list[str] = Field(default_factory=list)
     next_action: Literal["done", "rework", "human_intervention"] = "done"
+
+    @model_validator(mode="after")
+    def check_consistency(self):
+        """拒绝矛盾组合：status=pass + next_action=rework 等。"""
+        if self.status == "pass" and self.next_action == "rework":
+            raise ValueError("status=pass 不能与 next_action=rework 同时出现")
+        if self.status == "fail" and self.next_action == "done":
+            raise ValueError("status=fail 不能与 next_action=done 同时出现")
+        return self
 
 
 class TaskSpec(BaseModel):
