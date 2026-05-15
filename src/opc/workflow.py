@@ -335,7 +335,7 @@ class HarnessWorkflow:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def _observe_cost_limits(self, stage_name: str, stage_tokens: int, stage_api_calls: int):
-        """观测成本限制（P3 仅记录警告，不强制中断）"""
+        """观测成本限制：soft_limit 仅警告，hard_limit 触发 _StopWorkflow"""
         cost = self.opc_config.cost
 
         # 计算工作流总 token
@@ -354,6 +354,24 @@ class HarnessWorkflow:
             print(f"[WARN] 角色 {stage_name} token 用量 ({stage_tokens}) 超过配置上限 ({cost.role_token_limit})")
             self.run_store.append("cost_warning", kind="role_token_limit",
                                  stage=stage_name, current=stage_tokens, limit=cost.role_token_limit)
+
+        # 硬限制：超过即中止
+        if cost.enforce_hard_limit:
+            if cost.workflow_token_hard_limit and total_tokens > cost.workflow_token_hard_limit:
+                msg = (f"工作流 token 用量 ({total_tokens}) 超过硬上限 "
+                       f"({cost.workflow_token_hard_limit})，中止工作流")
+                print(f"[ERROR] {msg}")
+                self.run_store.append("cost_hard_limit", kind="workflow_token_hard_limit",
+                                     current=total_tokens, limit=cost.workflow_token_hard_limit)
+                raise _StopWorkflow(msg)
+            if cost.role_token_hard_limit and stage_tokens > cost.role_token_hard_limit:
+                msg = (f"角色 {stage_name} token 用量 ({stage_tokens}) 超过硬上限 "
+                       f"({cost.role_token_hard_limit})，中止工作流")
+                print(f"[ERROR] {msg}")
+                self.run_store.append("cost_hard_limit", kind="role_token_hard_limit",
+                                     stage=stage_name, current=stage_tokens,
+                                     limit=cost.role_token_hard_limit)
+                raise _StopWorkflow(msg)
 
     async def _run_stages_parallel(self, stage_specs: list[tuple[object, str, str]]) -> list[str]:
         async def run_one(agent, prompt: str, stage_name: str) -> str:

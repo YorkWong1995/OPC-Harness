@@ -51,6 +51,10 @@ class CostConfig:
     role_token_limit: int = 50_000
     role_call_limit: int = 10
     api_calls_per_minute: int = 30
+    # 硬限制：超过即抛出 _StopWorkflow 中止；为 0 表示不启用
+    workflow_token_hard_limit: int = 0
+    role_token_hard_limit: int = 0
+    enforce_hard_limit: bool = True
 
 
 @dataclass
@@ -115,6 +119,9 @@ def load_project_config(
                 role_token_limit=int(cost.get("role_token_limit", 50_000)),
                 role_call_limit=int(cost.get("role_call_limit", 10)),
                 api_calls_per_minute=int(cost.get("api_calls_per_minute", 30)),
+                workflow_token_hard_limit=int(cost.get("workflow_token_hard_limit", 0)),
+                role_token_hard_limit=int(cost.get("role_token_hard_limit", 0)),
+                enforce_hard_limit=bool(cost.get("enforce_hard_limit", True)),
             ),
             security=SecurityConfig(
                 workspace_boundary=bool(security.get("workspace_boundary", True)),
@@ -150,6 +157,12 @@ def _apply_env_overrides(config: OPCConfig) -> None:
         config.cost.role_call_limit = int(val)
     if val := os.environ.get("OPC_API_CALLS_PER_MINUTE"):
         config.cost.api_calls_per_minute = int(val)
+    if val := os.environ.get("OPC_WORKFLOW_TOKEN_HARD_LIMIT"):
+        config.cost.workflow_token_hard_limit = int(val)
+    if val := os.environ.get("OPC_ROLE_TOKEN_HARD_LIMIT"):
+        config.cost.role_token_hard_limit = int(val)
+    if val := os.environ.get("OPC_ENFORCE_HARD_LIMIT"):
+        config.cost.enforce_hard_limit = val.lower() in ("1", "true", "yes")
     if val := os.environ.get("OPC_TOOL_MAX_RETRIES"):
         config.tools.max_retries = int(val)
     if val := os.environ.get("OPC_TOOL_TIMEOUT"):
@@ -173,6 +186,12 @@ def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
         config.cost.role_call_limit = int(overrides["role_call_limit"])
     if "api_calls_per_minute" in overrides:
         config.cost.api_calls_per_minute = int(overrides["api_calls_per_minute"])
+    if "workflow_token_hard_limit" in overrides:
+        config.cost.workflow_token_hard_limit = int(overrides["workflow_token_hard_limit"])
+    if "role_token_hard_limit" in overrides:
+        config.cost.role_token_hard_limit = int(overrides["role_token_hard_limit"])
+    if "enforce_hard_limit" in overrides:
+        config.cost.enforce_hard_limit = bool(overrides["enforce_hard_limit"])
     if "tool_max_retries" in overrides:
         config.tools.max_retries = int(overrides["tool_max_retries"])
     if "tool_timeout" in overrides:
