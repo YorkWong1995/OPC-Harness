@@ -84,3 +84,34 @@ def test_no_tests_found(tmp_path):
     results = assoc.find_tests_for(str(src_dir / "orphan.py"))
 
     assert results == []
+
+
+def test_find_by_import_does_not_falsely_match(tmp_path):
+    """回归用例：旧实现 'from' in content and module_name in content 会误匹配
+    任何含 from 关键字且文本中出现 module_name 的文件，比如 docstring 或注释。
+    """
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    (src_dir / "config.py").write_text("x = 1\n", encoding="utf-8")
+
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    # 该测试文件含 from 关键字（import 其他模块）和 'config' 字符串（在注释中），
+    # 但并未真正 import config 模块。新实现不应误匹配。
+    (tests_dir / "test_other.py").write_text(
+        "from os import path\n"
+        "# this test reads config from disk via path.join\n"
+        "def test_x(): pass\n",
+        encoding="utf-8",
+    )
+    # 同时构造一条真实 import，验证正例仍能命中
+    (tests_dir / "test_real.py").write_text(
+        "import config\n\ndef test_y(): pass\n",
+        encoding="utf-8",
+    )
+
+    assoc = TestFileAssociator(tmp_path)
+    results = assoc.find_tests_for(str(src_dir / "config.py"))
+
+    assert str(tests_dir / "test_real.py") in results
+    assert str(tests_dir / "test_other.py") not in results

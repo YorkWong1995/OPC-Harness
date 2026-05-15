@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -59,13 +60,35 @@ class TestFileAssociator:
         return dirs
 
     def _find_by_import(self, module_name: str) -> list[str]:
-        """在测试文件中查找 import 了指定模块的文件"""
+        """在测试文件中查找 import 了指定模块的文件。
+
+        旧实现 `f"from" in content and module_name in content` 会误匹配任何
+        含 from 关键字且任意位置出现 module_name 的文件。改用正则精准匹配
+        `import <module>` 或 `from <pkg.>... import <module>` 这样的语句。
+        """
+        # \b 边界保证不会把 module_name 当作其他标识符的子串匹配
+        escaped = re.escape(module_name)
+        # 形如：
+        #   import module_name
+        #   import a.b.module_name
+        #   from module_name import ...
+        #   from a.b.module_name import ...
+        #   from pkg import module_name, other
+        pattern = re.compile(
+            rf"^\s*(?:"
+            rf"import\s+(?:\w+\.)*{escaped}\b"
+            rf"|from\s+(?:\w+\.)*{escaped}\s+import\b"
+            rf"|from\s+\w+(?:\.\w+)*\s+import\s+[^\n]*\b{escaped}\b"
+            rf")",
+            re.MULTILINE,
+        )
+
         results = []
         for test_dir in self._find_test_dirs():
             for test_file in test_dir.rglob("test_*.py"):
                 try:
                     content = test_file.read_text(encoding="utf-8")
-                    if f"import {module_name}" in content or f"from" in content and module_name in content:
+                    if pattern.search(content):
                         if str(test_file) not in results:
                             results.append(str(test_file))
                 except (UnicodeDecodeError, OSError):
