@@ -1,6 +1,6 @@
 """测试轻量影响分析。"""
 
-from src.opc.knowledge.impact_analyzer import ImpactAnalyzer
+from opc.knowledge.impact_analyzer import ImpactAnalyzer
 
 
 def test_impact_analyzer_reports_related_files_and_tests(tmp_path):

@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.opc.agent import Agent
+from opc.agent import Agent
 
 
 def test_tool_retry_on_transient_error(tmp_path):
@@ -29,7 +29,7 @@ def test_tool_retry_on_transient_error(tmp_path):
     mock_def.handler_name = None
     mock_def.handler = flaky_handler
 
-    with patch("src.opc.agent.get_tool", return_value=mock_def):
+    with patch("opc.agent.get_tool", return_value=mock_def):
         result = agent._execute_tool("test_tool", {}, tool_use_id="t1")
 
     assert result == "success"
@@ -57,7 +57,7 @@ def test_tool_no_retry_on_not_found(tmp_path):
     mock_def.handler_name = None
     mock_def.handler = not_found_handler
 
-    with patch("src.opc.agent.get_tool", return_value=mock_def):
+    with patch("opc.agent.get_tool", return_value=mock_def):
         result = agent._execute_tool("test_tool", {}, tool_use_id="t2")
 
     assert "工具执行错误" in result
@@ -85,7 +85,7 @@ def test_tool_max_retries_exhausted(tmp_path):
     mock_def.handler_name = None
     mock_def.handler = always_fail
 
-    with patch("src.opc.agent.get_tool", return_value=mock_def):
+    with patch("opc.agent.get_tool", return_value=mock_def):
         result = agent._execute_tool("test_tool", {}, tool_use_id="t3")
 
     assert "工具执行错误" in result

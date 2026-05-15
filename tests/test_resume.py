@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import pytest
 
-from src.opc.workflow import WorkflowState
+from opc.workflow import WorkflowState
 
 
 def test_resume_loads_saved_state(tmp_path):

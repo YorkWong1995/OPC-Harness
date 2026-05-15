@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from src.opc.knowledge.import_graph import ImportGraph
+from opc.knowledge.import_graph import ImportGraph
 
 
 def test_index_imports(tmp_path):

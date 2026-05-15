@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from unittest.mock import Mock, patch
 
-from src.opc.agent import Agent
-from src.opc.run_store import RunStore
+from opc.agent import Agent
+from opc.run_store import RunStore
 
 
 def test_tool_call_recording(tmp_path):

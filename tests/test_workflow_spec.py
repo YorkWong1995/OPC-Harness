@@ -1,6 +1,6 @@
 """测试最小 workflow spec"""
 
-from src.opc.workflow_spec import DEFAULT_WORKFLOW_SPEC, WorkflowSpec, Transition
+from opc.workflow_spec import DEFAULT_WORKFLOW_SPEC, WorkflowSpec, Transition
 
 
 def test_default_spec_qa_pass():

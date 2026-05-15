@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from src.opc.knowledge.test_association import TestFileAssociator
+from opc.knowledge.test_association import TestFileAssociator
 
 
 def test_find_tests_by_name(tmp_path):

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from src.opc.knowledge.symbol_search import SymbolIndex
+from opc.knowledge.symbol_search import SymbolIndex
 
 
 def test_index_python_file(tmp_path):

@@ -1,6 +1,6 @@
 """测试统一错误类型"""
 
-from src.opc.errors import (
+from opc.errors import (
     FailureType, RetryPolicy, WorkflowError,
     APIFailure, ToolFailure, RoleFailure, ProtocolFailure, QAFailure,
     FAILURE_RETRY_POLICY,

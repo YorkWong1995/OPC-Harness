@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from src.opc.workflow import WorkflowState, generate_metrics
+from opc.workflow import WorkflowState, generate_metrics
 
 
 def test_quality_metrics_qa_passed(tmp_path):
