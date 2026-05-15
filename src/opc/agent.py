@@ -21,7 +21,17 @@ from .tools.tool_registry import get_tool, list_tool_schemas, load_plugin_tools
 
 # 重试配置：遇到上游波动时等待并重试
 RETRY_MAX_ATTEMPTS = int(os.environ.get("OPC_RETRY_MAX", "3"))
-RETRY_BASE_DELAY = int(os.environ.get("OPC_RETRY_BASE_DELAY", "1800"))  # 秒，默认 30 分钟
+# 区分交互模式（CLI/IDE 实时使用）与批处理模式（夜间任务）
+# 默认使用交互模式 10s，避免一次重试就让用户等 30 分钟
+RETRY_BASE_DELAYS = {
+    "interactive": int(os.environ.get("OPC_RETRY_INTERACTIVE_DELAY", "10")),
+    "batch": int(os.environ.get("OPC_RETRY_BATCH_DELAY", "1800")),
+}
+RETRY_DEFAULT_MODE = os.environ.get("OPC_RETRY_MODE", "interactive")
+# 兼容历史变量：保留 OPC_RETRY_BASE_DELAY 以覆盖批处理延迟
+if os.environ.get("OPC_RETRY_BASE_DELAY"):
+    RETRY_BASE_DELAYS["batch"] = int(os.environ["OPC_RETRY_BASE_DELAY"])
+RETRY_BASE_DELAY = RETRY_BASE_DELAYS.get(RETRY_DEFAULT_MODE, RETRY_BASE_DELAYS["interactive"])
 
 # 可重试的 HTTP 状态码（上游波动、过载）
 RETRYABLE_STATUS_CODES = {500, 502, 503, 529}
@@ -55,6 +65,7 @@ class Agent:
         tool_max_retries: int = 1,
         max_tool_rounds: int | None = None,
         run_store: "RunStore | None" = None,
+        retry_mode: str | None = None,
     ):
         self.role = role
         self.system_prompt = system_prompt
@@ -69,6 +80,10 @@ class Agent:
             max_tool_rounds = int(os.environ.get("OPC_MAX_TOOL_ROUNDS", "15"))
         self.max_tool_rounds = max_tool_rounds
         self.run_store = run_store
+        # 重试模式：interactive (10s) / batch (1800s)；默认 interactive
+        mode = retry_mode or os.environ.get("OPC_RETRY_MODE", "interactive")
+        self.retry_mode = mode if mode in RETRY_BASE_DELAYS else "interactive"
+        self.retry_base_delay = RETRY_BASE_DELAYS[self.retry_mode]
 
         # 消息缓冲区（用于 Environment 集成）
         self.msg_buffer = MessageQueue()
@@ -104,7 +119,7 @@ class Agent:
         return False
 
     def _call_with_retry(self, **kwargs) -> anthropic.types.Message:
-        """带指数退避重试的 API 调用，基础间隔 30 分钟"""
+        """带指数退避重试的 API 调用，基础间隔由 retry_mode 决定"""
         last_error = None
         for attempt in range(1, RETRY_MAX_ATTEMPTS + 1):
             try:
@@ -114,11 +129,13 @@ class Agent:
                 if not self._is_retryable(e):
                     raise
                 if attempt < RETRY_MAX_ATTEMPTS:
-                    delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    delay = self.retry_base_delay * (2 ** (attempt - 1))
+                    minutes = delay // 60
+                    pretty = f"{minutes} 分钟" if minutes > 0 else f"{delay} 秒"
                     print(
                         f"[{self.role}] 上游服务暂时不可用 "
-                        f"(第 {attempt}/{RETRY_MAX_ATTEMPTS} 次)，"
-                        f"{delay // 60} 分钟后重试... 错误: {e}"
+                        f"(第 {attempt}/{RETRY_MAX_ATTEMPTS} 次, mode={self.retry_mode})，"
+                        f"{pretty}后重试... 错误: {e}"
                     )
                     time.sleep(delay)
         raise last_error
