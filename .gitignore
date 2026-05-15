@@ -57,7 +57,6 @@ docs/*_matrix.md
 docs/IMPORTANT_*.md
 docs/harness_*.md
 docs/knowledge-*.md
-docs/github_upload_sop.md
 
 # Internal files
 claude.md
@@ -69,4 +68,3 @@ run_wn2384t_*.py
 QUICK_UPLOAD.md
 UPLOAD_CHECKLIST.md
 pre_upload_check.sh
-upload_to_github.sh

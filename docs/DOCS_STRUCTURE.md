@@ -1,16 +1,15 @@
 # 文档说明
 
-## 公开文档（会上传到 GitHub）
+## 公开文档
 
 - `README.md` - 项目介绍
 - `CLAUDE.md` - Claude 协作规范入口
 - `LICENSE` - 开源许可证
 - `QUICK_UPLOAD.md` - 快速上传指南
-- `docs/github_upload_sop.md` - GitHub 上传 SOP
 
 ## 内部文档（仅保留本地）
 
-以下文档包含项目内部规划、开发过程记录等，不会上传到 GitHub：
+以下文档包含项目内部规划、开发过程记录等，仅保留本地：
 
 ### 规划文档 (docs/plan/)
 - `vision.md` - 项目愿景与定位
@@ -20,11 +19,15 @@
 - `roadmap.md` - 路线图
 - `execution.md` - 执行计划
 - `success.md` - 成功标准
+- `ai_app_audit_next_steps.md` - AI 应用开发视角拷问总结与后续优先级
 
 ### Claude 协作文档 (docs/claude/)
 - `roles.md` - 角色职责
 - `standards.md` - 文档标准
 - `discipline.md` - 执行纪律
+
+### 分享文档 (docs/share/)
+- `internal_technical_share.md` - 公司内部技术分享文档，介绍项目能力、技术栈、模块优化与后续计划
 
 ### 开发记录文档 (docs/)
 - `*_summary.md` - 各类总结文档

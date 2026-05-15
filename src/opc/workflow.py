@@ -188,6 +188,10 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
     return metrics_path
 
 
+def _metric_int(value) -> int:
+    return int(value) if isinstance(value, (int, float)) else 0
+
+
 # 状态流转（参照 plan.md 9.4节）
 STATES = [
     "待澄清",
@@ -301,16 +305,16 @@ class HarnessWorkflow:
         return result
 
     def _record_stage_metrics(self, agent, stage_name: str, duration: float):
-        input_tokens = getattr(agent, "last_input_tokens", 0)
-        output_tokens = getattr(agent, "last_output_tokens", 0)
-        tool_calls = getattr(agent, "last_tool_calls", 0)
-        api_calls = getattr(agent, "last_api_calls", 0)
+        input_tokens = _metric_int(getattr(agent, "last_input_tokens", 0))
+        output_tokens = _metric_int(getattr(agent, "last_output_tokens", 0))
+        tool_calls = _metric_int(getattr(agent, "last_tool_calls", 0))
+        api_calls = _metric_int(getattr(agent, "last_api_calls", 0))
         self.workflow_state.stage_logs[stage_name] = {
-            "input_tokens": int(input_tokens) if isinstance(input_tokens, (int, float)) else 0,
-            "output_tokens": int(output_tokens) if isinstance(output_tokens, (int, float)) else 0,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
             "duration_seconds": round(duration, 2),
-            "tool_calls": int(tool_calls) if isinstance(tool_calls, (int, float)) else 0,
-            "api_calls": int(api_calls) if isinstance(api_calls, (int, float)) else 0,
+            "tool_calls": tool_calls,
+            "api_calls": api_calls,
         }
         self._observe_cost_limits(stage_name, input_tokens + output_tokens, api_calls)
 
