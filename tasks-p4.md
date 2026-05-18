@@ -48,7 +48,7 @@
 
 ## 6. 长期优化方向 - 功能层面
 
-- [ ] C/C++ #include 依赖分析 <!-- files: src/opc/knowledge/import_graph.py --> <!-- context: 用 compile_commands.json + 头文件扫描；处理头文件搜索路径、条件编译、宏展开等复杂度 --> <!-- order: 依赖 P3 C/C++ 符号搜索完成 -->
+- [x] C/C++ #include 依赖分析 <!-- files: src/opc/knowledge/import_graph.py --> <!-- context: 用 compile_commands.json + 头文件扫描；处理头文件搜索路径、条件编译、宏展开等复杂度 --> <!-- order: 依赖 P3 C/C++ 符号搜索完成 -->
 - [ ] 跨语言项目支持（Python + C++ 混合） <!-- files: src/opc/knowledge/ --> <!-- context: Python 调用 C++ 扩展（pybind11/cython）的项目；需要在符号搜索和依赖分析中跨越语言边界 --> <!-- order: 依赖 C/C++ 符号搜索 + import 图均到位 -->
 - [ ] Rerank 模型精排（bge-reranker-v2-m3） <!-- files: src/opc/knowledge/ --> <!-- context: 在 hybrid retrieval（BM25 + 向量）后再用 reranker 精排 top-k；提升召回 → 排序的质量 --> <!-- review: 评估单机推理成本与延迟是否可接受；可能仅在批处理模式启用 -->
 - [ ] Agentic RAG（多轮检索） <!-- files: src/opc/knowledge/, src/opc/agent.py --> <!-- context: 让 Agent 自主决定何时检索、检索什么、是否扩展查询；替代当前一次检索一次拼接的策略 --> <!-- review: 需评估对延迟和成本的影响；建议先在 PM/Architect 阶段试点 -->
