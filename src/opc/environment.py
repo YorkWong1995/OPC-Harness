@@ -100,6 +100,9 @@ class Environment:
         if self.run_store is None:
             return
         self.run_store.append(event_type, message=self._message_payload(message))
+        # Flush trace once per publish so external readers (UI, tests) can see
+        # progress without us paying O(n^2) re-writes per individual append.
+        self.run_store.write_trace()
 
     def _persist_delivery(self, role_name: str, message: Message, buffer_size: int):
         if self.run_store is None:
@@ -110,6 +113,7 @@ class Environment:
             buffer_size=buffer_size,
             message=self._message_payload(message),
         )
+        self.run_store.write_trace()
 
     def _message_payload(self, message: Message) -> dict:
         return message.model_dump(mode="json")

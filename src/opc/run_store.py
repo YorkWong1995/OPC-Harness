@@ -27,11 +27,16 @@ class RunStore:
         self.events: list[RunEvent] = []
 
     def append(self, event_type: str, **payload: Any) -> RunEvent:
+        """Append an event. Writes only the JSONL line — O(1) per call.
+
+        Call ``write_trace()`` (or ``finalize()``) at the end of a run to
+        produce ``run_trace.json``. Earlier versions wrote the full trace on
+        every append, which was O(n^2) over a run.
+        """
         event = RunEvent(type=event_type, payload={"run_id": self.run_id, **_json_safe(payload)})
         self.events.append(event)
         with self.events_path.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(asdict(event), ensure_ascii=False) + "\n")
-        self.write_trace()
         return event
 
     def write_trace(self, final_status: str | None = None, metrics: dict[str, Any] | None = None) -> Path:
@@ -44,9 +49,31 @@ class RunStore:
         self.trace_path.write_text(json.dumps(trace, ensure_ascii=False, indent=2), encoding="utf-8")
         return self.trace_path
 
+    # Alias requested by the roadmap; kept as a thin wrapper to avoid churn at call sites.
+    finalize = write_trace
+
     @classmethod
     def load(cls, artifacts_dir: Path) -> "RunStore":
+        """Reload a run store. Prefer events.jsonl (always up to date); fall
+        back to run_trace.json for runs persisted before P2.2.
+        """
+        events_path = artifacts_dir / "run_events.jsonl"
         trace_path = artifacts_dir / "run_trace.json"
+
+        if events_path.exists():
+            run_id = None
+            events: list[RunEvent] = []
+            for line in events_path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                event = RunEvent(**json.loads(line))
+                events.append(event)
+                if run_id is None:
+                    run_id = event.payload.get("run_id")
+            store = cls(artifacts_dir, run_id=run_id)
+            store.events = events
+            return store
+
         if not trace_path.exists():
             return cls(artifacts_dir)
         trace = json.loads(trace_path.read_text(encoding="utf-8"))
