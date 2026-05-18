@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import pickle
+from dataclasses import asdict
 from pathlib import Path
 
 import jieba
@@ -21,6 +21,10 @@ def tokenize(text: str) -> list[str]:
         if w and len(w) > 0:
             tokens.append(w.lower())
     return tokens
+
+
+# JSON 持久化的版本号；老 pickle 文件 (.pkl) 由 load() 兼容读入。
+_INDEX_FORMAT_VERSION = 1
 
 
 class BM25Index:
@@ -58,16 +62,42 @@ class BM25Index:
         return results
 
     def save(self, path: Path):
-        """持久化索引到磁盘"""
+        """持久化为 JSON：只存原始 chunks，加载时调 build() 重建索引。
+
+        相比 pickle 的优势：
+        - 防御纵深：不再执行任意 Python 字节码
+        - 索引文件可读、跨版本可迁移
+        - 重建成本低（jieba + BM25Okapi 在常规规模下毫秒级）
+        """
         path.mkdir(parents=True, exist_ok=True)
-        with open(path / "bm25.pkl", "wb") as f:
-            pickle.dump(self.bm25, f)
-        with open(path / "chunks.pkl", "wb") as f:
-            pickle.dump(self.chunks, f)
+        payload = {
+            "version": _INDEX_FORMAT_VERSION,
+            "chunks": [asdict(c) for c in self.chunks],
+        }
+        (path / "chunks.json").write_text(
+            json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+        )
 
     def load(self, path: Path):
-        """从磁盘加载索引"""
-        with open(path / "bm25.pkl", "rb") as f:
-            self.bm25 = pickle.load(f)
-        with open(path / "chunks.pkl", "rb") as f:
-            self.chunks = pickle.load(f)
+        """从磁盘加载索引。优先 JSON 格式；老 pickle 索引仍可加载。"""
+        json_path = path / "chunks.json"
+        if json_path.exists():
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            chunks_data = payload.get("chunks", [])
+            chunks = [Chunk(**c) for c in chunks_data]
+            self.build(chunks)
+            return
+
+        # 兼容老 pickle 格式（仅在 JSON 缺失时使用）
+        pkl_path = path / "bm25.pkl"
+        chunks_pkl = path / "chunks.pkl"
+        if pkl_path.exists() and chunks_pkl.exists():
+            import pickle  # 局部导入：仅在加载老索引时引入风险面
+
+            with open(pkl_path, "rb") as f:
+                self.bm25 = pickle.load(f)
+            with open(chunks_pkl, "rb") as f:
+                self.chunks = pickle.load(f)
+            return
+
+        raise FileNotFoundError(f"BM25 索引不存在: {path}")
