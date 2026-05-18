@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from opc.workflow import HarnessWorkflow
+from opc.workflow_spec import DEFAULT_WORKFLOW_SPEC, load_workflow_spec
 
 
 @pytest.fixture
@@ -26,6 +27,43 @@ def workflow(tmp_path):
         )
 
 
+def test_load_workflow_spec_falls_back_to_default(tmp_path):
+    assert load_workflow_spec(tmp_path) is DEFAULT_WORKFLOW_SPEC
+
+
+def test_load_workflow_spec_from_toml(tmp_path):
+    (tmp_path / "opc.toml").write_text(
+        """
+[workflow_spec]
+name = "custom"
+states = ["A", "B"]
+initial_state = "A"
+terminal_states = ["B"]
+
+[[workflow_spec.stages]]
+name = "pm"
+state = "A"
+approval_required = false
+
+[[workflow_spec.stages]]
+name = "retro"
+state = "B"
+approval_required = false
+
+[[workflow_spec.transitions]]
+from_state = "A"
+condition = "pass"
+to_state = "B"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    spec = load_workflow_spec(tmp_path)
+
+    assert spec.name == "custom"
+    assert spec.runtime_stages(set()) == ["pm", "retro"]
+    assert spec.next_state("A", "pass") == "B"
+    assert spec.is_terminal("B")
 def test_spec_builds_core_runtime_stages(workflow):
     assert workflow.workflow_spec.runtime_stages(set()) == ["pm", "engineer", "qa", "retro"]
 

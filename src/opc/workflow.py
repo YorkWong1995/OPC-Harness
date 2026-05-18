@@ -28,7 +28,7 @@ from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
-from .workflow_spec import DEFAULT_WORKFLOW_SPEC
+from .workflow_spec import load_workflow_spec
 
 console = Console()
 
@@ -251,7 +251,7 @@ class HarnessWorkflow:
         self.max_rounds = self.workflow_config.max_rounds
         self.run_store = RunStore(self.store.dir)
         self.workflow_state = WorkflowState(task_description=task, run_id=self.run_store.run_id)
-        self.workflow_spec = DEFAULT_WORKFLOW_SPEC
+        self.workflow_spec = load_workflow_spec(self.project_dir)
         self.stage_summaries: dict[str, StageSummary] = {}
         self.last_edited_prompt: str = ""
 

@@ -12,6 +12,12 @@ P3 只实现最小声明式 spec，用于表达 QA.pass → Done 和 QA.fail →
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    import tomli as tomllib
 
 
 @dataclass
@@ -76,6 +82,30 @@ class WorkflowSpec:
                 continue
             stages.append(stage.name)
         return stages
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "WorkflowSpec":
+        stages = [WorkflowStage(**stage) for stage in data.get("stages", [])]
+        transitions = [Transition(**transition) for transition in data.get("transitions", [])]
+        return cls(
+            name=str(data.get("name", "custom")),
+            states=[str(state) for state in data.get("states", [])],
+            stages=stages,
+            transitions=transitions,
+            initial_state=str(data.get("initial_state", "")),
+            terminal_states=[str(state) for state in data.get("terminal_states", [])],
+        )
+
+
+def load_workflow_spec(project_dir: Path) -> WorkflowSpec:
+    config_path = project_dir.resolve() / "opc.toml"
+    if not config_path.exists():
+        return DEFAULT_WORKFLOW_SPEC
+    data = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    spec_data = data.get("workflow_spec")
+    if not isinstance(spec_data, dict):
+        return DEFAULT_WORKFLOW_SPEC
+    return WorkflowSpec.from_dict(spec_data)
 
 
 # 默认 MVP 工作流 spec
