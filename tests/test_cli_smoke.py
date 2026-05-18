@@ -202,7 +202,7 @@ def test_opc_index_smoke(test_data: Path, tmp_path: Path):
     assert index_dir.exists(), f"索引目录未生成: {index_dir}"
     assert (index_dir / "meta.json").exists(), "meta.json 未生成"
     assert (index_dir / "bm25").exists(), "BM25 索引目录未生成"
-    assert (index_dir / "chroma").exists(), "ChromaDB 目录未生成"
+    assert (index_dir / "vector").exists(), "向量索引目录未生成"
 
     # 验证元数据内容
     import json

@@ -28,8 +28,12 @@ class Indexer:
         return self.index_root / "meta.json"
 
     @property
+    def vector_path(self) -> Path:
+        return self.index_root / "vector"
+
+    @property
     def chroma_path(self) -> Path:
-        return self.index_root / "chroma"
+        return self.vector_path
 
     @property
     def bm25_path(self) -> Path:
@@ -116,7 +120,7 @@ class Indexer:
         # 4. 构建向量索引
         if verbose:
             print("  构建向量索引...")
-        vs = VectorStore(self.chroma_path)
+        vs = VectorStore(self.vector_path)
         vs.create_collection(self.index_name)
         vs.add_chunks(all_chunks)
 
@@ -201,7 +205,7 @@ class Indexer:
         bm25.build(all_chunks)
         bm25.save(self.bm25_path)
 
-        vs = VectorStore(self.chroma_path)
+        vs = VectorStore(self.vector_path)
         vs.create_collection(self.index_name)
         vs.delete_chunks(removed_chunk_ids)
         vs.add_chunks(changed_chunks)

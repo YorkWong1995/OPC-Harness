@@ -332,7 +332,7 @@ def _run_query(args):
     bm25 = BM25Index()
     bm25.load(index_root / "bm25")
 
-    vs = VectorStore(index_root / "chroma")
+    vs = VectorStore(index_root / "vector")
     vs.create_collection(args.name)
 
     retriever = Retriever(vs, bm25)
@@ -485,10 +485,10 @@ def _run_index_delete(args):
         console.print("[dim]已取消[/dim]")
         return
 
-    # 删除 ChromaDB collection
+    # 删除向量 collection
     try:
         from .knowledge.vector_store import VectorStore
-        vs = VectorStore(index_root / "chroma")
+        vs = VectorStore(index_root / "vector")
         vs.delete_collection(args.name)
     except Exception:
         pass

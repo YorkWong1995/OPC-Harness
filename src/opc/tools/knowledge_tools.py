@@ -21,7 +21,7 @@ class KnowledgeToolsMixin:
 
         bm25 = BM25Index()
         bm25.load(index_root / "bm25")
-        vector_store = VectorStore(index_root / "chroma")
+        vector_store = VectorStore(index_root / "vector")
         vector_store.create_collection(meta.index_name)
         retriever = Retriever(vector_store, bm25)
         results = retriever.retrieve(query, top_k=top_k)

@@ -20,6 +20,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+faiss = [
+    "faiss-cpu>=1.8",
+]
+
 # 中英混合 / 中文场景推荐: pip install -e .[bge]
 bge = [
     "sentence-transformers>=2.7",

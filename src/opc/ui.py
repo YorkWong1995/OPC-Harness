@@ -85,7 +85,7 @@ def render_rag_page(st) -> None:
         with st.spinner("检索中..."):
             bm25 = BM25Index()
             bm25.load(index_root / "bm25")
-            vector_store = VectorStore(index_root / "chroma")
+            vector_store = VectorStore(index_root / "vector")
             vector_store.create_collection(index_name.strip())
             retriever = Retriever(vector_store, bm25)
             results = retriever.retrieve(question, top_k=top_k)
