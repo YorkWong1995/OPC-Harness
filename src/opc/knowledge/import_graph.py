@@ -14,6 +14,8 @@ CPP_SOURCE_EXTENSIONS = {".c", ".cc", ".cpp", ".cxx"}
 CPP_HEADER_EXTENSIONS = {".h", ".hh", ".hpp", ".hxx"}
 CPP_EXTENSIONS = CPP_SOURCE_EXTENSIONS | CPP_HEADER_EXTENSIONS
 _INCLUDE_RE = re.compile(r'^\s*#\s*include\s*([<"])([^>"]+)[>"]')
+_PYBIND_MODULE_RE = re.compile(r"\bPYBIND11_MODULE\s*\(\s*([A-Za-z_]\w*)\s*,")
+_PYINIT_RE = re.compile(r"\bPyInit_([A-Za-z_]\w*)\s*\(")
 
 
 @dataclass
@@ -33,6 +35,7 @@ class ImportGraph:
         self._module_files: dict[str, str] = {}
         self._include_files: dict[str, list[str]] = {}
         self._include_dirs: list[Path] = []
+        self._native_module_files: dict[str, str] = {}
 
     def index_directory(self, directory: Path, pattern: str = "**/*.py") -> int:
         """索引目录下所有 Python 文件的 import 关系"""
@@ -49,6 +52,7 @@ class ImportGraph:
         cpp_files = [file_path for file_path in files if file_path.suffix.lower() in CPP_EXTENSIONS]
         self._register_modules(py_files, root)
         self._register_includes(cpp_files, root)
+        self._register_native_modules(cpp_files)
         self._include_dirs = self._load_include_dirs(root)
         count = 0
         for file_path in [*py_files, *cpp_files]:
@@ -177,6 +181,19 @@ class ImportGraph:
             for key in {file_path.name, rel}:
                 self._include_files.setdefault(key, []).append(file_key)
 
+    def _register_native_modules(self, files: list[Path]) -> None:
+        self._native_module_files = {}
+        for file_path in files:
+            if file_path.suffix.lower() not in CPP_SOURCE_EXTENSIONS:
+                continue
+            try:
+                source = file_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            for pattern in (_PYBIND_MODULE_RE, _PYINIT_RE):
+                for match in pattern.finditer(source):
+                    self._native_module_files[match.group(1)] = str(file_path)
+
     def _resolve_target_file(self, source: str, target: str, names: list[str]) -> str | None:
         module = self._absolute_module(source, target)
         candidates = [module]
@@ -185,6 +202,8 @@ class ImportGraph:
         for candidate in candidates:
             if candidate in self._module_files:
                 return self._module_files[candidate]
+            if candidate in self._native_module_files:
+                return self._native_module_files[candidate]
         return None
 
     def _resolve_include_file(self, source: Path, include: str, quoted: bool) -> str | None:

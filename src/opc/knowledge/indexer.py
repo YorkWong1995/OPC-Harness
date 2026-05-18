@@ -234,14 +234,13 @@ class Indexer:
     def _build_file_dependencies(self, files: list[tuple[Path, Path]]) -> dict[str, dict[str, list[str]]]:
         by_source: dict[Path, list[Path]] = {}
         for file_path, source_dir in files:
-            if file_path.suffix == ".py":
-                by_source.setdefault(source_dir, []).append(file_path)
+            by_source.setdefault(source_dir, []).append(file_path)
 
         result: dict[str, dict[str, list[str]]] = {}
-        for source_dir, py_files in by_source.items():
+        for source_dir, source_files in by_source.items():
             graph = ImportGraph()
-            graph.index_files(py_files, source_dir)
-            for file_path in py_files:
+            graph.index_files(source_files, source_dir)
+            for file_path in source_files:
                 rel_path = self._relative_path(file_path, source_dir)
                 dependencies = [self._relative_path(Path(dep), source_dir) for dep in graph.file_dependencies_of(str(file_path))]
                 dependents = [self._relative_path(Path(dep), source_dir) for dep in graph.file_dependents_of(str(file_path))]

@@ -129,6 +129,33 @@ def test_cpp_unresolved_system_include_keeps_module_dependency(tmp_path):
     assert graph.file_dependencies_of(str(main)) == []
 
 
+def test_python_import_resolves_pybind11_module(tmp_path):
+    """Python import 能关联到 pybind11 扩展模块源码。"""
+    app = tmp_path / "app.py"
+    native = tmp_path / "native.cpp"
+    app.write_text("import native_ext\n", encoding="utf-8")
+    native.write_text('#include <pybind11/pybind11.h>\nPYBIND11_MODULE(native_ext, m) {}\n', encoding="utf-8")
+
+    graph = ImportGraph()
+    graph.index_directory(tmp_path)
+
+    assert graph.file_dependencies_of(str(app)) == [str(native)]
+    assert graph.file_dependents_of(str(native)) == [str(app)]
+
+
+def test_python_import_resolves_python_c_api_module(tmp_path):
+    """Python import 能关联到 Python C API 扩展模块源码。"""
+    app = tmp_path / "app.py"
+    native = tmp_path / "native.cpp"
+    app.write_text("from fast_native import run\n", encoding="utf-8")
+    native.write_text('extern "C" PyObject* PyInit_fast_native() { return nullptr; }\n', encoding="utf-8")
+
+    graph = ImportGraph()
+    graph.index_directory(tmp_path)
+
+    assert graph.file_dependencies_of(str(app)) == [str(native)]
+
+
 def test_syntax_error_skipped(tmp_path):
     """语法错误文件不崩溃"""
     bad = tmp_path / "bad.py"
