@@ -3,7 +3,7 @@
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -19,6 +19,7 @@ def _mock_workflow_deps():
     from opc.config import WorkflowConfig
 
     mock_wf = MagicMock()
+    mock_wf.run = AsyncMock()
     with (
         patch("opc.cli.HarnessWorkflow", return_value=mock_wf) as wf_cls,
         patch("opc.cli.load_workflow_config", return_value=WorkflowConfig()) as load_cfg,
@@ -106,6 +107,14 @@ def test_run_skip_architect(_mock_workflow_deps):
     call_kwargs = wf_cls.call_args[1]
     assert "architect" not in call_kwargs["roles"]
 
+
+def test_run_with_explicit_optional_roles(_mock_workflow_deps):
+    """opc run 支持显式启用可选角色。"""
+    wf_cls, _load_cfg, _norm, mock_wf = _mock_workflow_deps
+    _call_main_with_args(["run", "任务", "--with-architect", "--with-ops", "--with-growth"])
+
+    call_kwargs = wf_cls.call_args[1]
+    assert {"architect", "ops", "growth"}.issubset(call_kwargs["roles"])
 
 def test_run_combined_flags(_mock_workflow_deps, tmp_path: Path):
     """opc run 组合多个 flag 的参数解析。"""

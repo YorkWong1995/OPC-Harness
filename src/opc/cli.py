@@ -67,6 +67,21 @@ def main():
         help="跳过 Architect 环节（适用于简单任务）",
     )
     run_parser.add_argument(
+        "--with-architect",
+        action="store_true",
+        help="显式启用 Architect 环节",
+    )
+    run_parser.add_argument(
+        "--with-ops",
+        action="store_true",
+        help="显式启用 Ops 环节",
+    )
+    run_parser.add_argument(
+        "--with-growth",
+        action="store_true",
+        help="显式启用 Growth/Research 环节",
+    )
+    run_parser.add_argument(
         "--resume-from",
         default=None,
         help="从指定阶段恢复执行（跳过已完成阶段），如 '已定义'、'实现中'",
@@ -198,6 +213,13 @@ def _run_workflow(args):
 
     if args.ceo_review or config.ceo_review:
         roles.add("ceo")
+
+    if args.with_architect:
+        roles.add("architect")
+    if args.with_ops:
+        roles.add("ops")
+    if args.with_growth:
+        roles.add("growth")
 
     if args.skip_architect:
         roles.discard("architect")

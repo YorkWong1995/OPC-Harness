@@ -1,6 +1,10 @@
 """角色定义：PM / Engineer / QA 的 system prompt 与工具配置"""
 
+import json
+import os
 from pathlib import Path
+
+import anthropic
 
 from .agent import Agent, TOOLS_READ_ONLY, TOOLS_READ_WRITE
 
@@ -389,9 +393,50 @@ OPTIONAL_ROLE_KEYWORDS = {
     "ops": ("部署", "发布", "上线", "运行检查", "回滚", "deploy", "release"),
     "growth": ("增长", "市场", "用户研究", "竞品", "反馈假设", "growth", "research"),
 }
+OPTIONAL_ROLE_CLASSIFIER_MODEL = os.environ.get("OPC_ROLE_CLASSIFIER_MODEL", "claude-haiku-4-5-20251001")
+OPTIONAL_ROLE_NAMES = {"architect", "ops", "growth"}
+
+
+ROLE_CLASSIFIER_PROMPT = """你负责为 OPC 工作流选择可选角色。
+只从 architect、ops、growth 中选择需要启用的角色。
+
+角色含义：
+- architect: 架构设计、系统设计、模块边界、复杂重构、技术方案取舍
+- ops: 部署、发布、运行检查、回滚、环境与运维风险
+- growth: 用户研究、增长、竞品、指标分析、市场反馈假设
+
+只输出 JSON，格式：{"roles": ["architect", "ops"]}。
+如果不需要任何可选角色，输出：{"roles": []}。"""
 
 
 def infer_optional_roles(task: str) -> set[str]:
+    try:
+        roles = _classify_optional_roles(task)
+        if roles is not None:
+            return roles
+    except Exception:
+        pass
+    return _infer_optional_roles_by_keywords(task)
+
+
+def _classify_optional_roles(task: str) -> set[str] | None:
+    client = anthropic.Anthropic()
+    response = client.messages.create(
+        model=OPTIONAL_ROLE_CLASSIFIER_MODEL,
+        max_tokens=128,
+        temperature=0,
+        system=ROLE_CLASSIFIER_PROMPT,
+        messages=[{"role": "user", "content": task}],
+    )
+    text = "".join(getattr(block, "text", "") for block in response.content)
+    data = json.loads(text)
+    roles = data.get("roles", [])
+    if not isinstance(roles, list):
+        return None
+    return {str(role).strip().lower() for role in roles if str(role).strip().lower() in OPTIONAL_ROLE_NAMES}
+
+
+def _infer_optional_roles_by_keywords(task: str) -> set[str]:
     normalized = task.lower()
     roles: set[str] = set()
     for role, keywords in OPTIONAL_ROLE_KEYWORDS.items():
