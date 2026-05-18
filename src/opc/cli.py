@@ -357,7 +357,7 @@ def _run_query(args):
     vs = VectorStore(index_root / "vector")
     vs.create_collection(args.name)
 
-    retriever = Retriever(vs, bm25)
+    retriever = Retriever(vs, bm25, meta.file_dependencies)
 
     # 检索
     console.print(f"\n[bold]查询:[/] {args.question}")

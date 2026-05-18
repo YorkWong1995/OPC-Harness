@@ -87,7 +87,7 @@ def render_rag_page(st) -> None:
             bm25.load(index_root / "bm25")
             vector_store = VectorStore(index_root / "vector")
             vector_store.create_collection(index_name.strip())
-            retriever = Retriever(vector_store, bm25)
+            retriever = Retriever(vector_store, bm25, meta.file_dependencies)
             results = retriever.retrieve(question, top_k=top_k)
 
         if not results:

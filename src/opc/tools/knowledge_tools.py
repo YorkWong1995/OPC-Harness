@@ -23,7 +23,7 @@ class KnowledgeToolsMixin:
         bm25.load(index_root / "bm25")
         vector_store = VectorStore(index_root / "vector")
         vector_store.create_collection(meta.index_name)
-        retriever = Retriever(vector_store, bm25)
+        retriever = Retriever(vector_store, bm25, meta.file_dependencies)
         results = retriever.retrieve(query, top_k=top_k)
         if not results:
             return "未找到相关知识。"

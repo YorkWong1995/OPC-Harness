@@ -43,6 +43,7 @@ class FusedResult:
     rrf_score: float = 0.0
     vector_rank: int | None = None
     bm25_rank: int | None = None
+    expansion_reason: str = ""
 
 
 # 支持的文件扩展名 → 语言映射
