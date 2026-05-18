@@ -28,6 +28,7 @@ from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
+from .workflow_spec import DEFAULT_WORKFLOW_SPEC
 
 console = Console()
 
@@ -249,6 +250,7 @@ class HarnessWorkflow:
         self.max_rounds = self.workflow_config.max_rounds
         self.run_store = RunStore(self.store.dir)
         self.workflow_state = WorkflowState(task_description=task, run_id=self.run_store.run_id)
+        self.workflow_spec = DEFAULT_WORKFLOW_SPEC
         self.stage_summaries: dict[str, StageSummary] = {}
         self.last_edited_prompt: str = ""
 
@@ -560,7 +562,7 @@ class HarnessWorkflow:
             current = active_stages[stage_idx]
             try:
                 await self._run_stage_by_name(current, outputs, should_skip, load_artifact)
-                stage_idx += 1
+                stage_idx = self._next_stage_index(active_stages, stage_idx, condition="pass")
             except _GoBack:
                 if stage_idx > 0:
                     # 从 completed_stages 中移除当前阶段和目标阶段，以便重新执行
@@ -604,24 +606,58 @@ class HarnessWorkflow:
         }
         return mapping.get(stage, stage)
 
+    @staticmethod
+    def _state_to_stage_name(state: str) -> str | None:
+        mapping = {
+            "已调研": "growth",
+            "已定义": "pm",
+            "已设计": "architect",
+            "实现中": "engineer",
+            "待验收": "qa",
+            "已复盘": "retro",
+        }
+        return mapping.get(state)
+
+    def _next_stage_index(self, active_stages: list[str], stage_idx: int, condition: str = "pass") -> int:
+        """用 WorkflowSpec 计算下一阶段，同时不跳过 active_stages 中插入的可选阶段。"""
+        current_stage = active_stages[stage_idx]
+        current_state = self._stage_to_state_name(current_stage)
+        next_state = self.workflow_spec.next_state(current_state, condition)
+        if next_state is None:
+            return stage_idx + 1
+
+        visited: set[str] = set()
+        while next_state and next_state not in visited:
+            visited.add(next_state)
+            next_stage = self._state_to_stage_name(next_state)
+            if next_stage in active_stages:
+                next_idx = active_stages.index(next_stage)
+                # 不允许声明式主链路跳过运行时插入的 Architect/Ops/Growth 等阶段。
+                if next_idx <= stage_idx + 1:
+                    return next_idx
+                return stage_idx + 1
+            if self.workflow_spec.is_terminal(next_state):
+                return len(active_stages)
+            next_state = self.workflow_spec.next_state(next_state, "pass")
+
+        return stage_idx + 1
+
     async def _run_stage_by_name(self, stage: str, outputs: dict, should_skip, load_artifact):
         """根据阶段名执行对应逻辑。完成后更新 outputs 字典。"""
-        if stage == "growth":
-            await self._exec_growth(outputs, should_skip, load_artifact)
-        elif stage == "pm":
-            await self._exec_pm(outputs, should_skip, load_artifact)
-        elif stage == "growth_architect":
-            await self._exec_growth_architect_parallel(outputs, should_skip, load_artifact)
-        elif stage == "architect":
-            await self._exec_architect(outputs, should_skip, load_artifact)
-        elif stage == "engineer":
-            await self._exec_engineer(outputs, should_skip, load_artifact)
-        elif stage == "qa":
-            await self._exec_qa(outputs, should_skip, load_artifact)
-        elif stage == "ops":
-            await self._exec_ops(outputs, should_skip, load_artifact)
-        elif stage == "retro":
-            await self._exec_retro(outputs, should_skip, load_artifact)
+        handler_map = {
+            "growth": self._exec_growth,
+            "pm": self._exec_pm,
+            "growth_architect": self._exec_growth_architect_parallel,
+            "architect": self._exec_architect,
+            "engineer": self._exec_engineer,
+            "qa": self._exec_qa,
+            "ops": self._exec_ops,
+            "retro": self._exec_retro,
+        }
+        handler = handler_map.get(stage)
+        if handler is None:
+            raise ValueError(f"未知工作流阶段: {stage}")
+        await handler(outputs, should_skip, load_artifact)
 
     async def _exec_growth_architect_parallel(self, outputs, should_skip, load_artifact):
         """并行执行 Growth 与 Architect 阶段。"""
