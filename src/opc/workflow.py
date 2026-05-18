@@ -568,21 +568,7 @@ class HarnessWorkflow:
         # 阶段间共享的产物
         outputs: dict[str, str] = {"growth": "", "prd": "", "architecture": "", "implementation": "", "acceptance": "", "ops": ""}
 
-        # 构建活跃阶段列表
-        active_stages: list[str] = []
-        if self.enabled("growth") and self.enabled("architect"):
-            active_stages.extend(["pm", "growth_architect"])
-        else:
-            if self.enabled("growth"):
-                active_stages.append("growth")
-            active_stages.append("pm")
-            if self.enabled("architect"):
-                active_stages.append("architect")
-        active_stages.append("engineer")
-        active_stages.append("qa")
-        if self.enabled("ops"):
-            active_stages.append("ops")
-        active_stages.append("retro")
+        active_stages = self.workflow_spec.runtime_stages(self.roles)
 
         stage_idx = 0
         rounds = 0

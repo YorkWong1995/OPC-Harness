@@ -15,6 +15,16 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class WorkflowStage:
+    """声明式阶段定义。"""
+    name: str
+    state: str
+    optional_role: str = ""
+    parallel_group: str = ""
+    approval_required: bool = True
+
+
+@dataclass
 class Transition:
     """状态流转规则"""
     from_state: str
@@ -30,6 +40,7 @@ class WorkflowSpec:
     """
     name: str = "default"
     states: list[str] = field(default_factory=list)
+    stages: list[WorkflowStage] = field(default_factory=list)
     transitions: list[Transition] = field(default_factory=list)
     initial_state: str = ""
     terminal_states: list[str] = field(default_factory=list)
@@ -44,11 +55,42 @@ class WorkflowSpec:
     def is_terminal(self, state: str) -> bool:
         return state in self.terminal_states
 
+    def runtime_stages(self, enabled_roles: set[str]) -> list[str]:
+        """根据声明式阶段和已启用角色生成运行时阶段列表。"""
+        stages: list[str] = []
+        enabled_parallel_groups = {
+            group
+            for group in {stage.parallel_group for stage in self.stages if stage.parallel_group}
+            if all(
+                stage.optional_role in enabled_roles
+                for stage in self.stages
+                if stage.parallel_group == group and stage.optional_role
+            )
+        }
+        for stage in self.stages:
+            if stage.optional_role and stage.optional_role not in enabled_roles:
+                continue
+            if stage.parallel_group in enabled_parallel_groups:
+                if stage.name == "architect" and stage.parallel_group not in stages:
+                    stages.append(stage.parallel_group)
+                continue
+            stages.append(stage.name)
+        return stages
+
 
 # 默认 MVP 工作流 spec
 DEFAULT_WORKFLOW_SPEC = WorkflowSpec(
     name="mvp_pm_engineer_qa",
-    states=["待澄清", "已定义", "实现中", "待验收", "已通过", "已退回", "已复盘"],
+    states=["待澄清", "已调研", "已定义", "已设计", "实现中", "待验收", "已运行检查", "已通过", "已退回", "已复盘"],
+    stages=[
+        WorkflowStage("growth", "已调研", optional_role="growth", parallel_group="growth_architect"),
+        WorkflowStage("pm", "已定义"),
+        WorkflowStage("architect", "已设计", optional_role="architect", parallel_group="growth_architect"),
+        WorkflowStage("engineer", "实现中"),
+        WorkflowStage("qa", "待验收"),
+        WorkflowStage("ops", "已运行检查", optional_role="ops"),
+        WorkflowStage("retro", "已复盘", approval_required=False),
+    ],
     transitions=[
         Transition("待澄清", "pass", "已定义"),
         Transition("已定义", "pass", "实现中"),

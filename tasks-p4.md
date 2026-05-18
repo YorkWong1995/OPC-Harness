@@ -42,7 +42,7 @@
 ## 5. 长期优化方向 - 架构层面
 
 - [ ] 完整 LSP 集成统一多语言符号查询 <!-- files: src/opc/knowledge/ --> <!-- context: 用 LSP 协议统一 Python/C++/其他语言的 symbol/definition/references 查询；替代分语言的临时方案 --> <!-- review: 重大架构决定，需确认值得投入；可能晚于 v1 -->
-- [ ] 工作流引擎完全由 WorkflowSpec 驱动 <!-- files: src/opc/workflow.py, src/opc/workflow_spec.py --> <!-- context: 在 P1.2 基础上扩展 spec：支持 retry/approval/parallel/sub-workflow 字段；目标是用户可通过修改 spec 改变工作流行为 --> <!-- order: 依赖 P1.2 spec 接入完成 -->
+- [x] 工作流引擎完全由 WorkflowSpec 驱动 <!-- files: src/opc/workflow.py, src/opc/workflow_spec.py --> <!-- context: 在 P1.2 基础上扩展 spec：支持 retry/approval/parallel/sub-workflow 字段；目标是用户可通过修改 spec 改变工作流行为 --> <!-- order: 依赖 P1.2 spec 接入完成 -->
 - [ ] 支持自定义工作流（YAML/TOML 定义流程） <!-- files: src/opc/workflow_spec.py, opc.toml --> <!-- context: 用户可在 opc.toml 或单独 YAML 文件中定义自己的角色顺序、状态流转规则；OPC 加载并执行 --> <!-- order: 依赖完整 WorkflowSpec 驱动；P1.2 → 完整 spec → 自定义 -->
 - [ ] 子工作流支持 <!-- files: src/opc/workflow.py --> <!-- context: 例如 Engineer 内部的 code → test → lint 子链路；需要解决子工作流状态隔离与父子事件关联 --> <!-- review: 需先评估 Engineer 是否真的需要子工作流，还是用工具调用即可 -->
 

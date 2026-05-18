@@ -26,6 +26,29 @@ def workflow(tmp_path):
         )
 
 
+def test_spec_builds_core_runtime_stages(workflow):
+    assert workflow.workflow_spec.runtime_stages(set()) == ["pm", "engineer", "qa", "retro"]
+
+
+def test_spec_builds_optional_runtime_stages(workflow):
+    assert workflow.workflow_spec.runtime_stages({"growth"}) == ["growth", "pm", "engineer", "qa", "retro"]
+    assert workflow.workflow_spec.runtime_stages({"architect"}) == ["pm", "architect", "engineer", "qa", "retro"]
+    assert workflow.workflow_spec.runtime_stages({"growth", "architect", "ops"}) == [
+        "pm",
+        "growth_architect",
+        "engineer",
+        "qa",
+        "ops",
+        "retro",
+    ]
+
+
+def test_spec_declares_stage_metadata(workflow):
+    stages = {stage.name: stage for stage in workflow.workflow_spec.stages}
+    assert stages["growth"].parallel_group == "growth_architect"
+    assert stages["architect"].optional_role == "architect"
+    assert stages["retro"].approval_required is False
+
 def test_spec_drives_core_pm_to_engineer(workflow):
     stages = ["pm", "engineer", "qa", "retro"]
     assert workflow._next_stage_index(stages, 0) == 1
