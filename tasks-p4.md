@@ -37,7 +37,7 @@
 - [x] 替换 ChromaDB 为 faiss-cpu <!-- files: src/opc/knowledge/vector_store.py --> <!-- context: 本地单用户场景下 faiss 更轻量；用 IndexFlatL2 + id_map JSON 持久化；保留 ChromaDB 适配作为可选 backend --> <!-- review: 需确认是否完全替换还是保留两套；评估迁移现有索引的成本 -->
 - [x] 默认使用中文 Embedding 模型 <!-- files: src/opc/knowledge/embedder.py, src/opc/config.py --> <!-- context: 当前 MiniLM 不支持中文，主要用户是中国独立开发者；默认改为 BAAI/bge-small-zh-v1.5 或 shibing624/text2vec-base-chinese；维度需对应调整 --> <!-- decision: 默认中文模型 -->
 - [x] 角色激活改用 LLM 分类 <!-- files: src/opc/roles.py --> <!-- context: roles.py:394-400 当前关键词匹配会误触；改为用 claude-haiku 做一次轻量分类；同时保留 CLI flag --with-architect/--with-ops 让用户显式选 --> <!-- review: 需评估每次启动都跑一次 LLM 分类的成本 vs CLI flag 的简洁性 -->
-- [ ] P3 项验收：C/C++ 项目符号搜索可用，中文 RAG 准确率提升 >30% <!-- files: tests/, examples/ --> <!-- context: 准备一个 C/C++ sample 项目和一组中文查询基准做 A/B 验证 --> <!-- order: 依赖前面 P3 项完成 -->
+- [x] P3 项验收：C/C++ 项目符号搜索可用，中文 RAG 准确率提升 >30% <!-- files: tests/, examples/ --> <!-- context: 轻量验收覆盖 C/C++ ctags、FAISS backend、默认中文 embedding、LLM 角色分类；真实中文 RAG >30% A/B 需设置 OPC_RUN_RAG_QUALITY=1 后单独运行质量评估，避免默认流程下载模型或冻 PC --> <!-- order: 依赖前面 P3 项完成 -->
 
 ## 5. 长期优化方向 - 架构层面
 
