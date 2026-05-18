@@ -49,14 +49,21 @@ class SymbolIndex:
         self.symbols.extend(found)
         return found
 
-    def index_directory(self, directory: Path, pattern: str = "**/*.py") -> int:
-        """索引目录下所有 Python 文件"""
+    def index_directory(self, directory: Path, pattern: str | None = None) -> int:
+        """索引目录下 Python 文件；默认同时通过 ctags 补充 C/C++ 符号。"""
         count = 0
-        for py_file in directory.glob(pattern):
+        py_pattern = pattern or "**/*.py"
+        for py_file in directory.glob(py_pattern):
             if py_file.name.startswith("_") and py_file.name != "__init__.py":
                 continue
             symbols = self.index_file(py_file)
             count += len(symbols)
+        if pattern is None:
+            from .cpp_symbol_search import CppSymbolSearch
+
+            cpp_symbols = CppSymbolSearch()
+            count += cpp_symbols.index_directory(directory)
+            self.symbols.extend(cpp_symbols.symbols)
         return count
 
     def search(self, query: str, kind: str | None = None, limit: int = 20) -> list[Symbol]:
