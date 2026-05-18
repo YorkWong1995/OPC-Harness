@@ -24,10 +24,10 @@
 ## 3. P2 - 代码质量与可维护性
 
 - [ ] 拆分 Agent 类（772 行 → 多模块） <!-- files: src/opc/agent.py, src/opc/tools/, src/opc/security/ --> <!-- context: agent.py 当前混合 API 调用、13 个工具实现、路径安全、命令白名单；建议拆为 tools/{file,search,git,build,command}_tools.py 与 security/{path_validator,command_whitelist,audit}.py；保留 agent.py 仅做 API 与 tool use 循环 --> <!-- order: 依赖 tool_registry 协议稳定；建议在 P0/P1 完成后做 -->
-- [ ] RunStore 写入优化 <!-- files: src/opc/run_store.py --> <!-- context: run_store.py:34 每次 append 都重写整个 trace 文件 → O(n²)；改为 append 只写 events.jsonl，结束时调用 finalize() 写 run_trace.json --> <!-- auto: 单文件改造 + 现有测试应能通过 -->
+- [x] RunStore 写入优化 <!-- files: src/opc/run_store.py --> <!-- context: run_store.py:34 每次 append 都重写整个 trace 文件 → O(n²)；改为 append 只写 events.jsonl，结束时调用 finalize() 写 run_trace.json --> <!-- auto: 单文件改造 + 现有测试应能通过 -->
 - [x] QAOutput 增加跨字段一致性校验 <!-- files: src/opc/schema.py, tests/ --> <!-- context: schema.py:111-116 当前 status=pass + next_action=rework 能通过校验；用 @model_validator(mode='after') 拒绝矛盾组合 --> <!-- auto: 加 validator + 补 negative test -->
 - [x] 测试导入路径统一为 from opc. <!-- files: tests/ --> <!-- context: 12 个测试文件用 from src.opc. 在 pip install -e . 后会 ImportError；用 sed 全局替换；CI 加检查 grep -r "from src.opc" tests/ && exit 1 --> <!-- auto: sed 一次替换并跑测试 -->
-- [ ] BM25 索引去 Pickle <!-- files: src/opc/knowledge/bm25_index.py, tests/ --> <!-- context: bm25_index.py:60-73 当前 pickle.dump/load；改为 JSON 持久化原始 chunks，加载时调 self.build() 重建索引（成本低）；防御纵深 + 让索引可读可迁移 --> <!-- auto: 单文件改造 -->
+- [x] BM25 索引去 Pickle <!-- files: src/opc/knowledge/bm25_index.py, tests/ --> <!-- context: bm25_index.py:60-73 当前 pickle.dump/load；改为 JSON 持久化原始 chunks，加载时调 self.build() 重建索引（成本低）；防御纵深 + 让索引可读可迁移 --> <!-- auto: 单文件改造 -->
 - [ ] P2.2 异常用于流程控制（讨论项，暂不重构） <!-- files: src/opc/workflow.py --> <!-- context: _GoBack/_StopWorkflow 是私有异常用于状态机流转，类似 StopIteration 是可接受模式；仅在未来引入嵌套工作流时再改 StageResult 返回值 --> <!-- review: 不立即动手；仅保留为待观察项 -->
 - [ ] P2 项验收：覆盖率 >80% 且 pip 安装后测试可跑 <!-- files: tests/ --> <!-- context: P2 完成后跑一次定向回归（不跑全量套件，避免冻 PC） --> <!-- order: 依赖 P2 上述项目完成 -->
 
