@@ -73,6 +73,7 @@ class MemoryConfig:
     enable_rag: bool = True
     max_context_tokens: int = 2000
     strict_ingestion: bool = True
+    embedding_model: str = "bge-small-zh"
 
 
 @dataclass
@@ -133,6 +134,7 @@ def load_project_config(
                 enable_rag=bool(memory.get("enable_rag", True)),
                 max_context_tokens=int(memory.get("max_context_tokens", 2000)),
                 strict_ingestion=bool(memory.get("strict_ingestion", True)),
+                embedding_model=str(memory.get("embedding_model", "bge-small-zh")),
             ),
         )
 
@@ -163,6 +165,8 @@ def _apply_env_overrides(config: OPCConfig) -> None:
         config.cost.role_token_hard_limit = int(val)
     if val := os.environ.get("OPC_ENFORCE_HARD_LIMIT"):
         config.cost.enforce_hard_limit = val.lower() in ("1", "true", "yes")
+    if val := os.environ.get("OPC_EMBEDDING_MODEL"):
+        config.memory.embedding_model = val
     if val := os.environ.get("OPC_TOOL_MAX_RETRIES"):
         config.tools.max_retries = int(val)
     if val := os.environ.get("OPC_TOOL_TIMEOUT"):
@@ -192,6 +196,8 @@ def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
         config.cost.role_token_hard_limit = int(overrides["role_token_hard_limit"])
     if "enforce_hard_limit" in overrides:
         config.cost.enforce_hard_limit = bool(overrides["enforce_hard_limit"])
+    if "embedding_model" in overrides:
+        config.memory.embedding_model = str(overrides["embedding_model"])
     if "tool_max_retries" in overrides:
         config.tools.max_retries = int(overrides["tool_max_retries"])
     if "tool_timeout" in overrides:
