@@ -60,7 +60,7 @@
 - [ ] 多项目管理 <!-- files: src/opc/cli.py, src/opc/config.py --> <!-- context: 用户可同时管理多个项目的 OPC 配置/历史/索引；CLI 加 opc switch <project> 等命令 --> <!-- review: 需先评估单用户是否真有多项目并发需求 -->
 - [ ] 工作流可视化（timeline、依赖图） <!-- files: src/opc/ui/ --> <!-- context: 在 Web UI 中展示 run trace 的时间轴、角色依赖、工具调用链；帮助用户复盘 --> <!-- order: 依赖 Web UI 完整实现 -->
 - [ ] 插件市场（社区贡献工具和角色） <!-- files: src/opc/tools/, src/opc/roles.py --> <!-- context: 在 plugin tools 基础上扩展为可发布/安装的插件包；需要插件签名、版本管理、安全审查机制 --> <!-- review: 重大产品决定；需先评估社区规模 -->
-- [ ] Docker 镜像发布 <!-- files: Dockerfile, .github/ --> <!-- context: 提供 opc:latest 镜像让用户一键试用；包含预置 embedding 模型、ctags 等依赖 --> <!-- auto: 可作为产品化前置工作 -->
+- [x] Docker 镜像发布 <!-- files: Dockerfile, .github/ --> <!-- context: 提供 opc:latest 镜像让用户一键试用；包含预置 embedding 模型、ctags 等依赖 --> <!-- auto: 可作为产品化前置工作 -->
 
 ## 8. 度量指标（验收时检查）
 
