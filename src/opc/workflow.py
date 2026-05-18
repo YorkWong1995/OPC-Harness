@@ -55,6 +55,7 @@ class WorkflowState:
     rework_attempts: int = 0
     # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 input_tokens / output_tokens / duration_seconds / tool_calls
     stage_logs: dict[str, dict] = field(default_factory=dict)
+    stage_summaries: dict[str, dict] = field(default_factory=dict)
 
     @classmethod
     def load_state(cls, artifacts_dir: Path) -> "WorkflowState":
@@ -411,6 +412,7 @@ class HarnessWorkflow:
 
     def _record_stage_summary(self, key: str, summary: StageSummary) -> None:
         self.stage_summaries[key] = summary
+        self.workflow_state.stage_summaries[key] = summary.model_dump()
         self.run_store.append(
             "stage_summary_created",
             key=key,
@@ -442,10 +444,20 @@ class HarnessWorkflow:
         related_files: list[str] = []
         validation: list[str] = []
         risks: list[str] = []
-        for summary in self.stage_summaries.values():
+        facts: list[str] = []
+        decisions: list[str] = []
+        open_questions: list[str] = []
+        context_sources: list[dict[str, str]] = []
+        for key, summary in self.stage_summaries.items():
+            if summary.goal:
+                facts.append(f"{summary.stage}.goal: {summary.goal}")
+            decisions.extend(summary.decisions)
             related_files.extend(summary.changed_files)
             validation.extend(summary.validation)
             risks.extend(summary.risks)
+            if summary.next_step and summary.next_step not in {"engineer", "qa", "done", "pass"}:
+                open_questions.append(f"{summary.stage}.next_step: {summary.next_step}")
+            context_sources.append({"type": "stage_summary", "name": key})
         impact_summary = "impact_analysis=not_run"
         if related_files:
             try:
@@ -454,22 +466,33 @@ class HarnessWorkflow:
                 related_files.extend(impact.related_tests)
                 validation.extend(impact.validation_commands)
                 risks.extend(impact.risk_points)
+                context_sources.append({"type": "analysis", "name": "impact_analyzer"})
                 impact_summary = (
                     f"impact_analysis=related_files:{len(impact.related_files)},"
                     f"tests:{len(impact.related_tests)},risks:{len(impact.risk_points)}"
                 )
             except Exception as error:
                 impact_summary = f"impact_analysis=failed:{error}"
+        if recent_detail:
+            context_sources.append({"type": "recent_detail", "name": f"{role}:{stage}"})
+        context_sources.extend(
+            {"type": "artifact", "name": name, "path": path}
+            for name, path in self.workflow_state.artifact_paths.items()
+        )
         pack = ContextPack(
             task_goal=pm_summary.goal if pm_summary else self.task,
             acceptance=pm_summary.validation if pm_summary else [],
             constraints=pm_summary.risks if pm_summary else [],
+            facts=facts,
+            decisions=decisions,
+            open_questions=open_questions,
             stage_summary=stage_summary,
             related_files=sorted(set(related_files)),
             diff_summary=recent_detail,
             validation=validation,
             risks=risks,
             history_summary=f"role={role}; stage={stage}; summaries={', '.join(stage_summary) or 'none'}; {impact_summary}",
+            context_sources=context_sources,
         )
         if hasattr(self, "run_store"):
             self.run_store.append(
@@ -480,15 +503,20 @@ class HarnessWorkflow:
                     "task_goal",
                     "acceptance",
                     "constraints",
+                    "facts",
+                    "decisions",
+                    "open_questions",
                     "stage_summary",
                     "related_files",
                     "diff_summary",
                     "validation",
                     "risks",
                     "history_summary",
+                    "context_sources",
                 ],
                 source_artifacts=list(getattr(self.workflow_state, "artifact_paths", {}).keys()),
                 summary_used=list(stage_summary.keys()),
+                context_sources=context_sources,
                 impact_summary=impact_summary,
                 excluded_reason="historical full text replaced by stage_summary; only recent_detail is carried",
             )
@@ -508,7 +536,13 @@ class HarnessWorkflow:
             # 从持久化状态恢复
             self.workflow_state = WorkflowState.load_state(self.store.dir)
             self.state = self.workflow_state.current_stage
-            self.run_store = RunStore(self.store.dir, self.workflow_state.run_id or None)
+            self.run_store = RunStore.load(self.store.dir)
+            if self.workflow_state.run_id:
+                self.run_store.run_id = self.workflow_state.run_id
+            self.stage_summaries = {
+                key: StageSummary.model_validate(summary)
+                for key, summary in self.workflow_state.stage_summaries.items()
+            }
             console.print(Panel(
                 f"[bold]任务[/]: {self.task}\n[yellow]从阶段 [{resume_from}] 恢复执行[/yellow]",
                 title="OPC Harness 工作流恢复",

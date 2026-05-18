@@ -154,12 +154,16 @@ class ContextPack(BaseModel):
     task_goal: str = ""
     acceptance: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
+    facts: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
     stage_summary: dict[str, Any] = Field(default_factory=dict)
     related_files: list[str] = Field(default_factory=list)
     diff_summary: str = ""
     validation: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     history_summary: str = ""
+    context_sources: list[dict[str, str]] = Field(default_factory=list)
 
 
 ROLE_OUTPUT_SCHEMAS = {

@@ -11,10 +11,10 @@ from pathlib import Path
 from uuid import uuid4
 
 try:
-    from opc.task_parser import TASK_PATTERN, Task, parse_tasks
+    from opc.task_parser import TASK_PATTERN, Task, parse_tasks, task_to_spec
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
-    from opc.task_parser import TASK_PATTERN, Task, parse_tasks
+    from opc.task_parser import TASK_PATTERN, Task, parse_tasks, task_to_spec
 
 
 @dataclass
@@ -41,19 +41,32 @@ class Config:
 
 
 def build_prompt(task: Task, config: Config) -> str:
+    spec = task_to_spec(task)
     parts = [
         f"You are working on a project at: {config.project_dir.resolve()}",
-        f"\nTask: {task.description}",
+        "\nContext Pack:",
+        f"- task_id: {spec.id}",
+        f"- task_goal: {spec.description}",
+        f"- owner_role: {spec.owner_role}",
     ]
-    if "files" in task.metadata:
-        parts.append(f"\nRelevant files: {task.metadata['files']}")
-    if "context" in task.metadata:
-        parts.append(f"\nAdditional context: {task.metadata['context']}")
+    if spec.files:
+        parts.append("- related_files:\n" + "\n".join(f"  - {item}" for item in spec.files))
+    if spec.context:
+        parts.append(f"- additional_context: {spec.context}")
+    if spec.depends_on:
+        parts.append("- depends_on:\n" + "\n".join(f"  - {item}" for item in spec.depends_on))
+    if spec.acceptance:
+        parts.append("- acceptance:\n" + "\n".join(f"  - {item}" for item in spec.acceptance))
+    if spec.risk:
+        parts.append(f"- risk: {spec.risk}")
+    if spec.validation_commands:
+        parts.append("- validation_commands:\n" + "\n".join(f"  - {item}" for item in spec.validation_commands))
     parts.append(
         "\nInstructions:"
         "\n- Read CLAUDE.md for project conventions before starting"
         "\n- Implement the task completely with minimal, focused changes"
         "\n- Follow existing code patterns and conventions"
+        "\n- Prioritize acceptance, risk, and validation_commands from the Context Pack"
         "\n- Ensure the code works correctly"
     )
     return "\n".join(parts)
