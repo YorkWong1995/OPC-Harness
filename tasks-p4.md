@@ -28,7 +28,7 @@
 - [x] QAOutput 增加跨字段一致性校验 <!-- files: src/opc/schema.py, tests/ --> <!-- context: schema.py:111-116 当前 status=pass + next_action=rework 能通过校验；用 @model_validator(mode='after') 拒绝矛盾组合 --> <!-- auto: 加 validator + 补 negative test -->
 - [x] 测试导入路径统一为 from opc. <!-- files: tests/ --> <!-- context: 12 个测试文件用 from src.opc. 在 pip install -e . 后会 ImportError；用 sed 全局替换；CI 加检查 grep -r "from src.opc" tests/ && exit 1 --> <!-- auto: sed 一次替换并跑测试 -->
 - [x] BM25 索引去 Pickle <!-- files: src/opc/knowledge/bm25_index.py, tests/ --> <!-- context: bm25_index.py:60-73 当前 pickle.dump/load；改为 JSON 持久化原始 chunks，加载时调 self.build() 重建索引（成本低）；防御纵深 + 让索引可读可迁移 --> <!-- auto: 单文件改造 -->
-- [ ] P2.2 异常用于流程控制（讨论项，暂不重构） <!-- files: src/opc/workflow.py --> <!-- context: _GoBack/_StopWorkflow 是私有异常用于状态机流转，类似 StopIteration 是可接受模式；仅在未来引入嵌套工作流时再改 StageResult 返回值 --> <!-- review: 不立即动手；仅保留为待观察项 -->
+- [x] P2.2 异常用于流程控制（讨论项，暂不重构） <!-- files: src/opc/workflow.py, tests/test_workflow_control_flow.py --> <!-- context: _GoBack/_StopWorkflow 是私有异常用于状态机流转，类似 StopIteration 是可接受模式；仅在未来引入嵌套工作流时再改 StageResult 返回值；补测试锁定主循环消费行为 --> <!-- review: 不立即动手；仅保留为待观察项 -->
 - [ ] P2 项验收：覆盖率 >80% 且 pip 安装后测试可跑 <!-- files: tests/ --> <!-- context: P2 完成后跑一次定向回归（不跑全量套件，避免冻 PC） --> <!-- order: 依赖 P2 上述项目完成 -->
 
 ## 4. P3 - Roadmap 已知项（非缺陷，按节奏推进）
