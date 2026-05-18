@@ -1,5 +1,6 @@
 """测试 HarnessWorkflow 初始化和阶段流转（mock API 调用）"""
 
+import asyncio
 from pathlib import Path
 from unittest.mock import MagicMock, patch, call
 
@@ -167,7 +168,7 @@ class TestWorkflowRun:
         """基本流程：PM → Engineer → QA(通过) → 复盘"""
         mock_agents["qa"].run.return_value = "验收通过，所有标准满足"
         wf = HarnessWorkflow(task="测试任务", project_dir=project_dir, auto_confirm=True)
-        wf.run()
+        asyncio.run(wf.run())
 
         assert wf.state == "已复盘"
         mock_agents["pm"].run.assert_called()
@@ -180,14 +181,14 @@ class TestWorkflowRun:
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
         assert wf.state == "待澄清"
 
-        wf.run()
+        asyncio.run(wf.run())
         assert wf.state == "已复盘"
 
     def test_qa_reject_sets_state(self, project_dir, mock_agents):
         """QA 不通过时状态为 已退回"""
         mock_agents["qa"].run.return_value = "验收不通过，缺少关键功能"
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf.run()
+        asyncio.run(wf.run())
 
         assert wf.state == "已退回"
 
@@ -195,7 +196,7 @@ class TestWorkflowRun:
         """QA 不通过时不会进入复盘阶段（PM 仅调用一次用于PRD）"""
         mock_agents["qa"].run.return_value = "验收不通过"
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf.run()
+        asyncio.run(wf.run())
 
         # PM 只被调用一次（产出PRD），不调用复盘
         assert mock_agents["pm"].run.call_count == 1
@@ -206,7 +207,7 @@ class TestWorkflowRun:
         wf = HarnessWorkflow(
             task="t", project_dir=project_dir, auto_confirm=True, roles={"architect"}
         )
-        wf.run()
+        asyncio.run(wf.run())
 
         mock_agents["architect"].run.assert_called_once()
         assert wf.state == "已复盘"
@@ -217,7 +218,7 @@ class TestWorkflowRun:
         wf = HarnessWorkflow(
             task="t", project_dir=project_dir, auto_confirm=True, roles={"growth"}
         )
-        wf.run()
+        asyncio.run(wf.run())
 
         mock_agents["growth"].run.assert_called_once()
         assert wf.state == "已复盘"
@@ -228,7 +229,7 @@ class TestWorkflowRun:
         wf = HarnessWorkflow(
             task="t", project_dir=project_dir, auto_confirm=True, roles={"ops"}
         )
-        wf.run()
+        asyncio.run(wf.run())
 
         mock_agents["ops"].run.assert_called_once()
         assert wf.state == "已复盘"
@@ -240,7 +241,7 @@ class TestWorkflowRun:
         wf = HarnessWorkflow(
             task="t", project_dir=project_dir, auto_confirm=False, ceo_review=True
         )
-        wf.run()
+        asyncio.run(wf.run())
 
         # CEO 应被多次调用（PM后、Engineer后、QA后、复盘前至少）
         assert mock_agents["ceo"].run.call_count >= 2
@@ -251,7 +252,7 @@ class TestWorkflowRun:
         wf = HarnessWorkflow(
             task="t", project_dir=project_dir, auto_confirm=False, ceo_review=True
         )
-        wf.run()
+        asyncio.run(wf.run())
 
         # CEO 第一次审查就退回，Engineer 不应被调用
         mock_agents["engineer"].run.assert_not_called()
@@ -277,7 +278,7 @@ class TestWorkflowRun:
         """流程完成后关键产物被保存"""
         mock_agents["qa"].run.return_value = "验收通过"
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf.run()
+        asyncio.run(wf.run())
 
         assert wf.store.exists("prd.md")
         assert wf.store.exists("implementation.md")

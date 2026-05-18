@@ -1,6 +1,7 @@
 """OPC CLI 入口"""
 
 import argparse
+import asyncio
 import os
 import shutil
 import sys
@@ -214,7 +215,7 @@ def _run_workflow(args):
         model=args.model,
         profile=config.profile,
     )
-    workflow.run(resume_from=args.resume_from)
+    asyncio.run(workflow.run(resume_from=args.resume_from))
 
 
 # ---- opc resume ----
@@ -263,7 +264,7 @@ def _run_resume(args):
         model=args.model,
         profile=config.profile,
     )
-    workflow.run(resume_from=saved_state.current_stage)
+    asyncio.run(workflow.run(resume_from=saved_state.current_stage))
 
 
 # ---- opc index ----

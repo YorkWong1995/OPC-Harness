@@ -15,7 +15,7 @@
 
 ## 2. P1 - 核心功能缺陷
 
-- [ ] 修复 asyncio.run 与同步代码混用 <!-- files: src/opc/workflow.py --> <!-- context: workflow.py:635 同步 run() 内嵌 asyncio.run，未来 Web UI/FastAPI 调用会抛 RuntimeError；推荐方案 A 全异步化（HarnessWorkflow.run → async），CLI 入口用 asyncio.run；备选方案 B 用 ThreadPoolExecutor --> <!-- review: 需确认走方案 A 还是 B；A 改动大但更彻底 -->
+- [x] 修复 asyncio.run 与同步代码混用 <!-- files: src/opc/workflow.py --> <!-- context: workflow.py:635 同步 run() 内嵌 asyncio.run，未来 Web UI/FastAPI 调用会抛 RuntimeError；推荐方案 A 全异步化（HarnessWorkflow.run → async），CLI 入口用 asyncio.run；备选方案 B 用 ThreadPoolExecutor --> <!-- review: 需确认走方案 A 还是 B；A 改动大但更彻底 -->
 - [ ] 让 WorkflowSpec 真正驱动状态流转 <!-- files: src/opc/workflow.py, src/opc/workflow_spec.py, tests/test_workflow_spec.py --> <!-- context: workflow.py:595-612 当前 if-elif 链，与 DEFAULT_WORKFLOW_SPEC 完全脱节；改为 handler_map 查表 + spec.next_state 决定流转；如果不打算用则删除 workflow_spec.py --> <!-- decision: 让 spec 生效，保留声明式优势 -->
 - [x] QA rework 改为循环替代递归 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: workflow.py:890 当前 return self._exec_qa(...) 递归依赖 completed_stages 隐式不变量；改为 while rework_attempts < max_rework_attempts 循环，状态变量显式化 --> <!-- auto: 单函数重构 + 跑现有 QA rework 测试 -->
 - [x] 修复 _find_by_import 误报 <!-- files: src/opc/knowledge/test_association.py, tests/test_test_association.py --> <!-- context: test_association.py:68 当前 f"from" in content and module_name in content 会误匹配任何含 from 和模块名的文件；改用 regex 精准匹配 import/from import 语句；补真实项目数据用例 --> <!-- auto: 单函数修复 -->

@@ -1,5 +1,6 @@
 """测试 P1.3 QA rework 循环改写：验证不再使用递归，且超出上限时正确中止。"""
 
+import asyncio
 from unittest.mock import MagicMock
 
 import pytest
@@ -25,28 +26,28 @@ def test_qa_rework_loops_until_pass(tmp_path, monkeypatch):
 
     qa_runs = {"n": 0}
 
-    def fake_run_stage(agent, prompt, stage_name):
+    async def fake_run_stage(agent, prompt, stage_name):
         if stage_name == "待验收":
             qa_runs["n"] += 1
             return f"qa_round_{qa_runs['n']}"
         return "stage_output"
 
     wf._run_stage = fake_run_stage
-    wf._build_context_pack = lambda *a, **kw: MagicMock(
-        model_dump_json=lambda **kwargs: "{}"
-    )
-    wf._run_rework = lambda outputs, accepted: "new impl"
+    async def fake_run_rework(outputs, accepted):
+        return "new impl"
+
+    wf._run_rework = fake_run_rework
 
     # 第一次 fail，第二次 pass
     parsed_iter = iter([_build_qa_output("fail"), _build_qa_output("pass")])
     wf._parse_role_output = lambda role, content: next(parsed_iter)
 
     outputs = {"implementation": "impl_v1"}
-    wf._exec_qa(
+    asyncio.run(wf._exec_qa(
         outputs,
         should_skip=lambda *_: False,
         load_artifact=lambda *_: None,
-    )
+    ))
 
     assert qa_runs["n"] == 2
     assert outputs["acceptance"] == "qa_round_2"
@@ -59,18 +60,24 @@ def test_qa_rework_stops_when_exceeds_max(tmp_path):
     wf = HarnessWorkflow(task="t", project_dir=tmp_path, auto_confirm=True)
     wf.max_rework_attempts = 1
 
-    wf._run_stage = lambda agent, prompt, stage_name: "qa_out"
+    async def fake_run_stage(agent, prompt, stage_name):
+        return "qa_out"
+
+    async def fake_run_rework(outputs, accepted):
+        return "new impl"
+
+    wf._run_stage = fake_run_stage
     wf._build_context_pack = lambda *a, **kw: MagicMock(model_dump_json=lambda **kw: "{}")
-    wf._run_rework = lambda outputs, accepted: "new impl"
+    wf._run_rework = fake_run_rework
     wf._parse_role_output = lambda role, content: _build_qa_output("fail")
 
     outputs = {"implementation": "impl_v1"}
     with pytest.raises(_StopWorkflow):
-        wf._exec_qa(
+        asyncio.run(wf._exec_qa(
             outputs,
             should_skip=lambda *_: False,
             load_artifact=lambda *_: None,
-        )
+        ))
 
     # max_rework_attempts=1 表示允许 1 次返工，第 2 次 fail 时超限
     assert wf.workflow_state.rework_attempts >= 2

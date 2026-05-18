@@ -1,5 +1,6 @@
 """测试 WorkflowState 状态保存和恢复逻辑"""
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -225,7 +226,7 @@ class TestResumeFrom:
         """无效阶段名抛出 ValueError"""
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
         with pytest.raises(ValueError, match="无效的阶段名"):
-            wf.run(resume_from="不存在的阶段")
+            asyncio.run(wf.run(resume_from="不存在的阶段"))
 
     def test_resume_skips_completed_stages(self, project_dir, mock_agents):
         """resume_from 跳过已完成阶段"""
@@ -242,7 +243,7 @@ class TestResumeFrom:
 
         # 创建新 workflow 并 resume
         wf2 = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf2.run(resume_from="实现中")
+        asyncio.run(wf2.run(resume_from="实现中"))
 
         # PM 不应被调用（PRD 阶段已跳过）
         mock_agents["pm"].run.assert_called()  # 复盘阶段会调用 PM
@@ -269,7 +270,7 @@ class TestResumeFrom:
         state_path.write_text(json.dumps(state_data, ensure_ascii=False), encoding="utf-8")
 
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf.run(resume_from="实现中")
+        asyncio.run(wf.run(resume_from="实现中"))
 
         # 验证状态被正确恢复
         assert "已定义" in wf.workflow_state.completed_stages
@@ -299,7 +300,7 @@ class TestResumeFrom:
         state_path.write_text(json.dumps(state_data, ensure_ascii=False), encoding="utf-8")
 
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf.run(resume_from="待验收")
+        asyncio.run(wf.run(resume_from="待验收"))
 
         assert wf.state == "已复盘"
         # QA 应被调用
@@ -309,7 +310,7 @@ class TestResumeFrom:
         """正常 run 过程中每个阶段完成后都会调用 save_state"""
         mock_agents["qa"].run.return_value = "验收通过"
         wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-        wf.run()
+        asyncio.run(wf.run())
 
         # 验证状态文件存在且最终状态正确
         state_path = project_dir / "artifacts" / ".opc_state.json"

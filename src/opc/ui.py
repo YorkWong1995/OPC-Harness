@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -60,7 +61,7 @@ def render_workflow_page(st) -> None:
                 roles=set(selected_roles),
                 model=model.strip() or None,
             )
-            workflow.run()
+            asyncio.run(workflow.run())
             status.update(label="工作流完成", state="complete")
         render_artifacts(st, project_dir / "artifacts")
 

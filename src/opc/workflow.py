@@ -270,11 +270,11 @@ class HarnessWorkflow:
         """判断可选角色是否启用。"""
         return role in self.roles
 
-    def _run_stage(self, agent, prompt: str, stage_name: str) -> str:
+    async def _run_stage(self, agent, prompt: str, stage_name: str) -> str:
         """运行 agent 并记录耗时和 token 到 stage_logs。"""
         self.run_store.append("stage_started", stage=stage_name, role=getattr(agent, "role", stage_name), prompt=prompt)
         start = time.monotonic()
-        result = agent.run(prompt)
+        result = await asyncio.to_thread(agent.run, prompt)
         duration = time.monotonic() - start
         self._record_stage_metrics(agent, stage_name, duration)
 
@@ -374,13 +374,7 @@ class HarnessWorkflow:
                 raise _StopWorkflow(msg)
 
     async def _run_stages_parallel(self, stage_specs: list[tuple[object, str, str]]) -> list[str]:
-        async def run_one(agent, prompt: str, stage_name: str) -> str:
-            start = time.monotonic()
-            result = await asyncio.to_thread(agent.run, prompt)
-            self._record_stage_metrics(agent, stage_name, time.monotonic() - start)
-            return result
-
-        return await asyncio.gather(*(run_one(*spec) for spec in stage_specs))
+        return await asyncio.gather(*(self._run_stage(*spec) for spec in stage_specs))
 
     def save_state(self):
         """将当前 WorkflowState 序列化为 JSON 写入 artifacts/.opc_state.json"""
@@ -498,7 +492,7 @@ class HarnessWorkflow:
             )
         return pack
 
-    def run(self, resume_from: str | None = None):
+    async def run(self, resume_from: str | None = None):
         """运行工作流。
 
         Args:
@@ -565,7 +559,7 @@ class HarnessWorkflow:
                 return
             current = active_stages[stage_idx]
             try:
-                self._run_stage_by_name(current, outputs, should_skip, load_artifact)
+                await self._run_stage_by_name(current, outputs, should_skip, load_artifact)
                 stage_idx += 1
             except _GoBack:
                 if stage_idx > 0:
@@ -610,26 +604,26 @@ class HarnessWorkflow:
         }
         return mapping.get(stage, stage)
 
-    def _run_stage_by_name(self, stage: str, outputs: dict, should_skip, load_artifact):
+    async def _run_stage_by_name(self, stage: str, outputs: dict, should_skip, load_artifact):
         """根据阶段名执行对应逻辑。完成后更新 outputs 字典。"""
         if stage == "growth":
-            self._exec_growth(outputs, should_skip, load_artifact)
+            await self._exec_growth(outputs, should_skip, load_artifact)
         elif stage == "pm":
-            self._exec_pm(outputs, should_skip, load_artifact)
+            await self._exec_pm(outputs, should_skip, load_artifact)
         elif stage == "growth_architect":
-            self._exec_growth_architect_parallel(outputs, should_skip, load_artifact)
+            await self._exec_growth_architect_parallel(outputs, should_skip, load_artifact)
         elif stage == "architect":
-            self._exec_architect(outputs, should_skip, load_artifact)
+            await self._exec_architect(outputs, should_skip, load_artifact)
         elif stage == "engineer":
-            self._exec_engineer(outputs, should_skip, load_artifact)
+            await self._exec_engineer(outputs, should_skip, load_artifact)
         elif stage == "qa":
-            self._exec_qa(outputs, should_skip, load_artifact)
+            await self._exec_qa(outputs, should_skip, load_artifact)
         elif stage == "ops":
-            self._exec_ops(outputs, should_skip, load_artifact)
+            await self._exec_ops(outputs, should_skip, load_artifact)
         elif stage == "retro":
-            self._exec_retro(outputs, should_skip, load_artifact)
+            await self._exec_retro(outputs, should_skip, load_artifact)
 
-    def _exec_growth_architect_parallel(self, outputs, should_skip, load_artifact):
+    async def _exec_growth_architect_parallel(self, outputs, should_skip, load_artifact):
         """并行执行 Growth 与 Architect 阶段。"""
         skip_growth = should_skip("已调研")
         skip_architect = should_skip("已设计")
@@ -650,7 +644,7 @@ class HarnessWorkflow:
             specs.append((self.architect, arch_prompt, "已设计"))
 
         console.print("\n[bold cyan][Growth/Architect][/bold cyan] 正在并行产出研究建议与架构方案...")
-        results = asyncio.run(self._run_stages_parallel(specs))
+        results = await self._run_stages_parallel(specs)
         result_idx = 0
         if not skip_growth:
             growth = results[result_idx]
@@ -677,7 +671,7 @@ class HarnessWorkflow:
         if decision == "r":
             raise _GoBack()
 
-    def _exec_growth(self, outputs, should_skip, load_artifact):
+    async def _exec_growth(self, outputs, should_skip, load_artifact):
         """Growth / Research 阶段。"""
         if should_skip("已调研"):
             outputs["growth"] = load_artifact("growth") or ""
@@ -686,7 +680,7 @@ class HarnessWorkflow:
         growth_prompt = f"基于以下任务产出 Growth / Research 建议：\n\n{self.task}"
         while True:
             console.print("\n[bold cyan][Growth][/bold cyan] 正在产出研究建议...")
-            growth = self._run_stage(self.growth, growth_prompt, "已调研")
+            growth = await self._run_stage(self.growth, growth_prompt, "已调研")
             growth_path = self.store.save("growth.md", growth)
             self.state = "已调研"
             if "已调研" not in self.workflow_state.completed_stages:
@@ -706,7 +700,7 @@ class HarnessWorkflow:
             elif decision == "r":
                 raise _GoBack()
 
-    def _exec_pm(self, outputs, should_skip, load_artifact):
+    async def _exec_pm(self, outputs, should_skip, load_artifact):
         """PM 产出 PRD 阶段。"""
         if should_skip("已定义"):
             outputs["prd"] = load_artifact("prd") or ""
@@ -719,7 +713,7 @@ class HarnessWorkflow:
         prd_prompt = pm_input
         while True:
             console.print("\n[bold cyan][PM][/bold cyan] 正在产出 PRD...")
-            prd = self._run_stage(self.pm, prd_prompt, "已定义")
+            prd = await self._run_stage(self.pm, prd_prompt, "已定义")
             prd_path = self.store.save("prd.md", prd)
             pm_output = self._parse_role_output("pm", prd)
             self.state = "已定义"
@@ -752,7 +746,7 @@ class HarnessWorkflow:
             elif decision == "r":
                 raise _GoBack()
 
-    def _exec_architect(self, outputs, should_skip, load_artifact):
+    async def _exec_architect(self, outputs, should_skip, load_artifact):
         """Architect 产出架构方案阶段。"""
         if should_skip("已设计"):
             outputs["architecture"] = load_artifact("architecture") or ""
@@ -761,7 +755,7 @@ class HarnessWorkflow:
         arch_prompt = f"基于以下 PRD 产出架构方案：\n\n{outputs['prd']}"
         while True:
             console.print("\n[bold cyan][Architect][/bold cyan] 正在基于 PRD 产出架构方案...")
-            architecture = self._run_stage(self.architect, arch_prompt, "已设计")
+            architecture = await self._run_stage(self.architect, arch_prompt, "已设计")
             arch_path = self.store.save("architecture.md", architecture)
             self.state = "已设计"
             if "已设计" not in self.workflow_state.completed_stages:
@@ -783,7 +777,7 @@ class HarnessWorkflow:
             elif decision == "r":
                 raise _GoBack()
 
-    def _exec_engineer(self, outputs, should_skip, load_artifact):
+    async def _exec_engineer(self, outputs, should_skip, load_artifact):
         """Engineer 实现阶段。"""
         if should_skip("实现中"):
             outputs["implementation"] = load_artifact("implementation") or ""
@@ -801,7 +795,7 @@ class HarnessWorkflow:
         eng_prompt = engineer_input
         while True:
             console.print("\n[bold cyan][Engineer][/bold cyan] 正在实现...")
-            implementation = self._run_stage(self.engineer, eng_prompt, "实现中")
+            implementation = await self._run_stage(self.engineer, eng_prompt, "实现中")
             impl_path = self.store.save("implementation.md", implementation)
             engineer_output = self._parse_role_output("engineer", implementation)
             self.state = "实现中"
@@ -851,7 +845,7 @@ class HarnessWorkflow:
             elif decision == "r":
                 raise _GoBack()
 
-    def _exec_qa(self, outputs, should_skip, load_artifact):
+    async def _exec_qa(self, outputs, should_skip, load_artifact):
         """QA 验收阶段：循环执行验收 → rework，直到通过或超出 rework 上限。
 
         旧实现以递归方式调用 self._exec_qa(...)，依赖 completed_stages 这种隐式
@@ -867,7 +861,7 @@ class HarnessWorkflow:
             context_pack = self._build_context_pack(
                 "qa", "待验收", f"最近实现说明：\n{outputs['implementation']}"
             )
-            acceptance = self._run_stage(
+            acceptance = await self._run_stage(
                 self.qa,
                 "使用以下 Context Pack 验收实现，重点关注 acceptance、stage_summary、"
                 "related_files、validation 和 risks，必须给出 pass/fail：\n\n"
@@ -933,10 +927,10 @@ class HarnessWorkflow:
             if self.workflow_state.rework_attempts > self.max_rework_attempts:
                 console.print("\n[bold red]QA 验收未通过且超过最大返工次数[/]，工作流暂停。")
                 raise _StopWorkflow()
-            outputs["implementation"] = self._run_rework(outputs, acceptance)
+            outputs["implementation"] = await self._run_rework(outputs, acceptance)
             # 继续下一轮 QA
 
-    def _run_rework(self, outputs: dict, acceptance: str) -> str:
+    async def _run_rework(self, outputs: dict, acceptance: str) -> str:
         context_pack = self._build_context_pack(
             "engineer",
             "rework",
@@ -948,7 +942,7 @@ class HarnessWorkflow:
             f"{context_pack.model_dump_json(indent=2)}"
         )
         console.print("\n[bold cyan][Engineer][/bold cyan] 正在根据 QA 缺陷返工...")
-        implementation = self._run_stage(self.engineer, rework_prompt, "实现中")
+        implementation = await self._run_stage(self.engineer, rework_prompt, "实现中")
         impl_path = self.store.save("implementation.md", implementation)
         self._parse_role_output("engineer", implementation)
         self.workflow_state.artifact_paths["implementation"] = str(impl_path)
@@ -973,7 +967,7 @@ class HarnessWorkflow:
             console.print(f"\n[bold red]{role} 输出协议校验失败[/]，工作流暂停。")
             raise _StopWorkflow() from error
 
-    def _exec_ops(self, outputs, should_skip, load_artifact):
+    async def _exec_ops(self, outputs, should_skip, load_artifact):
         """Ops / Release 检查阶段。"""
         if should_skip("已运行检查"):
             outputs["ops"] = load_artifact("ops") or ""
@@ -985,7 +979,7 @@ class HarnessWorkflow:
         )
         while True:
             console.print("\n[bold cyan][Ops][/bold cyan] 正在进行发布与运行检查...")
-            ops_result = self._run_stage(self.ops, ops_prompt, "已运行检查")
+            ops_result = await self._run_stage(self.ops, ops_prompt, "已运行检查")
             ops_path = self.store.save("ops.md", ops_result)
             self.state = "已运行检查"
             if "已运行检查" not in self.workflow_state.completed_stages:
@@ -1005,7 +999,7 @@ class HarnessWorkflow:
             elif decision == "r":
                 raise _GoBack()
 
-    def _exec_retro(self, outputs, should_skip, load_artifact):
+    async def _exec_retro(self, outputs, should_skip, load_artifact):
         """复盘阶段。"""
         if should_skip("已复盘"):
             console.print("[dim]跳过复盘阶段（已完成）[/dim]")
@@ -1026,7 +1020,7 @@ class HarnessWorkflow:
         )
         if outputs["ops"]:
             retro_input += f"\n\nOps 检查:\n{outputs['ops'][:1000]}"
-        retro = self._run_stage(self.pm, retro_input, "已复盘")
+        retro = await self._run_stage(self.pm, retro_input, "已复盘")
         retro_path = self.store.save("retrospective.md", retro)
         self.state = "已复盘"
         if "已复盘" not in self.workflow_state.completed_stages:

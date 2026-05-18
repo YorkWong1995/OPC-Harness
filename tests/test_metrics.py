@@ -1,5 +1,6 @@
 """测试运行指标统计。"""
 
+import asyncio
 import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -32,7 +33,7 @@ def test_workflow_stage_metrics_include_duration_and_tokens(tmp_path):
     agent.last_tool_calls = 2
     agent.last_api_calls = 1
 
-    assert wf._run_stage(agent, "prompt", "已定义") == "result"
+    assert asyncio.run(wf._run_stage(agent, "prompt", "已定义")) == "result"
 
     metrics = wf.workflow_state.stage_logs["已定义"]
     assert metrics["input_tokens"] == 3

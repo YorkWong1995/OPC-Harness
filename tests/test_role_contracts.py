@@ -1,5 +1,6 @@
 """Tests for role output contracts and QA rework."""
 
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -93,7 +94,7 @@ def test_engineer_failure_stops_before_qa(project_dir, mock_agents):
         '"suggested_next_step":"补充需求"}'
     )
     wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-    wf.run()
+    asyncio.run(wf.run())
 
     assert wf.state == "已退回"
     mock_agents["qa"].run.assert_not_called()
@@ -102,7 +103,7 @@ def test_engineer_failure_stops_before_qa(project_dir, mock_agents):
 def test_role_output_validation_failure_blocks_workflow(project_dir, mock_agents):
     mock_agents["pm"].run.return_value = "not json"
     wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-    wf.run()
+    asyncio.run(wf.run())
 
     assert wf.state == "已退回"
     assert wf.workflow_state.stage_logs["_human_interventions"] == 1
@@ -116,7 +117,7 @@ def test_qa_fail_reworks_engineer_once(project_dir, mock_agents):
         '{"status":"pass","checked_items":["ok"],"evidence":["fixed"],"defects":[],"next_action":"done"}',
     ]
     wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
-    wf.run()
+    asyncio.run(wf.run())
 
     assert wf.state == "已复盘"
     assert mock_agents["engineer"].run.call_count == 2
