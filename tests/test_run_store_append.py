@@ -1,6 +1,7 @@
 """测试 P2.2 RunStore append 优化：append 不再每次重写 trace。"""
 
 import json
+import time
 
 from opc.run_store import RunStore
 
@@ -55,6 +56,18 @@ def test_load_prefers_jsonl_over_trace(tmp_path):
     loaded = RunStore.load(tmp_path)
     assert [e.type for e in loaded.events] == ["a", "b"]
     assert loaded.run_id == store.run_id
+
+
+def test_append_1000_events_under_one_second(tmp_path):
+    store = RunStore(tmp_path)
+
+    start = time.perf_counter()
+    for index in range(1000):
+        store.append("event", index=index)
+    elapsed = time.perf_counter() - start
+
+    assert elapsed < 1
+    assert len((tmp_path / "run_events.jsonl").read_text(encoding="utf-8").splitlines()) == 1000
 
 
 def test_load_falls_back_to_trace_when_no_jsonl(tmp_path):
