@@ -62,7 +62,7 @@ Beta 阶段完成需满足：
 
 ### RunStore 写入优化
 
-- [ ] RunStore 改为追加写入 <!-- files: src/opc/run_store.py:37-45 --> <!-- context: 当前每次追加都重写 trace，O(n²) 复杂度；改为追加到 JSONL，finalize 时写最终 trace --> <!-- auto -->
+- [x] RunStore 改为追加写入 <!-- files: src/opc/run_store.py:37-45 --> <!-- context: 当前每次追加都重写 trace，O(n²) 复杂度；改为追加到 JSONL，finalize 时写最终 trace --> <!-- auto -->
 - [ ] 添加 RunStore 性能测试 <!-- files: tests/test_run_store_append.py --> <!-- context: 验证追加写入性能，1000 次事件 <1s --> <!-- order: 依赖追加写入实现 -->
 
 ### Schema 跨字段校验
