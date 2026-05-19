@@ -103,7 +103,7 @@ Beta 阶段完成需满足：
 
 ### settings 权限治理
 
-- [ ] 清理 settings.json 中失效的 Bash 放行 <!-- files: .claude/settings.json --> <!-- context: 仍放行 pre_upload_check.sh 但该脚本已不存在；删除失效项 --> <!-- auto -->
+- [x] 清理 settings.json 中失效的 Bash 放行 <!-- files: .claude/settings.json --> <!-- context: 仍放行 pre_upload_check.sh 但该脚本已不存在；删除失效项 --> <!-- auto -->
 
 ### Skills 扩充
 
