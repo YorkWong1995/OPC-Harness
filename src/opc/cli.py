@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
 from .config import load_workflow_config, normalize_roles, ALL_OPTIONAL_ROLES
 
@@ -31,6 +32,7 @@ def main():
         description="OPC - 单人软件公司 AI 系统",
         prog="opc",
     )
+    parser.add_argument("--version", action="version", version=f"opc {__version__}")
     subparsers = parser.add_subparsers(dest="command")
 
     # ---- opc run "任务描述" ----
