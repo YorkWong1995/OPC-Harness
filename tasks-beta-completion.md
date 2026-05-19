@@ -39,7 +39,7 @@ Beta 阶段完成需满足：
 ### 异步上下文兼容
 
 - [x] 修复 asyncio.run() 与同步代码混用 <!-- files: src/opc/workflow.py:635 --> <!-- context: 同步 run() 内嵌 asyncio.run()，未来 Web UI 调用会抛 RuntimeError；推荐方案 A：全异步化 HarnessWorkflow.run() --> <!-- review: 需确认是否影响现有 CLI 调用 -->
-- [ ] 添加异步上下文调用测试 <!-- files: tests/test_workflow_async.py --> <!-- context: 验证 HarnessWorkflow 可在 async 上下文（如 FastAPI）中调用 --> <!-- order: 依赖异步化完成 -->
+- [x] 添加异步上下文调用测试 <!-- files: tests/test_workflow_async.py --> <!-- context: 验证 HarnessWorkflow 可在 async 上下文（如 FastAPI）中调用 --> <!-- order: 依赖异步化完成 -->
 
 ### QA rework 循环优化
 
