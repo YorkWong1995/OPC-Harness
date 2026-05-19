@@ -72,7 +72,7 @@ Beta 阶段完成需满足：
 
 ### 测试导入路径统一
 
-- [ ] 统一测试文件导入路径 <!-- files: tests/*.py --> <!-- context: from src.opc.* 在 pip 安装后失败；全局替换为 from opc.* --> <!-- auto -->
+- [x] 统一测试文件导入路径 <!-- files: tests/*.py --> <!-- context: from src.opc.* 在 pip 安装后失败；全局替换为 from opc.* --> <!-- auto -->
 
 ### BM25 索引去 Pickle
 
