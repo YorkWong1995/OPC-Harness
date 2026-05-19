@@ -48,7 +48,7 @@ Beta 阶段完成需满足：
 
 ### 测试文件关联修复
 
-- [ ] 修复测试文件关联的 import 匹配 <!-- files: src/opc/knowledge/test_association.py:68 --> <!-- context: f"from" in content 误报率高；改用正则匹配 import 语句 --> <!-- auto -->
+- [x] 修复测试文件关联的 import 匹配 <!-- files: src/opc/knowledge/test_association.py:68 --> <!-- context: f"from" in content 误报率高；改用正则匹配 import 语句 --> <!-- auto -->
 - [ ] 添加测试关��准确性验证 <!-- files: tests/test_test_association.py --> <!-- context: 用真实项目数据验证无误报、无漏报 --> <!-- order: 依赖 import 匹配修复 -->
 
 ---
