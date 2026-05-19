@@ -107,7 +107,7 @@ Beta 阶段完成需满足：
 
 ### Skills 扩充
 
-- [ ] 新增 role-switch skill <!-- files: .claude/skills/role-switch/SKILL.md --> <!-- context: 支持 /role-switch PM 等调用，强制按 roles.md 对应角色"必须产出/禁止事项"结构输出 --> <!-- order: 依赖 roles.md 交叉引用补齐 -->
+- [x] 新增 role-switch skill <!-- files: .claude/skills/role-switch/SKILL.md --> <!-- context: 支持 /role-switch PM 等调用，强制按 roles.md 对应角色"必须产出/禁止事项"结构输出 --> <!-- order: 依赖 roles.md 交叉引用补齐 -->
 - [ ] 新增 task-spec skill <!-- files: .claude/skills/task-spec/SKILL.md --> <!-- context: 按 standards.md 的"任务清单"字段生成/追加 tasks-pX.md 条目 --> <!-- order: 依赖 standards 示例补齐 -->
 - [ ] 新增 acceptance-check skill <!-- files: .claude/skills/acceptance-check/SKILL.md --> <!-- context: 按 standards.md 的"验收文档"模板输出 QA 结论 --> <!-- order: 依赖 standards 示例补齐 -->
 
