@@ -121,7 +121,7 @@ Beta 阶段完成需满足：
 
 ### Docker 镜像发布
 
-- [ ] 验证 Docker 镜像构建流程 <!-- files: Dockerfile, .github/workflows/ --> <!-- context: Docker 镜像发布 workflow 已添加但未验证；本地构建并测试镜像可用性 --> <!-- auto -->
+- [x] 验证 Docker 镜像构建流程 <!-- files: Dockerfile, .github/workflows/ --> <!-- context: Docker 镜像发布 workflow 已添加但未验证；本地构建并测试镜像可用性 --> <!-- auto -->
 - [ ] 添加 Docker 镜像 smoke test <!-- files: tests/test_docker_smoke.py --> <!-- context: 验证镜像启动、opc --version、opc run 基础功能 --> <!-- order: 依赖镜像构建验证 -->
 
 ### CI/CD 自动化
