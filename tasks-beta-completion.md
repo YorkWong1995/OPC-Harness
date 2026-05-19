@@ -33,7 +33,7 @@ Beta 阶段完成需满足：
 
 ### WorkflowSpec 完整生效
 
-- [ ] 让 WorkflowSpec 驱动状态流转 <!-- files: src/opc/workflow.py:595-612 --> <!-- context: 声明式 spec 存在但不生效，文档与实现不符；从 spec 读取 stage handler 和 next_state 逻辑 --> <!-- review: 需确认 spec 格式是否需调整 -->
+- [x] 让 WorkflowSpec 驱动状态流转 <!-- files: src/opc/workflow.py:595-612 --> <!-- context: 声明式 spec 存在但不生效，文档与实现不符；从 spec 读取 stage handler 和 next_state 逻辑 --> <!-- review: 需确认 spec 格式是否需调整 -->
 - [ ] 添加 WorkflowSpec 端到端集成测试 <!-- files: tests/test_workflow_spec_integration.py --> <!-- context: 验证自定义 spec 能正确驱动工作流执行；测试 stage 顺序、条件跳转、并行执行 --> <!-- order: 依赖 WorkflowSpec 驱动完成 -->
 
 ### 异步上下文兼容
