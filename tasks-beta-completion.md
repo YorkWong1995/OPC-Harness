@@ -19,7 +19,7 @@ Beta 阶段完成需满足：
 ### 工具安全审计
 
 - [x] Agent 工具循环添加终止保护 <!-- files: src/opc/agent.py:153 --> <!-- context: while True 循环无迭代上限，失控时持续消耗 API 额度；添加 max_tool_rounds=15 参数和超限检测 --> <!-- auto -->
-- [ ] 修复路径遍历检查绕过漏洞 <!-- files: src/opc/agent.py:758-764 --> <!-- context: startswith 字符串比较不安全；改用 Path.is_relative_to() 方法 --> <!-- auto -->
+- [x] 修复路径遍历检查绕过漏洞 <!-- files: src/opc/agent.py:758-764 --> <!-- context: startswith 字符串比较不安全；改用 Path.is_relative_to() 方法 --> <!-- auto -->
 - [ ] 实现成本控制硬限制 <!-- files: src/opc/workflow.py:337-356, src/opc/config.py --> <!-- context: 当前只打印警告不中断执行；添加 hard_limit 配置和强制中断逻辑 --> <!-- auto -->
 - [ ] 修复交互模式 API 重试延迟 <!-- files: src/opc/agent.py:22 --> <!-- context: 30 分钟基础间隔对 CLI 交互场景不可用；区分 interactive/batch 模式，interactive 改为 10 秒 --> <!-- auto -->
 
