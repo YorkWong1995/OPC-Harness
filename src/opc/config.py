@@ -73,7 +73,7 @@ class MemoryConfig:
     enable_rag: bool = True
     max_context_tokens: int = 2000
     strict_ingestion: bool = True
-    embedding_model: str = "bge-small-zh"
+    embedding_model: str = "minilm"
 
 
 @dataclass
@@ -134,7 +134,7 @@ def load_project_config(
                 enable_rag=bool(memory.get("enable_rag", True)),
                 max_context_tokens=int(memory.get("max_context_tokens", 2000)),
                 strict_ingestion=bool(memory.get("strict_ingestion", True)),
-                embedding_model=str(memory.get("embedding_model", "bge-small-zh")),
+                embedding_model=str(memory.get("embedding_model", "minilm")),
             ),
         )
 

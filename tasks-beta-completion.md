@@ -142,32 +142,32 @@ Beta 阶段完成需满足：
 
 ### 安全性验收
 
-- [ ] 无已知的路径遍历漏洞 <!-- context: P0.2 修复并有测试覆盖 -->
-- [ ] 无已知的代码注入漏洞 <!-- context: 命令白名单生效 -->
-- [ ] 成本控制 100% 生效 <!-- context: P0.3 硬限制生效并有测试 -->
-- [ ] 工具调用可完整审计 <!-- context: run_trace.json 包含所有工具调用的输入/输出/耗时 -->
+- [x] 无已知的路径遍历漏洞 <!-- context: P0.2 修复并有测试覆盖 -->
+- [x] 无已知的代码注入漏洞 <!-- context: 命令白名单生效 -->
+- [x] 成本控制 100% 生效 <!-- context: P0.3 硬限制生效并有测试 -->
+- [x] 工具调用可完整审计 <!-- context: run_trace.json 包含所有工具调用的输入/输出/耗时 -->
 
 ### 可用性验收
 
-- [ ] 交互模式下 API 重试延迟 <30s <!-- context: P0.4 修复并有测试 -->
-- [ ] 工作流失控率 <1% <!-- context: P0.1 循环终止保护生效 -->
-- [ ] WorkflowSpec 完全驱动工作流 <!-- context: P1.2 修复并有集成测试 -->
-- [ ] 异步上下文可正常调用 <!-- context: P1.1 修���并有测试 -->
+- [x] 交互模式下 API 重试延迟 <30s <!-- context: P0.4 修复并有测试 -->
+- [x] 工作流失控率 <1% <!-- context: P0.1 循环终止保护生效 -->
+- [x] WorkflowSpec 完全驱动工作流 <!-- context: P1.2 修复并有集成测试 -->
+- [x] 异步上下文可正常调用 <!-- context: P1.1 修���并有测试 -->
 
 ### 可维护性验收
 
-- [ ] 单个文件 <500 行 <!-- context: P2.1 Agent 拆分完成 -->
-- [ ] 测试覆盖率 >80% <!-- context: 所有新增功能有测试 -->
-- [ ] 所有测试在 pip install -e . 后可运行 <!-- context: P2.5 导入路径统一 -->
-- [ ] 核心模块有文档字符串 <!-- context: Agent、Workflow、Schema 等核心类有完整 docstring -->
+- [x] 单个文件 <500 行 <!-- context: P2.1 Agent 拆分完成 -->
+- [x] 测试覆盖率 >80% <!-- context: 所有新增功能有测试 -->
+- [x] 所有测试在 pip install -e . 后可运行 <!-- context: P2.5 导入路径统一 -->
+- [x] 核心模块有文档字符串 <!-- context: Agent、Workflow、Schema 等核心类有完整 docstring -->
 
 ### 文档一致性验收
 
-- [ ] CLAUDE.md 与 discipline.md 无重复段 <!-- context: P5 去重完成 -->
-- [ ] discipline.md 中所有文档路径在仓库可解析 <!-- context: P5 索引修复完成 -->
-- [ ] settings.json 中 Bash allow 项指向真实存在脚本 <!-- context: P5 权限治理完成 -->
-- [ ] 新增 3 个 skill 可被 harness 识别 <!-- context: P5 skills 扩充完成 -->
-- [ ] 触发高危命令时 hook 实际拦截 <!-- context: P5 规则可执行性完成 -->
+- [x] CLAUDE.md 与 discipline.md 无重复段 <!-- context: P5 去重完成 -->
+- [x] discipline.md 中所有文档路径在仓库可解析 <!-- context: P5 索引修复完成 -->
+- [x] settings.json 中 Bash allow 项指向真实存在脚本 <!-- context: P5 权限治理完成 -->
+- [x] 新增 3 个 skill 可被 harness 识别 <!-- context: P5 skills 扩充完成 -->
+- [x] 触发高危命令时 hook 实际拦截 <!-- context: P5 规则可执行性完成 -->
 
 ---
 

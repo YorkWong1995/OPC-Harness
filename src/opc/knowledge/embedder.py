@@ -1,11 +1,11 @@
 """Embedding 模型封装
 
 支持两种模型：
-1. BAAI/bge-small-zh-v1.5 (默认，中文检索更稳) — 需 sentence-transformers
-2. ONNXMiniLM_L6_V2 (轻量英文模型) — ChromaDB 内置
+1. ONNXMiniLM_L6_V2 (默认，轻量英文模型) — ChromaDB 内置
+2. BAAI/bge-small-zh-v1.5（中文检索更稳）— 需 sentence-transformers
 
 通过环境变量控制：
-- OPC_EMBEDDING_MODEL:  "bge-small-zh" (默认) | "minilm" | "bge-m3" | 本地路径 | HuggingFace 模型名
+- OPC_EMBEDDING_MODEL:  "minilm" (默认) | "bge-small-zh" | "bge-m3" | 本地路径 | HuggingFace 模型名
 - OPC_MODEL_CACHE_DIR:  模型缓存目录（默认 D:/opc_models）
 
 C 盘空间受限场景：设置 OPC_MODEL_CACHE_DIR=D:/opc_models 把模型缓存到 D 盘。
@@ -20,8 +20,8 @@ from typing import Any
 # 默认缓存路径放在 D 盘，避免占用 C 盘
 DEFAULT_CACHE_DIR = Path(os.environ.get("OPC_MODEL_CACHE_DIR", "D:/opc_models"))
 
-# 默认模型：优先中文场景
-_DEFAULT_MODEL = os.environ.get("OPC_EMBEDDING_MODEL", "bge-small-zh").strip()
+# 默认模型优先保证基础安装可运行；中文增强模型通过 OPC_EMBEDDING_MODEL 显式启用。
+_DEFAULT_MODEL = os.environ.get("OPC_EMBEDDING_MODEL", "minilm").strip()
 
 # bge 系列在 HuggingFace 上的仓库名
 BGE_M3_REPO = "BAAI/bge-m3"
@@ -206,5 +206,5 @@ def _get_default_dimension() -> int:
 
 
 EMBEDDING_MODEL_NAME = _get_model_name()
-# 维度在加载后才精确确定；已知默认中文模型为 512 维
+# 维度在加载后才精确确定；默认 MiniLM 为 384 维。
 EMBEDDING_DIMENSION = _get_default_dimension()
