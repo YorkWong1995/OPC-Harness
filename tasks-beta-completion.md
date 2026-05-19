@@ -43,7 +43,7 @@ Beta 阶段完成需满足：
 
 ### QA rework 循环优化
 
-- [ ] QA rework 改用循环实现 <!-- files: src/opc/workflow.py:890 --> <!-- context: 当前用递归实现，隐式状态不变量脆弱；改为 while 循环显式管理 rework_attempts --> <!-- auto -->
+- [x] QA rework 改用循环实现 <!-- files: src/opc/workflow.py:890 --> <!-- context: 当前用递归实现，隐式状态不变量脆弱；改为 while 循环显式管理 rework_attempts --> <!-- auto -->
 - [ ] 添加 QA rework 循环测试 <!-- files: tests/test_qa_rework_loop.py --> <!-- context: 验证 rework 次数限制、状态正确流转、超限时正确中断 --> <!-- order: 依赖循环实现完成 -->
 
 ### 测试文件关联修复
