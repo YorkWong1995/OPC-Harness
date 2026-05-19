@@ -93,7 +93,7 @@ Beta 阶段完成需满足：
 
 - [x] 去重 CLAUDE.md 与 discipline.md 的"默认策略" <!-- files: CLAUDE.md, docs/claude/discipline.md --> <!-- context: CLAUDE.md:29-35 与 discipline.md:56-64 逐条重复；CLAUDE.md 改为只保留索引指向 --> <!-- auto -->
 - [x] 修复 plan.md 索引失效 <!-- files: docs/claude/discipline.md --> <!-- context: discipline.md:70 引用 plan.md 但仓库根不存在；改指现有 IMPROVEMENT_ROADMAP.md 或 tasks-p*.md --> <!-- review: 需决定指向哪个文件 -->
-- [ ] 在 CLAUDE.md 增补 .claude/ 资产索引 <!-- files: CLAUDE.md --> <!-- context: 当前文档结构表只列 docs/claude/*，未提 .claude/；新增一行说明 hooks/skills/permissions --> <!-- order: 依赖去重完成 -->
+- [x] 在 CLAUDE.md 增补 .claude/ 资产索引 <!-- files: CLAUDE.md --> <!-- context: 当前文档结构表只列 docs/claude/*，未提 .claude/；新增一行说明 hooks/skills/permissions --> <!-- order: 依赖去重完成 -->
 
 ### 规则可执行性
 
