@@ -25,7 +25,7 @@ Beta 阶段完成需满足：
 
 ### 测试覆盖
 
-- [ ] 添加 P0 安全修复的测试用例 <!-- files: tests/test_path_safety.py, tests/test_cost_hard_limit.py, tests/test_retry_mode.py --> <!-- context: 所有 P0 修复必须有对应测试；验证工具循环终止、路径遍历拦截、成本硬限制触发、重试延迟合理 --> <!-- order: 依赖 P0 修复完成 -->
+- [x] 添加 P0 安全修复的测试用例 <!-- files: tests/test_path_safety.py, tests/test_cost_hard_limit.py, tests/test_retry_mode.py --> <!-- context: 所有 P0 修复必须有对应测试；验证工具循环终止、路径遍历拦截、成本硬限制触发、重试延迟合理 --> <!-- order: 依赖 P0 修复完成 -->
 
 ---
 
