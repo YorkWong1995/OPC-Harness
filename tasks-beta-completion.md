@@ -68,7 +68,7 @@ Beta 阶段完成需满足：
 ### Schema 跨字段校验
 
 - [x] QAOutput 添加跨字段校验 <!-- files: src/opc/schema.py --> <!-- context: status="pass" + next_action="rework" 语义矛盾但能通过校验；添加 @model_validator 检查一致性 --> <!-- auto -->
-- [ ] 添加 Schema 校验测试 <!-- files: tests/test_qa_output_validator.py --> <!-- context: 验证矛盾组合被拒绝、合法组合通过 --> <!-- order: 依赖校验器实现 -->
+- [x] 添加 Schema 校验测试 <!-- files: tests/test_qa_output_validator.py --> <!-- context: 验证矛盾组合被拒绝、合法组合通过 --> <!-- order: 依赖校验器实现 -->
 
 ### 测试导入路径统一
 
