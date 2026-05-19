@@ -113,7 +113,7 @@ Beta 阶段完成需满足：
 
 ### 一致��自动校验
 
-- [ ] 增加术语漂移检测 hook <!-- files: .claude/settings.json --> <!-- context: discipline.md:30-40 列了 7 个统一术语，但无机制防止文档混入同义词；新增 PostToolUse hook 在写入 docs/**.md 后 grep 同义词命中则告警 --> <!-- order: 依赖 hook 基础设施 -->
+- [x] 增加术语漂移检测 hook <!-- files: .claude/settings.json --> <!-- context: discipline.md:30-40 列了 7 个统一术语，但无机制防止文档混入同义词；新增 PostToolUse hook 在写入 docs/**.md 后 grep 同义词命中则告警 --> <!-- order: 依赖 hook 基础设施 -->
 
 ---
 
