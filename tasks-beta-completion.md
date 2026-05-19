@@ -83,7 +83,7 @@ Beta 阶段完成需满足：
 
 ## P3 - Harness Engineering 补强（系统可靠性）
 
-- [ ] 补齐 OPC Harness Engineering 生产化闭环 <!-- files: src/opc/agent.py, src/opc/roles.py, src/opc/workflow.py, src/opc/workflow_spec.py, src/opc/schema.py, src/opc/tools/, src/opc/store.py, src/opc/run_store.py, tests/ --> <!-- context: 责任角色: Architect（主责）/ 输入: README.md 产品定位、docs/什么是Harness.md 六层 Harness 参考、现有 Agent/Workflow/Schema/Tools/RunStore 实现、IMPROVEMENT_ROADMAP.md 与当前 Beta 任务清单 / 输出: 角色级工具白名单、按角色裁剪的 ContextPack、工具结果提炼机制、自动化验证与观测指标、QA 诊断式回退字段、产物版本管理、长期记忆与自修复试点、对应测试与验收记录 / 依赖关系: 依赖 P0 安全基线、P1 WorkflowSpec/异步/rework 修复、P2 Agent 拆分与 RunStore 优化完成后推进 / 完成标准: PM/Engineer/QA/Ops 等角色只获得必要工具；QA 阶段能运行确定性验证并记录证据；QAOutput 能区分 failure root cause 与建议回退阶段；rework 产物可按版本回溯；ContextPack 不再无差别携带所有阶段摘要；高噪声工具输出有摘要/裁剪；run_metrics/run_trace 能体现自动验证、工具调用、回退原因与自修复结果；新增定向测试通过 --> <!-- review -->
+- [x] 补齐 OPC Harness Engineering 生产化闭环 <!-- files: src/opc/agent.py, src/opc/roles.py, src/opc/workflow.py, src/opc/workflow_spec.py, src/opc/schema.py, src/opc/tools/, src/opc/store.py, src/opc/run_store.py, tests/ --> <!-- context: 责任角色: Architect（主责）/ 输入: README.md 产品定位、docs/什么是Harness.md 六层 Harness 参考、现有 Agent/Workflow/Schema/Tools/RunStore 实现、IMPROVEMENT_ROADMAP.md 与当前 Beta 任务清单 / 输出: 角色级工具白名单、按角色裁剪的 ContextPack、工具结果提炼机制、自动化验证与观测指标、QA 诊断式回退字段、产物版本管理、长期记忆与自修复试点、对应测试与验收记录 / 依赖关系: 依赖 P0 安全基线、P1 WorkflowSpec/异步/rework 修复、P2 Agent 拆分与 RunStore 优化完成后推进 / 完成标准: PM/Engineer/QA/Ops 等角色只获得必要工具；QA 阶段能运行确定性验证并记录证据；QAOutput 能区分 failure root cause 与建议回退阶段；rework 产物可按版本回溯；ContextPack 不再无差别携带所有阶段摘要；高噪声工具输出有摘要/裁剪；run_metrics/run_trace 能体现自动验证、工具调用、回退原因与自修复结果；新增定向测试通过 --> <!-- review -->
 
 ---
 

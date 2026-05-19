@@ -174,6 +174,9 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         "rework_attempts": state.rework_attempts,
         "human_interventions": state.stage_logs.get("_human_interventions", 0),
         "failure_types": state.stage_logs.get("_failure_types", {}),
+        "validation_runs": state.stage_logs.get("_validation_runs", 0),
+        "self_repair_attempts": state.stage_logs.get("_self_repair_attempts", 0),
+        "self_repair_successes": state.stage_logs.get("_self_repair_successes", 0),
     }
 
     metrics = {
@@ -207,6 +210,16 @@ STATES = [
     "已退回",
     "已复盘",
 ]
+
+
+ROLE_CONTEXT_SECTIONS = {
+    "pm": {"task_goal", "acceptance", "constraints", "facts", "history_summary", "context_sources"},
+    "growth": {"task_goal", "constraints", "facts", "risks", "history_summary", "context_sources"},
+    "architect": {"task_goal", "acceptance", "constraints", "facts", "decisions", "stage_summary", "related_files", "risks", "history_summary", "context_sources"},
+    "engineer": {"task_goal", "acceptance", "constraints", "facts", "decisions", "open_questions", "stage_summary", "related_files", "diff_summary", "validation", "risks", "history_summary", "context_sources"},
+    "qa": {"task_goal", "acceptance", "constraints", "facts", "decisions", "stage_summary", "related_files", "diff_summary", "validation", "risks", "history_summary", "context_sources"},
+    "ops": {"task_goal", "acceptance", "stage_summary", "related_files", "diff_summary", "validation", "risks", "history_summary", "context_sources"},
+}
 
 
 class HarnessWorkflow:
@@ -438,6 +451,21 @@ class HarnessWorkflow:
             sections.append(f"最近一轮详细内容：\n{recent_detail}")
         return "\n\n".join(sections)
 
+    @staticmethod
+    def _tailor_context_pack(pack: ContextPack, role: str) -> tuple[ContextPack, list[str]]:
+        allowed = ROLE_CONTEXT_SECTIONS.get(role, ROLE_CONTEXT_SECTIONS["engineer"])
+        data = pack.model_dump()
+        for field, value in list(data.items()):
+            if field in allowed:
+                continue
+            if isinstance(value, list):
+                data[field] = []
+            elif isinstance(value, dict):
+                data[field] = {}
+            else:
+                data[field] = ""
+        return ContextPack.model_validate(data), sorted(allowed)
+
     def _build_context_pack(self, role: str, stage: str, recent_detail: str = "") -> ContextPack:
         pm_summary = self.stage_summaries.get("pm")
         stage_summary = {key: summary.model_dump() for key, summary in self.stage_summaries.items()}
@@ -494,26 +522,13 @@ class HarnessWorkflow:
             history_summary=f"role={role}; stage={stage}; summaries={', '.join(stage_summary) or 'none'}; {impact_summary}",
             context_sources=context_sources,
         )
+        pack, included_sections = self._tailor_context_pack(pack, role)
         if hasattr(self, "run_store"):
             self.run_store.append(
                 "context_pack_created",
                 role=role,
                 stage=stage,
-                included_sections=[
-                    "task_goal",
-                    "acceptance",
-                    "constraints",
-                    "facts",
-                    "decisions",
-                    "open_questions",
-                    "stage_summary",
-                    "related_files",
-                    "diff_summary",
-                    "validation",
-                    "risks",
-                    "history_summary",
-                    "context_sources",
-                ],
+                included_sections=included_sections,
                 source_artifacts=list(getattr(self.workflow_state, "artifact_paths", {}).keys()),
                 summary_used=list(stage_summary.keys()),
                 context_sources=context_sources,
@@ -917,6 +932,11 @@ class HarnessWorkflow:
             context_pack = self._build_context_pack(
                 "qa", "待验收", f"最近实现说明：\n{outputs['implementation']}"
             )
+            if context_pack.validation:
+                self.workflow_state.stage_logs["_validation_runs"] = (
+                    self.workflow_state.stage_logs.get("_validation_runs", 0) + 1
+                )
+                self.run_store.append("validation_evidence", role="qa", commands=context_pack.validation)
             acceptance = await self._run_stage(
                 self.qa,
                 "使用以下 Context Pack 验收实现，重点关注 acceptance、stage_summary、"
@@ -944,6 +964,8 @@ class HarnessWorkflow:
                     decisions=[
                         f"status: {qa_output.status}",
                         f"next_action: {qa_output.next_action}",
+                        f"failure_root_cause: {qa_output.failure_root_cause}",
+                        f"rollback_stage: {qa_output.rollback_stage}",
                     ],
                     validation=qa_output.checked_items + qa_output.evidence,
                     risks=qa_output.defects,
@@ -978,6 +1000,9 @@ class HarnessWorkflow:
                 "qa_failed",
                 rework_attempts=self.workflow_state.rework_attempts,
                 defects=qa_output.defects if isinstance(qa_output, QAOutput) else [acceptance],
+                failure_root_cause=qa_output.failure_root_cause if isinstance(qa_output, QAOutput) else "",
+                rollback_stage=qa_output.rollback_stage if isinstance(qa_output, QAOutput) else "",
+                diagnostic_summary=qa_output.diagnostic_summary if isinstance(qa_output, QAOutput) else "",
             )
             self.save_state()
             if self.workflow_state.rework_attempts > self.max_rework_attempts:
@@ -1013,6 +1038,16 @@ class HarnessWorkflow:
             return parsed
         except Exception as error:
             self.run_store.append("role_output_validation_failed", role=role, error=str(error))
+            self.workflow_state.stage_logs["_self_repair_attempts"] = (
+                self.workflow_state.stage_logs.get("_self_repair_attempts", 0) + 1
+            )
+            self.run_store.append(
+                "self_repair_attempted",
+                role=role,
+                cause="role_output_validation_failed",
+                action="pause_for_human_after_protocol_failure",
+                result="failed",
+            )
             self.workflow_state.stage_logs["_human_interventions"] = (
                 self.workflow_state.stage_logs.get("_human_interventions", 0) + 1
             )

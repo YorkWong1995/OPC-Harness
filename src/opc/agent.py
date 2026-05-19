@@ -232,10 +232,11 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
                     if block.type == "tool_use":
                         self.last_tool_calls += 1
                         result = self._execute_tool(block.name, block.input, tool_use_id=block.id)
+                        summary = self._summarize_tool_result(block.name, result)
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": block.id,
-                            "content": result,
+                            "content": summary["content"],
                         })
 
                 messages.append({"role": "user", "content": tool_results})
@@ -250,6 +251,20 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
             if hasattr(block, "text"):
                 parts.append(block.text)
         return "\n".join(parts)
+
+    @staticmethod
+    def _summarize_tool_result(name: str, result: str | None, limit: int = 500) -> dict:
+        content = "" if result is None else str(result)
+        truncated = len(content) > limit
+        preview = content[:limit]
+        if truncated:
+            preview = f"[tool_result_summary tool={name} original_chars={len(content)} truncated=true]\n{preview}"
+        return {
+            "content": preview,
+            "preview": content[:limit],
+            "truncated": truncated,
+            "original_chars": len(content),
+        }
 
     def _execute_tool(self, name: str, inputs: dict, tool_use_id: str | None = None) -> str:
         definition = get_tool(name)
@@ -316,10 +331,13 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
     def _record_tool_call(self, name: str, inputs: dict, result: str | None, elapsed: float,
                           tool_use_id: str | None, error: str | None):
         """记录工具调用和结果（供 RunStore 持久化）"""
+        summary = self._summarize_tool_result(name, result)
         record = {
             "tool_name": name,
             "inputs": inputs,
-            "result": result[:500] if result else None,  # 限制结果长度
+            "result": summary["preview"] if result else None,
+            "result_truncated": summary["truncated"],
+            "result_original_chars": summary["original_chars"],
             "elapsed": round(elapsed, 3),
             "tool_use_id": tool_use_id,
             "error": error,

@@ -6,7 +6,23 @@ from pathlib import Path
 
 import anthropic
 
-from .agent import Agent, TOOLS_READ_ONLY, TOOLS_READ_WRITE
+from .agent import Agent, TOOLS_READ_WRITE
+
+ROLE_TOOL_NAMES: dict[str, set[str]] = {
+    "pm": set(),
+    "ceo": set(),
+    "growth": set(),
+    "architect": {"read_file", "list_files", "grep", "search_knowledge", "git_status", "git_diff", "git_log"},
+    "qa": {"read_file", "list_files", "grep", "search_knowledge", "git_status", "git_diff", "git_log", "run_lint", "run_typecheck", "run_tests"},
+    "ops": {"read_file", "list_files", "grep", "search_knowledge", "git_status", "git_diff", "git_log", "run_lint", "run_typecheck", "run_tests", "run_build"},
+    "engineer": {tool["name"] for tool in TOOLS_READ_WRITE},
+    "embedded_engineer": {tool["name"] for tool in TOOLS_READ_WRITE},
+}
+
+
+def tools_for_role(role: str) -> list[dict]:
+    names = ROLE_TOOL_NAMES[role]
+    return [tool for tool in TOOLS_READ_WRITE if tool["name"] in names]
 
 PM_SYSTEM_PROMPT = """你是一个产品经理（PM）Agent，隶属于一个单人软件公司 AI 系统。
 
@@ -94,7 +110,10 @@ QA_SYSTEM_PROMPT = """你是一个 QA / 验收审查（Reviewer）Agent，隶属
   "checked_items": ["已检查的验收项，字符串数组"],
   "evidence": ["验收证据，字符串数组"],
   "defects": ["发现的问题，字符串数组"],
-  "next_action": "done、rework 或 human_intervention"
+  "next_action": "done、rework 或 human_intervention",
+  "failure_root_cause": "失败根因，pass 时为空字符串",
+  "rollback_stage": "建议回退阶段：pm、architect、engineer、qa、ops、human 或空字符串",
+  "diagnostic_summary": "诊断摘要，pass 时为空字符串"
 }
 
 输出要求：
@@ -104,6 +123,7 @@ QA_SYSTEM_PROMPT = """你是一个 QA / 验收审查（Reviewer）Agent，隶属
 - status 为 pass 时 next_action 应为 done
 - status 为 fail 时必须填写 defects，并将 next_action 设为 rework 或 human_intervention
 - checked_items、evidence、defects 即使为空也必须输出数组
+- status 为 fail 时必须填写 failure_root_cause、rollback_stage 和 diagnostic_summary
 - 不要只输出传统验收记录 Markdown，否则工作流无法解析
 """
 
@@ -455,7 +475,7 @@ def create_engineer_agent(project_dir: Path, model: str | None = None) -> Agent:
     return Agent(
         role="engineer",
         system_prompt=ENGINEER_SYSTEM_PROMPT,
-        tools=TOOLS_READ_WRITE,
+        tools=tools_for_role("engineer"),
         project_dir=project_dir,
         model=model,
     )
@@ -466,7 +486,7 @@ def create_qa_agent(project_dir: Path, model: str | None = None) -> Agent:
     return Agent(
         role="qa",
         system_prompt=QA_SYSTEM_PROMPT,
-        tools=TOOLS_READ_ONLY,
+        tools=tools_for_role("qa"),
         project_dir=project_dir,
         model=model,
     )
@@ -477,7 +497,7 @@ def create_architect_agent(project_dir: Path, model: str | None = None) -> Agent
     return Agent(
         role="architect",
         system_prompt=ARCHITECT_SYSTEM_PROMPT,
-        tools=TOOLS_READ_ONLY,
+        tools=tools_for_role("architect"),
         project_dir=project_dir,
         model=model,
     )
@@ -493,7 +513,7 @@ def create_ops_agent(project_dir: Path, model: str | None = None) -> Agent:
     return Agent(
         role="ops",
         system_prompt=OPS_SYSTEM_PROMPT,
-        tools=TOOLS_READ_ONLY,
+        tools=tools_for_role("ops"),
         project_dir=project_dir,
         model=model,
     )
@@ -509,7 +529,7 @@ def create_embedded_engineer_agent(project_dir: Path, model: str | None = None) 
     return Agent(
         role="embedded_engineer",
         system_prompt=EMBEDDED_ENGINEER_SYSTEM_PROMPT,
-        tools=TOOLS_READ_WRITE,
+        tools=tools_for_role("embedded_engineer"),
         project_dir=project_dir,
         model=model,
         enable_rag=True,  # 嵌入式工程师启用 RAG，自动检索 SDK 文档

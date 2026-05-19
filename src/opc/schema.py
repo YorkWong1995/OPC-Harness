@@ -114,6 +114,9 @@ class QAOutput(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     defects: list[str] = Field(default_factory=list)
     next_action: Literal["done", "rework", "human_intervention"] = "done"
+    failure_root_cause: str = ""
+    rollback_stage: Literal["", "pm", "architect", "engineer", "qa", "ops", "human"] = ""
+    diagnostic_summary: str = ""
 
     @model_validator(mode="after")
     def check_consistency(self):
