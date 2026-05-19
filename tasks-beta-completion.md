@@ -76,7 +76,7 @@ Beta 阶段完成需满足：
 
 ### BM25 索引去 Pickle
 
-- [ ] BM25 索引改用 JSON 持久化 <!-- files: src/opc/knowledge/bm25_index.py:60-73 --> <!-- context: pickle 有安全风险且不可读；改用 JSON 持久化原始数据，加载时重建索引 --> <!-- auto -->
+- [x] BM25 索引改用 JSON 持久化 <!-- files: src/opc/knowledge/bm25_index.py:60-73 --> <!-- context: pickle 有安全风险且不可读；改用 JSON 持久化原始数据，加载时重建索引 --> <!-- auto -->
 - [ ] 添加 BM25 JSON 持久化测试 <!-- files: tests/test_bm25_json.py --> <!-- context: 验证 save/load 正确、跨版本兼容 --> <!-- order: 依赖 JSON 持久化实现 -->
 
 ---
