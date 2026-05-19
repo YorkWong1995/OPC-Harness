@@ -132,7 +132,7 @@ Beta 阶段完成需满足：
 ### 文档完整性
 
 - [x] 更新 README.md Beta 状态 <!-- files: README.md --> <!-- context: 当前标注"进行中"；完成所有任务后改为"已完成"，列出 Beta 核心能力 --> <!-- order: 依赖所有 Beta 任务完成 -->
-- [ ] 编写 Beta 发布说明 <!-- files: docs/releases/beta-release-notes.md --> <!-- context: 总结 Beta 阶段新增能力、破坏性变更、升级指南 --> <!-- order: 依赖所有 Beta 任务完成 -->
+- [x] 编写 Beta 发布说明 <!-- files: docs/releases/beta-release-notes.md --> <!-- context: 总结 Beta 阶段新增能力、破坏性变更、升级指南 --> <!-- order: 依赖所有 Beta 任务完成 -->
 
 ---
 
