@@ -126,7 +126,7 @@ Beta 阶段完成需满足：
 
 ### CI/CD 自动化
 
-- [ ] 添加 GitHub Actions CI 流水线 <!-- files: .github/workflows/ci.yml --> <!-- context: 当前无 CI 自动化；添加 pytest、lint、type check 自动执行 --> <!-- review: 需确认 CI 环境配置 -->
+- [x] 添加 GitHub Actions CI 流水线 <!-- files: .github/workflows/ci.yml --> <!-- context: 当前无 CI 自动化；添加 pytest、lint、type check 自动执行 --> <!-- review: 需确认 CI 环境配置 -->
 - [ ] 添加测试覆盖率报告 <!-- files: .github/workflows/ci.yml --> <!-- context: 在 CI 中生成覆盖率报告，要求 >80% --> <!-- order: 依赖 CI 流水线 -->
 
 ### 文档完整性
