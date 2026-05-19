@@ -57,7 +57,7 @@ Beta 阶段完成需满足：
 
 ### Agent 类拆分
 
-- [ ] 拆分 Agent 类为多个模块 <!-- files: src/opc/agent.py, src/opc/tools/, src/opc/security/ --> <!-- context: 当前 772 行违反单一职责；拆分为 agent.py（API 调用）、tools/（工具实现）、security/（安全检查） --> <!-- review: 需确认拆分边界和模块接口 -->
+- [x] 拆分 Agent 类为多个模块 <!-- files: src/opc/agent.py, src/opc/tools/, src/opc/security/ --> <!-- context: 当前 772 行违反单一职责；拆分为 agent.py（API 调用）、tools/（工具实现）、security/（安全检查） --> <!-- review: 需确认拆分边界和模块接口 -->
 - [ ] 更新 Agent 相关测试 <!-- files: tests/test_agent.py --> <!-- context: 拆分后更新 import 路径和测试用例 --> <!-- order: 依赖 Agent 拆分完成 -->
 
 ### RunStore 写入优化
