@@ -99,7 +99,7 @@ Beta 阶段完成需满足：
 
 - [ ] 将关键纪律落到 settings.json 的 hooks <!-- files: .claude/settings.json --> <!-- context: discipline 全是 SHOULD 无强制；新增 PreToolUse hook：写入 CLAUDE.md/docs/claude/** 前强制确认；git push --force/reset --hard 显式 deny --> <!-- review: 需确认 hook 命令在 Windows bash 下可用 -->
 - [x] roles.md 增加产出 → 模板交叉引用 <!-- files: docs/claude/roles.md --> <!-- context: 每个角色"必须产出"项后追加 standards.md 锚点链接，形成角色→产出→模板闭环 --> <!-- auto -->
-- [ ] standards.md 模板补充真实示例 <!-- files: docs/claude/standards.md --> <!-- context: 当前只有字段名；每节末尾追加 1 个仓库内真实文件链接作为参考样例 --> <!-- auto -->
+- [x] standards.md 模板补充真实示例 <!-- files: docs/claude/standards.md --> <!-- context: 当前只有字段名；每节末尾追加 1 个仓库内真实文件链接作为参考样例 --> <!-- auto -->
 
 ### settings 权限治理
 
