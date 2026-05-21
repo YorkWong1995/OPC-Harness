@@ -103,6 +103,10 @@ opc trace summary --artifacts-dir workspace/demo-login/artifacts
 opc trace show --artifacts-dir workspace/demo-login/artifacts --limit 20
 ```
 
+### Golden Run Walkthrough
+
+可复现样例见 [docs/runs/golden_run_walkthrough.md](docs/runs/golden_run_walkthrough.md)，覆盖安装、运行、trace 查看、验收标准和失败排查。
+
 ### 知识索引与检索
 
 ```bash
