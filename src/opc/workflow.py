@@ -28,7 +28,7 @@ from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .store import Store
-from .workflow_spec import load_workflow_spec
+from .workflow_spec import StageResult, StageValidation, load_workflow_spec
 
 console = Console()
 
@@ -1032,12 +1032,61 @@ class HarnessWorkflow:
         return implementation
 
     def _parse_role_output(self, role: str, content: str):
+        contract = self.workflow_spec.stage_contracts().get(role)
         try:
             parsed = parse_role_output(role, content)
-            self.run_store.append("role_output_validated", role=role)
+            artifact_paths = {
+                name: path
+                for name, path in self.workflow_state.artifact_paths.items()
+                if not contract or name == contract.artifact or name == role
+            }
+            validation = StageValidation("passed")
+            result = StageResult(
+                stage=role,
+                status="passed",
+                output=parsed.model_dump(),
+                artifact_paths=artifact_paths,
+                validation=validation,
+                next_state=contract.transition.on_pass if contract else "",
+            )
+            self.run_store.append(
+                "role_output_validated",
+                role=role,
+                stage=role,
+                output_schema=contract.output_schema if contract else type(parsed).__name__,
+                artifact=contract.artifact if contract else "",
+                validation=validation.status,
+                next_state=result.next_state,
+            )
             return parsed
         except Exception as error:
-            self.run_store.append("role_output_validation_failed", role=role, error=str(error))
+            validation = StageValidation(
+                "failed",
+                reason="role output does not match stage contract",
+                schema_errors=[str(error)],
+            )
+            failure_branch = contract.failure_branch if contract and contract.failure_branch else "已退回"
+            self.run_store.append(
+                "role_output_validation_failed",
+                role=role,
+                stage=role,
+                output_schema=contract.output_schema if contract else "",
+                artifact=contract.artifact if contract else "",
+                validation=validation.status,
+                schema_errors=validation.schema_errors,
+                failure_branch=failure_branch,
+            )
+            self.run_store.append(
+                "validation_failed",
+                role=role,
+                stage=role,
+                contract=contract.name if contract else role,
+                output_schema=contract.output_schema if contract else "",
+                reason=validation.reason,
+                schema_errors=validation.schema_errors,
+                failure_branch=failure_branch,
+                diagnostic=f"{role} output failed {contract.output_schema if contract else 'role'} validation: {error}",
+            )
             self.workflow_state.stage_logs["_self_repair_attempts"] = (
                 self.workflow_state.stage_logs.get("_self_repair_attempts", 0) + 1
             )

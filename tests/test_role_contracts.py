@@ -1,6 +1,7 @@
 """Tests for role output contracts and QA rework."""
 
 import asyncio
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -109,6 +110,33 @@ def test_role_output_validation_failure_blocks_workflow(project_dir, mock_agents
     assert wf.workflow_state.stage_logs["_human_interventions"] == 1
     assert wf.workflow_state.stage_logs["_failure_types"]["protocol"] == 1
     mock_agents["engineer"].run.assert_not_called()
+
+    events = [
+        json.loads(line)
+        for line in (project_dir / "artifacts" / "run_events.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    validation_failed = [event for event in events if event["type"] == "validation_failed"]
+    assert validation_failed
+    payload = validation_failed[0]["payload"]
+    assert payload["role"] == "pm"
+    assert payload["output_schema"] == "PMOutput"
+    assert payload["failure_branch"] == "已退回"
+    assert "PMOutput" in payload["diagnostic"]
+
+
+def test_role_output_validated_event_includes_stage_contract(project_dir, mock_agents):
+    wf = HarnessWorkflow(task="t", project_dir=project_dir, auto_confirm=True)
+    asyncio.run(wf.run())
+
+    events = [
+        json.loads(line)
+        for line in (project_dir / "artifacts" / "run_events.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    validated = [event for event in events if event["type"] == "role_output_validated"]
+    schemas = {event["payload"]["role"]: event["payload"]["output_schema"] for event in validated}
+    assert schemas["pm"] == "PMOutput"
+    assert schemas["engineer"] == "EngineerOutput"
+    assert schemas["qa"] == "QAOutput"
 
 
 def test_qa_fail_reworks_engineer_once(project_dir, mock_agents):
