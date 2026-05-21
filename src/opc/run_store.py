@@ -160,6 +160,63 @@ def trace_summary(artifacts_dir: Path) -> dict[str, Any]:
     }
 
 
+def trace_inspect(artifacts_dir: Path, focus: str | None = None) -> dict[str, Any]:
+    store = RunStore.load(artifacts_dir)
+    trace = store.read_trace()
+    events = trace.get("events", [])
+    compatibility: list[str] = []
+
+    if not store.trace_path.exists():
+        compatibility.append("run_trace.json missing; rebuilt view from run_events.jsonl when available")
+    if not store.events_path.exists():
+        compatibility.append("run_events.jsonl missing; using run_trace.json events when available")
+
+    metrics = trace.get("metrics") or {}
+    metrics_path = artifacts_dir / "run_metrics.json"
+    if not metrics and metrics_path.exists():
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    elif not metrics:
+        compatibility.append("run_metrics.json missing")
+
+    state_path = artifacts_dir / ".opc_state.json"
+    state: dict[str, Any] = {}
+    if state_path.exists():
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    else:
+        compatibility.append(".opc_state.json missing")
+
+    timeline_types = {"stage_started", "stage_completed", "stage_summary_created"}
+    decision_types = {"approval_required", "approval_decision", "rollback_decision", "circuit_breaker_open"}
+    failure_types = {
+        "validation_failed",
+        "role_output_validation_failed",
+        "qa_failed",
+        "workflow_stopped",
+        "cost_hard_limit",
+    }
+
+    result = {
+        "trace_schema_version": trace.get("trace_schema_version", 0),
+        "run_id": trace.get("run_id") or store.run_id,
+        "final_status": trace.get("final_status") or state.get("current_stage"),
+        "timeline": [event for event in events if event.get("type") in timeline_types],
+        "artifacts": state.get("artifact_paths", {}),
+        "tool_calls": [
+            event for event in events
+            if event.get("type") == "tool_call" or str(event.get("type", "")).startswith("guardrail_")
+        ],
+        "decisions": [event for event in events if event.get("type") in decision_types],
+        "failures": [event for event in events if event.get("type") in failure_types],
+        "metrics": metrics,
+        "compatibility": compatibility,
+    }
+    if focus and focus != "all":
+        focused = {key: result[key] for key in ["trace_schema_version", "run_id", "final_status", "compatibility"]}
+        focused[focus] = result.get(focus, [])
+        return focused
+    return result
+
+
 def _json_safe(value: Any) -> Any:
     try:
         json.dumps(value, ensure_ascii=False)

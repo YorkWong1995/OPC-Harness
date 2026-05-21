@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import os
 import shutil
 import sys
@@ -14,7 +15,7 @@ from rich.table import Table
 
 from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
-from .run_store import find_run_artifacts, summarize_run, trace_summary
+from .run_store import find_run_artifacts, summarize_run, trace_inspect, trace_summary
 from .config import (
     ALL_OPTIONAL_ROLES,
     load_workflow_config,
@@ -171,6 +172,15 @@ def main():
     trace_show_parser.add_argument("--limit", type=int, default=20, help="显示最近 N 条事件")
     trace_summary_parser = trace_subparsers.add_parser("summary", help="显示 trace 摘要")
     trace_summary_parser.add_argument("--artifacts-dir", required=True, help="artifacts 目录")
+    trace_inspect_parser = trace_subparsers.add_parser("inspect", help="只读诊断 run trace")
+    trace_inspect_parser.add_argument("--artifacts-dir", required=True, help="artifacts 目录")
+    trace_inspect_parser.add_argument("--json", action="store_true", help="输出 JSON")
+    trace_inspect_parser.add_argument(
+        "--focus",
+        choices=["all", "timeline", "artifacts", "tool_calls", "decisions", "failures", "metrics", "compatibility"],
+        default="all",
+        help="聚焦显示某类 inspect 数据",
+    )
 
     # ---- opc config validate ----
     config_parser = subparsers.add_parser("config", help="管理 OPC 配置")
@@ -624,7 +634,20 @@ def _run_trace(args):
         console.print(table)
         return
 
-    console.print("[yellow]请使用 opc trace show 或 opc trace summary[/yellow]")
+    if args.trace_command == "inspect":
+        data = trace_inspect(Path(args.artifacts_dir), focus=args.focus)
+        if args.json:
+            console.print(json.dumps(data, ensure_ascii=False, indent=2))
+            return
+        table = Table(title="Trace Inspect")
+        table.add_column("类别")
+        table.add_column("内容")
+        for key, value in data.items():
+            table.add_row(key, json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else str(value))
+        console.print(table)
+        return
+
+    console.print("[yellow]请使用 opc trace show、opc trace summary 或 opc trace inspect[/yellow]")
 
 
 # ---- opc init / doctor / config ----

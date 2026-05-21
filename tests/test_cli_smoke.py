@@ -185,11 +185,14 @@ def test_runs_list_and_trace_commands(tmp_path: Path):
 
     store = RunStore(artifacts, run_id="run-1")
     store.append("stage_started", stage="pm")
+    store.append("approval_required", stage="pm", mode="auto_confirm")
     store.write_trace(final_status="done", metrics={"totals": {"duration_seconds": 1}})
 
     _call_main_with_args(["runs", "list", "--root", str(tmp_path)])
     _call_main_with_args(["trace", "summary", "--artifacts-dir", str(artifacts)])
     _call_main_with_args(["trace", "show", "--artifacts-dir", str(artifacts), "--limit", "1"])
+    _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--focus", "decisions"])
+    _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--json"])
 
 
 # ---------------------------------------------------------------------------

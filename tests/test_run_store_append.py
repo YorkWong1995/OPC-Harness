@@ -4,7 +4,7 @@ import json
 import os
 import time
 
-from opc.run_store import RunStore, find_run_artifacts, summarize_run, trace_summary
+from opc.run_store import RunStore, find_run_artifacts, summarize_run, trace_inspect, trace_summary
 
 
 def test_append_writes_jsonl_not_trace(tmp_path):
@@ -127,6 +127,41 @@ def test_summarize_run_reports_failure_reason(tmp_path):
     assert summary.final_status == "已退回"
     assert summary.duration_seconds == 2
     assert summary.failed_reason == "max_rounds_exceeded"
+
+
+def test_trace_inspect_groups_timeline_decisions_failures_and_artifacts(tmp_path):
+    store = RunStore(tmp_path, run_id="inspect-run")
+    store.append("stage_started", stage="pm", role="pm")
+    store.append("approval_required", stage="pm", mode="auto_confirm")
+    store.append("rollback_decision", from_stage="qa", to_stage="engineer", reason="qa_failed")
+    store.append("guardrail_blocked", tool_name="run_command", reason="dangerous command denied")
+    store.append("validation_failed", stage="qa", reason="schema mismatch")
+    store.write_trace(final_status="已退回", metrics={"totals": {"duration_seconds": 3}})
+    (tmp_path / ".opc_state.json").write_text(
+        json.dumps({"current_stage": "已退回", "artifact_paths": {"acceptance": "acceptance.md"}}),
+        encoding="utf-8",
+    )
+
+    inspect = trace_inspect(tmp_path)
+
+    assert inspect["run_id"] == "inspect-run"
+    assert inspect["final_status"] == "已退回"
+    assert [event["type"] for event in inspect["timeline"]] == ["stage_started"]
+    assert [event["type"] for event in inspect["decisions"]] == ["approval_required", "rollback_decision"]
+    assert [event["type"] for event in inspect["tool_calls"]] == ["guardrail_blocked"]
+    assert [event["type"] for event in inspect["failures"]] == ["validation_failed"]
+    assert inspect["artifacts"] == {"acceptance": "acceptance.md"}
+
+
+def test_trace_inspect_focus_and_compatibility(tmp_path):
+    store = RunStore(tmp_path, run_id="events-only")
+    store.append("circuit_breaker_open", reason="max_rounds_exceeded")
+
+    inspect = trace_inspect(tmp_path, focus="decisions")
+
+    assert list(inspect) == ["trace_schema_version", "run_id", "final_status", "compatibility", "decisions"]
+    assert inspect["decisions"][0]["type"] == "circuit_breaker_open"
+    assert any("run_trace.json missing" in item for item in inspect["compatibility"])
 
 
 def test_find_run_artifacts_returns_recent_first(tmp_path):
