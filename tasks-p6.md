@@ -8,7 +8,7 @@
 ## 1. 使用入口与诊断体验
 
 - [x] 增加 opc init / doctor / config validate 使用入口 <!-- files: src/opc/cli.py, src/opc/config.py, README.md, tests/ --> <!-- context: 责任角色=PM/Ops；输入=README 快速开始、opc.example.toml、当前 CLI 命令；输出=init/doctor/config validate 命令与使用文档；依赖关系=无；完成标准=新用户可通过 doctor 看到 API key、opc.toml、workspace、索引目录、可用命令状态，config validate 能发现无效 role/profile --> <!-- review: 工业落地入口，需确认命令命名和检查项范围 -->
-- [ ] 修复配置与文档漂移 <!-- files: opc.example.toml, README.md, docs/DOCS_STRUCTURE.md, tests/ --> <!-- context: 责任角色=QA；输入=opc.example.toml 中 roles=["engineer"]、README UI/CLI 描述、DOCS_STRUCTURE.md 中 QUICK_UPLOAD.md；输出=一致的配置示例与文档索引；依赖关系=无；完成标准=config validate/单元测试覆盖示例配置，文档索引不再引用不存在文件，README 对 UI 与 CLI 入口表述与代码一致 --> <!-- auto: 小范围文档与示例修复 -->
+- [x] 修复配置与文档漂移 <!-- files: opc.example.toml, README.md, docs/DOCS_STRUCTURE.md, tests/ --> <!-- context: 责任角色=QA；输入=opc.example.toml 中 roles=["engineer"]、README UI/CLI 描述、DOCS_STRUCTURE.md 中 QUICK_UPLOAD.md；输出=一致的配置示例与文档索引；依赖关系=无；完成标准=config validate/单元测试覆盖示例配置，文档索引不再引用不存在文件，README 对 UI 与 CLI 入口表述与代码一致 --> <!-- auto: 小范围文档与示例修复 -->
 
 ## 2. Run / Trace 使用体验
 

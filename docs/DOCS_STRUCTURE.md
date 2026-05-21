@@ -2,10 +2,9 @@
 
 ## 公开文档
 
-- `README.md` - 项目介绍
+- `README.md` - 项目介绍、安装方式、CLI 使用入口
 - `CLAUDE.md` - Claude 协作规范入口
 - `LICENSE` - 开源许可证
-- `QUICK_UPLOAD.md` - 快速上传指南
 
 ## 内部文档（仅保留本地）
 

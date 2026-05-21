@@ -56,6 +56,8 @@ opc config validate
 
 ### 基础使用
 
+当前公开入口以 CLI 为主；Python 包入口仅暴露版本信息，暂不提供 `OPC()`、`run_as_role()`、`run_with_tools()` 等高级 API。
+
 ```bash
 # 初始化当前目录的 opc.toml
 opc init
@@ -75,8 +77,6 @@ opc run "帮我设计一个用户登录功能" --project demo-login
 # 指定已有项目目录，并跳过 Architect 环节
 opc run "补充登录功能验收标准" --project-dir . --skip-architect
 ```
-
-当前公开入口以 CLI 为主；Python 包入口仅暴露版本信息，暂不提供 `OPC()`、`run_as_role()`、`run_with_tools()` 等高级 API。
 
 ### 最小可运行示例
 
