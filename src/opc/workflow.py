@@ -27,6 +27,7 @@ from .config import load_project_config, OPCConfig
 from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
+from .security.guardrail import GuardrailPolicy, normalize_permission_profile
 from .store import Store
 from .workflow_spec import StageResult, StageValidation, load_workflow_spec
 
@@ -281,6 +282,18 @@ class HarnessWorkflow:
         self.architect = create_architect_agent(self.project_dir, model=model) if self.enabled("architect") else None
         self.ops = create_ops_agent(self.project_dir, model=model) if self.enabled("ops") else None
         self.growth = create_growth_agent(model=model) if self.enabled("growth") else None
+        self._configure_agent_guardrails()
+
+    def _configure_agent_guardrails(self) -> None:
+        security = self.opc_config.security
+        for agent in [self.pm, self.engineer, self.qa, self.ceo, self.architect, self.ops, self.growth]:
+            if agent is None:
+                continue
+            agent.run_store = self.run_store
+            agent.guardrail_policy = GuardrailPolicy(
+                profile=normalize_permission_profile(security.permission_profile),
+                dangerous_command_policy=security.dangerous_command_policy,
+            )
 
     def enabled(self, role: str) -> bool:
         """判断可选角色是否启用。"""

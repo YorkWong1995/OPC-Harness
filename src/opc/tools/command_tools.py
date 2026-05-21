@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from ..security.command_whitelist import COMMAND_WHITELIST, check_interactive_command, match_dangerous_params
+from ..tools.tool_registry import get_tool
 
 
 class CommandToolsMixin:
@@ -24,6 +25,9 @@ class CommandToolsMixin:
         if cmd_name not in COMMAND_WHITELIST:
             return f"错误：命令 '{cmd_name}' 不在白名单中，允许的命令：{', '.join(sorted(COMMAND_WHITELIST))}"
 
+        guardrail_message = self._check_command_guardrail(command)
+        if guardrail_message and guardrail_message.startswith("["):
+            return guardrail_message
         danger_decision = self._check_dangerous_params(cmd_name, command)
         if danger_decision and danger_decision.startswith("["):
             return danger_decision
@@ -76,6 +80,44 @@ class CommandToolsMixin:
 
     def _check_interactive_command(self, command: str) -> str | None:
         return check_interactive_command(command)
+
+    def _check_command_guardrail(self, command: str) -> str | None:
+        policy = getattr(self, "guardrail_policy", None)
+        definition = get_tool("run_command")
+        if policy is None or definition is None:
+            return None
+        decision = policy.check_tool(definition, {"command": command})
+        if decision.allowed:
+            if decision.action == "audit":
+                self.audit_log.append({
+                    "event": "guardrail_warning",
+                    "role": self.role,
+                    "command": command,
+                    "matched_patterns": decision.matched_patterns,
+                    "reason": decision.reason,
+                })
+                return decision.reason
+            return None
+        event_name = "approval_required" if decision.action == "approval" else "guardrail_stopped" if decision.action == "stop" else "guardrail_blocked"
+        self.audit_log.append({
+            "event": event_name,
+            "role": self.role,
+            "command": command,
+            "matched_patterns": decision.matched_patterns,
+            "reason": decision.reason,
+        })
+        if getattr(self, "run_store", None) is not None:
+            self.run_store.append(
+                event_name,
+                role=self.role,
+                tool_name="run_command",
+                reason=decision.reason,
+                matched_patterns=decision.matched_patterns,
+            )
+        message = f"[{event_name}] {decision.reason}"
+        if decision.matched_patterns:
+            message += f": {', '.join(decision.matched_patterns)}"
+        return message
 
     def _check_dangerous_params(self, cmd_name: str, full_command: str) -> str | None:
         matched = match_dangerous_params(cmd_name, full_command)

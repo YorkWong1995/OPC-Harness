@@ -284,7 +284,7 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
 
         decision = self.guardrail_policy.check_tool(definition, inputs)
         if not decision.allowed:
-            event_name = "approval_required" if decision.action == "approval" else "guardrail_blocked"
+            event_name = "approval_required" if decision.action == "approval" else "guardrail_stopped" if decision.action == "stop" else "guardrail_blocked"
             message = f"[{event_name}] {decision.reason}"
             if decision.matched_patterns:
                 message += f": {', '.join(decision.matched_patterns)}"
@@ -306,6 +306,8 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
                 "matched_patterns": decision.matched_patterns,
                 "role": self.role,
             })
+            if self.run_store is not None:
+                self.run_store.append("guardrail_warning", role=self.role, tool_name=name, reason=decision.reason, matched_patterns=decision.matched_patterns)
 
         # 日志：工具调用开始
         print(f"[DEBUG][{self.role}] 执行工具: {name}")

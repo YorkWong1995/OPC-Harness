@@ -64,9 +64,6 @@ class GuardrailPolicy:
             command = str(inputs.get("command", ""))
             lowered = command.lower()
             cmd_name = command.strip().split(maxsplit=1)[0].lower() if command.strip() else ""
-            external_matches = [pattern for pattern in EXTERNAL_IMPACT_PATTERNS if pattern in lowered]
-            if external_matches:
-                return GuardrailDecision("approval", "external impact action requires approval", external_matches)
             matched = match_dangerous_params(cmd_name, command)
             if matched:
                 if self.dangerous_command_policy == "audit":
@@ -74,6 +71,9 @@ class GuardrailPolicy:
                 if self.dangerous_command_policy == "approval":
                     return GuardrailDecision("approval", "dangerous command requires approval", matched)
                 return GuardrailDecision("deny", "dangerous command denied", matched)
+            external_matches = [pattern for pattern in EXTERNAL_IMPACT_PATTERNS if pattern in lowered]
+            if external_matches:
+                return GuardrailDecision("approval", "external impact action requires approval", external_matches)
 
         return GuardrailDecision("allow")
 

@@ -123,3 +123,31 @@ def test_dangerous_command_can_require_approval(tmp_path):
 
     result = agent._tool_run_command("git push --force origin main")
     assert "[approval_required]" in result
+
+
+def test_external_impact_command_requires_approval(tmp_path):
+    agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
+
+    result = agent._tool_run_command("git push origin main")
+
+    assert "[approval_required]" in result
+    assert "git push" in result
+
+
+def test_guardrail_audit_event_is_recorded_to_run_store(tmp_path):
+    from opc.run_store import RunStore
+
+    run_store = RunStore(tmp_path / "artifacts")
+    agent = Agent(
+        role="test",
+        system_prompt="test",
+        tools=TOOLS_READ_WRITE,
+        project_dir=tmp_path,
+        run_store=run_store,
+        dangerous_command_policy="audit",
+    )
+
+    result = agent._execute_tool("run_command", {"command": "git reset --hard HEAD"})
+
+    assert "[WARNING]" in result
+    assert any(event.type == "guardrail_warning" for event in run_store.events)
