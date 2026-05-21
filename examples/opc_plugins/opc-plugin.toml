@@ -1,0 +1,4 @@
+[[plugin]]
+module = "hello_plugin.py"
+description = "Read-only sample plugin that demonstrates manifest permissions."
+permissions = ["read"]

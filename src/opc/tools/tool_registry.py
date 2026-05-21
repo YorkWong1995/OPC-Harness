@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import importlib.util
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    import tomli as tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
 
 ToolPermission = Literal["read", "write", "execute"]
 ToolSideEffect = Literal["none", "filesystem_read", "filesystem_write", "process"]
+PLUGIN_MANIFEST = "opc-plugin.toml"
 
 TEXT_OUTPUT_SCHEMA = {"type": "string"}
 
@@ -127,18 +132,43 @@ def load_plugin_tools(project_dir: Path | None = None, plugins_dir: Path | None 
     if not root.exists() or not root.is_dir():
         return []
 
+    manifest = _load_plugin_manifest(root)
     loaded: list[Path] = []
     for module_path in sorted(root.glob("*.py")):
         if module_path.name.startswith("_"):
             continue
+        if module_path.name not in manifest:
+            continue
+        module_decl = manifest[module_path.name]
+        if not module_decl.get("permissions"):
+            continue
+        before = set(_TOOL_REGISTRY)
         module_name = f"opc_plugins.{module_path.stem}"
         spec = importlib.util.spec_from_file_location(module_name, module_path)
         if spec is None or spec.loader is None:
             continue
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        declared_permissions = set(module_decl.get("permissions", []))
+        for tool_name in set(_TOOL_REGISTRY) - before:
+            if _TOOL_REGISTRY[tool_name].permission not in declared_permissions:
+                del _TOOL_REGISTRY[tool_name]
         loaded.append(module_path)
     return loaded
+
+
+def _load_plugin_manifest(root: Path) -> dict[str, dict]:
+    manifest_path = root / PLUGIN_MANIFEST
+    if not manifest_path.exists():
+        return {}
+    data = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+    modules: dict[str, dict] = {}
+    for item in data.get("plugin", []):
+        module = str(item.get("module", "")).strip()
+        permissions = [str(permission).strip() for permission in item.get("permissions", []) if str(permission).strip()]
+        if module:
+            modules[module] = {"permissions": permissions, "description": str(item.get("description", ""))}
+    return modules
 
 
 BUILTIN_TOOLS = [
