@@ -265,6 +265,12 @@ audit_dangerous_commands = true
 block_env_file_write = true
 ```
 
+### 部署与私有化边界
+
+当前 Dockerfile 提供的是 **CLI 镜像入口**，用于复现本地命令环境或执行一次性 OPC 命令；它不是常驻服务、控制面或企业私有化部署方案。容器运行时需要用户显式挂载 workspace/artifacts/索引目录，并通过环境变量或 secret provider 注入 `ANTHROPIC_API_KEY` 等敏感配置。
+
+持久后台服务、集中审计、多用户审批、远端 trace 聚合、托管数据库、备份恢复和升级回滚属于后续 server/control plane 设计范围，暂不作为 v1 可用能力承诺。
+
 ## 开发指南
 
 ### 添加新角色
