@@ -17,7 +17,7 @@
 
 ## 3. Workflow Pack 与复用范式
 
-- [ ] 设计 OPC workflow pack 使用规范 <!-- files: docs/plan/workflow.md, docs/claude/standards.md, .claude/skills/, tasks-p6.md --> <!-- context: 责任角色=Architect/PM；输入=DeerFlow skills 使用范式、现有 .claude/skills、本项目角色/任务/验收标准；输出=workflow pack 的 manifest、输入、输出、权限、验收、示例结构；依赖关系=依赖配置与文档漂移修复；完成标准=至少定义 bugfix/review/docs-update 三类 workflow pack 规范，并明确哪些是 Claude 协作 skill、哪些是 OPC runtime workflow --> <!-- review: 需要产品边界取舍 -->
+- [x] 设计 OPC workflow pack 使用规范 <!-- files: docs/plan/workflow.md, docs/claude/standards.md, .claude/skills/, tasks-p6.md --> <!-- context: 责任角色=Architect/PM；输入=DeerFlow skills 使用范式、现有 .claude/skills、本项目角色/任务/验收标准；输出=workflow pack 的 manifest、输入、输出、权限、验收、示例结构；依赖关系=依赖配置与文档漂移修复；完成标准=至少定义 bugfix/review/docs-update 三类 workflow pack 规范，并明确哪些是 Claude 协作 skill、哪些是 OPC runtime workflow --> <!-- review: 需要产品边界取舍 -->
 - [ ] 增加 golden run walkthrough 与验收样例 <!-- files: examples/, docs/runs/, workspace/demo-*/, README.md --> <!-- context: 责任角色=Growth/QA；输入=现有 quickstart_minimal.py、sample_tasks.md、demo workspace artifacts、run trace；输出=安装→运行→查看 trace→验收的 2-3 个可复现样例；依赖关系=依赖 runs/trace CLI UX；完成标准=每个样例包含命令、输入任务、预期产物、trace 查看方式、验收标准和失败排查说明 --> <!-- order: 依赖 trace CLI 完成 -->
 
 ## 4. 权限治理与插件生态
