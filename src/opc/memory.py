@@ -6,8 +6,50 @@
 3. 工作记忆和长期记忆的区分
 """
 
-from typing import List, Optional, Set, Dict
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Literal, List, Optional, Set, Dict
 from .schema import Message
+
+MemoryScope = Literal["user", "project", "workflow", "run", "artifact"]
+
+
+@dataclass(frozen=True)
+class MemoryRecord:
+    content: str
+    scope: MemoryScope
+    source: str
+    confidence: float = 1.0
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = ""
+    expires_at: str = ""
+    superseded_by: str = ""
+
+    def is_expired(self, now: datetime | None = None) -> bool:
+        if not self.expires_at:
+            return False
+        current = now or datetime.now(timezone.utc)
+        expires = datetime.fromisoformat(self.expires_at)
+        return expires <= current
+
+    @property
+    def is_long_term(self) -> bool:
+        return self.scope in {"user", "project", "workflow"}
+
+
+LONG_TERM_SCOPES: set[MemoryScope] = {"user", "project", "workflow"}
+EPHEMERAL_SCOPES: set[MemoryScope] = {"run", "artifact"}
+REQUIRED_MEMORY_FIELDS = {"scope", "created_at", "updated_at", "expires_at", "source", "confidence"}
+
+
+def requires_write_review(record: MemoryRecord) -> bool:
+    return record.scope in LONG_TERM_SCOPES
+
+
+def can_promote_to_long_term(record: MemoryRecord, confirmed: bool = False) -> bool:
+    if record.scope in EPHEMERAL_SCOPES:
+        return False
+    return confirmed and bool(record.source)
 
 
 class Memory:

@@ -1,7 +1,18 @@
 """测试 Memory 系统"""
 
+from datetime import datetime, timezone, timedelta
+
 from opc.schema import Message
-from opc.memory import Memory, WorkingMemory
+from opc.memory import (
+    EPHEMERAL_SCOPES,
+    LONG_TERM_SCOPES,
+    REQUIRED_MEMORY_FIELDS,
+    Memory,
+    MemoryRecord,
+    WorkingMemory,
+    can_promote_to_long_term,
+    requires_write_review,
+)
 
 
 def test_memory_basic():
@@ -119,3 +130,29 @@ def test_memory_recent():
     assert len(recent) == 5
     assert recent[0].content == "消息5"
     assert recent[-1].content == "消息9"
+
+
+def test_memory_record_lifecycle_fields_and_scope_sets():
+    record = MemoryRecord(content="用户偏好", scope="user", source="manual-confirmation")
+
+    assert REQUIRED_MEMORY_FIELDS <= set(record.__dataclass_fields__)
+    assert record.scope in LONG_TERM_SCOPES
+    assert "run" in EPHEMERAL_SCOPES
+    assert record.is_long_term
+    assert not record.is_expired()
+
+
+def test_memory_record_expiration_and_write_review_policy():
+    expired = MemoryRecord(
+        content="旧决策",
+        scope="project",
+        source="architecture-review",
+        expires_at=(datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+    )
+    run_state = MemoryRecord(content="临时 run 状态", scope="run", source="run_trace")
+
+    assert expired.is_expired()
+    assert requires_write_review(expired)
+    assert can_promote_to_long_term(expired, confirmed=True)
+    assert not can_promote_to_long_term(run_state, confirmed=True)
+    assert not requires_write_review(run_state)
