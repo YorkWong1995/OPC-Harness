@@ -28,6 +28,7 @@ from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .security.guardrail import GuardrailPolicy, normalize_permission_profile
+from .memory import MemoryRecord, select_memory_for_context
 from .store import Store
 from .workflow_spec import StageResult, StageValidation, load_workflow_spec
 
@@ -267,6 +268,7 @@ class HarnessWorkflow:
         self.workflow_state = WorkflowState(task_description=task, run_id=self.run_store.run_id)
         self.workflow_spec = load_workflow_spec(self.project_dir)
         self.stage_summaries: dict[str, StageSummary] = {}
+        self.memory_records: list[MemoryRecord] = []
         self.last_edited_prompt: str = ""
 
         self.pm = create_pm_agent(model=model)
@@ -517,6 +519,14 @@ class HarnessWorkflow:
                 data[field] = ""
         return ContextPack.model_validate(data), sorted(allowed)
 
+    def _select_memory_context(self, role: str, facts: list[str]) -> tuple[list[str], list[dict[str, str]]]:
+        records, sources = select_memory_for_context(
+            self.memory_records,
+            role=role,
+            current_facts=set(facts),
+        )
+        return [f"memory.{record.scope}: {record.content}" for record in records], sources
+
     def _build_context_pack(self, role: str, stage: str, recent_detail: str = "") -> ContextPack:
         pm_summary = self.stage_summaries.get("pm")
         stage_summary = {key: summary.model_dump() for key, summary in self.stage_summaries.items()}
@@ -554,6 +564,9 @@ class HarnessWorkflow:
                 impact_summary = f"impact_analysis=failed:{error}"
         if recent_detail:
             context_sources.append({"type": "recent_detail", "name": f"{role}:{stage}"})
+        memory_facts, memory_sources = self._select_memory_context(role, facts)
+        facts.extend(memory_facts)
+        context_sources.extend(memory_sources)
         context_sources.extend(
             {"type": "artifact", "name": name, "path": path}
             for name, path in self.workflow_state.artifact_paths.items()

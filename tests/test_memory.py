@@ -12,6 +12,7 @@ from opc.memory import (
     WorkingMemory,
     can_promote_to_long_term,
     requires_write_review,
+    select_memory_for_context,
 )
 
 
@@ -130,6 +131,31 @@ def test_memory_recent():
     assert len(recent) == 5
     assert recent[0].content == "消息5"
     assert recent[-1].content == "消息9"
+
+
+
+
+def test_select_memory_for_context_filters_expired_ephemeral_and_conflicts():
+    expired = MemoryRecord(
+        content="旧事实",
+        scope="project",
+        source="doc",
+        expires_at=(datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+    )
+    run_state = MemoryRecord(content="临时状态", scope="run", source="run_trace")
+    conflict = MemoryRecord(content="当前事实", scope="project", source="old-doc")
+    selected = MemoryRecord(content="长期偏好", scope="user", source="manual")
+
+    records, sources = select_memory_for_context(
+        [expired, run_state, conflict, selected],
+        role="engineer",
+        current_facts={"当前事实"},
+    )
+
+    assert records == [selected]
+    statuses = {source["status"] for source in sources}
+    assert {"expired", "conflict_current_fact", "selected"} <= statuses
+    assert all(source.get("scope") != "run" for source in sources)
 
 
 def test_memory_record_lifecycle_fields_and_scope_sets():

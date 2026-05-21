@@ -52,6 +52,53 @@ def can_promote_to_long_term(record: MemoryRecord, confirmed: bool = False) -> b
     return confirmed and bool(record.source)
 
 
+def select_memory_for_context(
+    records: list[MemoryRecord],
+    role: str,
+    allowed_scopes: set[MemoryScope] | None = None,
+    current_facts: set[str] | None = None,
+) -> tuple[list[MemoryRecord], list[dict[str, str]]]:
+    scopes = allowed_scopes or LONG_TERM_SCOPES
+    facts = current_facts or set()
+    selected: list[MemoryRecord] = []
+    sources: list[dict[str, str]] = []
+    for index, record in enumerate(records):
+        memory_id = f"memory:{index}"
+        if record.scope not in scopes:
+            continue
+        if record.is_expired():
+            sources.append({
+                "type": "memory",
+                "name": memory_id,
+                "scope": record.scope,
+                "source": record.source,
+                "status": "expired",
+                "reason": "expired",
+            })
+            continue
+        if record.content in facts:
+            sources.append({
+                "type": "memory",
+                "name": memory_id,
+                "scope": record.scope,
+                "source": record.source,
+                "status": "conflict_current_fact",
+                "reason": "current_fact_preferred",
+            })
+            continue
+        selected.append(record)
+        sources.append({
+            "type": "memory",
+            "name": memory_id,
+            "scope": record.scope,
+            "source": record.source,
+            "role": role,
+            "status": "selected",
+            "reason": "scope_role_match",
+        })
+    return selected, sources
+
+
 class Memory:
     """记忆系统：存储和检索消息历史
 
