@@ -216,3 +216,43 @@ Workflow pack 是可复用的工作流说明单元，用来把一类任务的输
 - `run_events.jsonl`、`run_trace.json`、`run_metrics.json` 用于回放和复盘，不写入长期 memory。
 - Artifact 是证据，memory 是经确认的长期偏好/项目决策；二者不能混用。
 - P6 不提供 thread 级长期记忆或团队协作语义，避免把单次 run 扩展为多用户工作台。
+
+## 11. 统一阶段执行契约
+
+P6/P7 的 runtime 协议以 `StageContract` 描述每个 DAG 阶段的可执行边界。第一步先把契约结构落到 `workflow_spec.py`，运行时再分步绑定角色输出和 trace 事件。
+
+### 11.1 StageContract 字段
+
+| 字段 | 含义 |
+| --- | --- |
+| `name` | 阶段稳定标识，如 `pm`、`engineer`、`qa` |
+| `role` | 执行该阶段的责任角色 |
+| `input_schema` | 阶段输入 schema，如 `ContextPack` 或 `WorkflowState` |
+| `tools` | 允许该阶段使用的工具名列表 |
+| `output_schema` | 阶段输出 schema，如 `PMOutput`、`EngineerOutput`、`QAOutput` |
+| `artifact` | 阶段产物名，用于 `artifact_paths` 和 trace inspect |
+| `validation` | 阶段校验规则名，如必填字段、证据、失败分支等 |
+| `transition` | `TransitionPolicy`，定义 pass/fail/error/timeout 后的状态 |
+| `conditional_branches` | 按角色输出字段选择的条件分支，如 QA `next_action` |
+| `failure_branch` | 阶段失败时建议进入的回退状态 |
+| `retry_policy` | 最大重试次数和耗尽后的处理动作 |
+| `parallel_group` | 可并行阶段组，如 `growth_architect` |
+| `sub_workflow` | 子工作流标识，预留给嵌套 DAG |
+
+### 11.2 StageResult 与 StageValidation
+
+`StageResult` 是阶段执行后的结构化记录，至少包含阶段名、状态、结构化输出、artifact 路径、校验结果、下一状态和失败原因。`StageValidation` 使用 `passed/failed/skipped` 表达校验结论，并记录缺字段、schema 错误或非法 transition 诊断。
+
+### 11.3 TransitionPolicy
+
+`TransitionPolicy` 统一表达 `on_pass`、`on_fail`、`on_error`、`on_timeout`、`failure_branch`、`retry_limit` 和 `approval_required`。任何目标状态都必须存在于 workflow spec 的 `states` 中；非法 transition 不允许进入运行时。
+
+### 11.4 默认阶段契约
+
+默认契约覆盖 `pm`、`growth`、`architect`、`engineer`、`qa`、`ops`、`retro`。核心链路保持 PM → Engineer → QA → Retro，小步接入完整 DAG 字段：
+
+- PM 输出 `PMOutput`，通过后进入 `已定义`。
+- Engineer 输出 `EngineerOutput`，失败或阻塞进入 `已退回`。
+- QA 输出 `QAOutput`，`next_action=done` 进入 `已通过`，`rework` 或 `human_intervention` 进入 `已退回`。
+- Architect/Growth 可进入 `growth_architect` 并行组，但不替代主链路。
+- Ops 仅在运行、部署或回滚检查需要时加入。

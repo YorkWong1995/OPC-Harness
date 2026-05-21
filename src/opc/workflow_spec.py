@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Literal
 
 try:
     import tomllib
@@ -28,6 +29,95 @@ class WorkflowStage:
     optional_role: str = ""
     parallel_group: str = ""
     approval_required: bool = True
+
+
+ValidationStatus = Literal["passed", "failed", "skipped"]
+TransitionCondition = Literal["pass", "fail", "timeout", "error", "approval_required", "human_intervention"]
+
+
+@dataclass
+class StageValidation:
+    """阶段输入、输出或产物校验结果。"""
+    status: ValidationStatus
+    reason: str = ""
+    missing_fields: list[str] = field(default_factory=list)
+    schema_errors: list[str] = field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return self.status == "passed"
+
+
+@dataclass
+class TransitionPolicy:
+    """阶段结束后的状态流转策略。"""
+    on_pass: str = ""
+    on_fail: str = ""
+    on_error: str = ""
+    on_timeout: str = ""
+    failure_branch: str = ""
+    retry_limit: int = 0
+    approval_required: bool = False
+
+    def next_state(self, condition: str) -> str | None:
+        mapping = {
+            "pass": self.on_pass,
+            "fail": self.on_fail,
+            "error": self.on_error,
+            "timeout": self.on_timeout,
+        }
+        return mapping.get(condition) or None
+
+
+@dataclass
+class StageResult:
+    """阶段执行后的结构化结果。"""
+    stage: str
+    status: str
+    output: dict[str, Any] = field(default_factory=dict)
+    artifact_paths: dict[str, str] = field(default_factory=dict)
+    validation: StageValidation = field(default_factory=lambda: StageValidation("skipped"))
+    next_state: str = ""
+    failure_reason: str = ""
+
+
+@dataclass
+class StageContract:
+    """统一阶段执行契约，用于描述完整 DAG 阶段能力。"""
+    name: str
+    role: str
+    input_schema: str
+    output_schema: str
+    artifact: str
+    validation: list[str] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
+    transition: TransitionPolicy = field(default_factory=TransitionPolicy)
+    conditional_branches: dict[str, str] = field(default_factory=dict)
+    failure_branch: str = ""
+    retry_policy: dict[str, int | str] = field(default_factory=dict)
+    parallel_group: str = ""
+    sub_workflow: str = ""
+
+
+def validate_stage_contract(contract: StageContract, states: set[str]) -> StageValidation:
+    missing: list[str] = []
+    for field_name in ["name", "role", "input_schema", "output_schema", "artifact"]:
+        if not getattr(contract, field_name):
+            missing.append(field_name)
+    transition_targets = [
+        contract.transition.on_pass,
+        contract.transition.on_fail,
+        contract.transition.on_error,
+        contract.transition.on_timeout,
+        contract.transition.failure_branch,
+        contract.failure_branch,
+        *contract.conditional_branches.values(),
+    ]
+    illegal = [target for target in transition_targets if target and target not in states]
+    if missing or illegal:
+        errors = [f"illegal transition target: {target}" for target in illegal]
+        return StageValidation("failed", "stage contract invalid", missing_fields=missing, schema_errors=errors)
+    return StageValidation("passed")
 
 
 @dataclass
@@ -60,6 +150,16 @@ class WorkflowSpec:
 
     def is_terminal(self, state: str) -> bool:
         return state in self.terminal_states
+
+    def stage_contracts(self) -> dict[str, StageContract]:
+        """返回当前 spec 的阶段契约，供校验与文档生成使用。"""
+        states = set(self.states)
+        contracts = {
+            contract.name: contract
+            for contract in DEFAULT_STAGE_CONTRACTS
+            if not states or validate_stage_contract(contract, states).passed
+        }
+        return contracts
 
     def runtime_stages(self, enabled_roles: set[str]) -> list[str]:
         """根据声明式阶段和已启用角色生成运行时阶段列表。"""
@@ -106,6 +206,83 @@ def load_workflow_spec(project_dir: Path) -> WorkflowSpec:
     if not isinstance(spec_data, dict):
         return DEFAULT_WORKFLOW_SPEC
     return WorkflowSpec.from_dict(spec_data)
+
+
+# 默认阶段执行契约：完整 DAG 字段先作为可验证契约落地，运行时仍由 HarnessWorkflow 小步接入。
+DEFAULT_STAGE_CONTRACTS = [
+    StageContract(
+        name="pm",
+        role="pm",
+        input_schema="ContextPack",
+        output_schema="PMOutput",
+        artifact="pm_prd",
+        validation=["required_fields", "acceptance_criteria"],
+        transition=TransitionPolicy(on_pass="已定义", on_fail="待澄清", on_error="待澄清"),
+    ),
+    StageContract(
+        name="architect",
+        role="architect",
+        input_schema="ContextPack",
+        output_schema="markdown_architecture",
+        artifact="architecture",
+        validation=["scope_alignment", "risk_review"],
+        transition=TransitionPolicy(on_pass="已设计", on_fail="已定义", on_error="已定义"),
+        parallel_group="growth_architect",
+    ),
+    StageContract(
+        name="growth",
+        role="growth",
+        input_schema="ContextPack",
+        output_schema="markdown_growth_research",
+        artifact="growth_research",
+        validation=["source_attribution"],
+        transition=TransitionPolicy(on_pass="已调研", on_fail="已定义", on_error="已定义"),
+        parallel_group="growth_architect",
+    ),
+    StageContract(
+        name="engineer",
+        role="engineer",
+        input_schema="ContextPack",
+        output_schema="EngineerOutput",
+        artifact="implementation",
+        validation=["changed_files", "test_result_or_failure_reason"],
+        tools=["read_file", "write_file", "run_tests", "run_lint", "run_typecheck"],
+        transition=TransitionPolicy(on_pass="实现中", on_fail="已退回", on_error="已退回", retry_limit=1),
+        failure_branch="已退回",
+        retry_policy={"max_attempts": 1, "on_exhausted": "human_intervention"},
+    ),
+    StageContract(
+        name="qa",
+        role="qa",
+        input_schema="ContextPack",
+        output_schema="QAOutput",
+        artifact="qa_report",
+        validation=["status", "evidence", "defects_on_fail", "rollback_stage"],
+        tools=["read_file", "grep", "run_tests", "git_diff"],
+        transition=TransitionPolicy(on_pass="已通过", on_fail="已退回", on_error="已退回", failure_branch="已退回"),
+        conditional_branches={"done": "已通过", "rework": "已退回", "human_intervention": "已退回"},
+        failure_branch="已退回",
+    ),
+    StageContract(
+        name="ops",
+        role="ops",
+        input_schema="ContextPack",
+        output_schema="markdown_ops_check",
+        artifact="ops_check",
+        validation=["runtime_check", "rollback_note"],
+        tools=["run_tests", "run_build", "git_status"],
+        transition=TransitionPolicy(on_pass="已运行检查", on_fail="已退回", on_error="已退回"),
+    ),
+    StageContract(
+        name="retro",
+        role="pm",
+        input_schema="WorkflowState",
+        output_schema="markdown_retrospective",
+        artifact="retrospective",
+        validation=["final_status", "lessons"],
+        transition=TransitionPolicy(on_pass="已复盘", on_fail="已复盘"),
+    ),
+]
 
 
 # 默认 MVP 工作流 spec
