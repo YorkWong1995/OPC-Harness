@@ -12,8 +12,8 @@
 
 ## 2. Run / Trace 使用体验
 
-- [ ] 增加 runs / trace 一等 CLI UX <!-- files: src/opc/cli.py, src/opc/run_store.py, src/opc/ui.py, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=run_events.jsonl、run_trace.json、run_metrics.json、现有 UI 历史记录；输出=opc runs list、opc trace show、opc trace summary 等命令；依赖关系=无；完成标准=可按项目列出 run_id、最终状态、耗时、失败原因，并能查看单次 run 的事件和指标摘要 --> <!-- auto: 先做只读命令，不修改运行时 -->
-- [ ] 增加 trace schema 版本与兼容性测试 <!-- files: src/opc/run_store.py, src/opc/workflow.py, docs/plan/architecture.md, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=run_events.jsonl、run_trace.json、run_metrics.json；输出=trace_schema_version 字段、schema 文档、兼容性测试；依赖关系=无；完成标准=旧 trace 可读取，新 trace 带版本号，测试覆盖缺字段/新增字段/失败 run 三种情况 --> <!-- auto: 小步增强 run trace 稳定性 -->
+- [x] 增加 runs / trace 一等 CLI UX <!-- files: src/opc/cli.py, src/opc/run_store.py, src/opc/ui.py, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=run_events.jsonl、run_trace.json、run_metrics.json、现有 UI 历史记录；输出=opc runs list、opc trace show、opc trace summary 等命令；依赖关系=无；完成标准=可按项目列出 run_id、最终状态、耗时、失败原因，并能查看单次 run 的事件和指标摘要 --> <!-- auto: 先做只读命令，不修改运行时 -->
+- [x] 增加 trace schema 版本与兼容性测试 <!-- files: src/opc/run_store.py, src/opc/workflow.py, docs/plan/architecture.md, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=run_events.jsonl、run_trace.json、run_metrics.json；输出=trace_schema_version 字段、schema 文档、兼容性测试；依赖关系=无；完成标准=旧 trace 可读取，新 trace 带版本号，测试覆盖缺字段/新增字段/失败 run 三种情况 --> <!-- auto: 小步增强 run trace 稳定性 -->
 
 ## 3. Workflow Pack 与复用范式
 

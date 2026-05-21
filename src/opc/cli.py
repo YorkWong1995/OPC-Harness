@@ -14,6 +14,7 @@ from rich.table import Table
 
 from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
+from .run_store import find_run_artifacts, summarize_run, trace_summary
 from .config import (
     ALL_OPTIONAL_ROLES,
     load_workflow_config,
@@ -155,6 +156,22 @@ def main():
     del_parser = subparsers.add_parser("index-delete", help="删除索引")
     del_parser.add_argument("--name", required=True, help="索引名称")
 
+    # ---- opc runs list ----
+    runs_parser = subparsers.add_parser("runs", help="查看历史运行记录")
+    runs_subparsers = runs_parser.add_subparsers(dest="runs_command")
+    runs_list_parser = runs_subparsers.add_parser("list", help="列出 run 记录")
+    runs_list_parser.add_argument("--root", default=None, help="搜索根目录（默认 workspace）")
+    runs_list_parser.add_argument("--project-dir", default=None, help="仅查看指定项目目录")
+
+    # ---- opc trace show / summary ----
+    trace_parser = subparsers.add_parser("trace", help="查看 run trace")
+    trace_subparsers = trace_parser.add_subparsers(dest="trace_command")
+    trace_show_parser = trace_subparsers.add_parser("show", help="显示 run 事件")
+    trace_show_parser.add_argument("--artifacts-dir", required=True, help="artifacts 目录")
+    trace_show_parser.add_argument("--limit", type=int, default=20, help="显示最近 N 条事件")
+    trace_summary_parser = trace_subparsers.add_parser("summary", help="显示 trace 摘要")
+    trace_summary_parser.add_argument("--artifacts-dir", required=True, help="artifacts 目录")
+
     # ---- opc config validate ----
     config_parser = subparsers.add_parser("config", help="管理 OPC 配置")
     config_subparsers = config_parser.add_subparsers(dest="config_command")
@@ -193,6 +210,10 @@ def main():
         _run_index_list(args)
     elif args.command == "index-delete":
         _run_index_delete(args)
+    elif args.command == "runs":
+        _run_runs(args)
+    elif args.command == "trace":
+        _run_trace(args)
     elif args.command == "config":
         _run_config(args)
     elif args.command == "init":
@@ -548,6 +569,62 @@ def _run_index_delete(args):
     # 删除索引目录
     shutil.rmtree(index_root, ignore_errors=True)
     console.print(f"[green]索引 '{args.name}' 已删除[/green]")
+
+
+# ---- opc runs / trace ----
+
+
+def _run_runs(args):
+    if args.runs_command != "list":
+        console.print("[yellow]请使用 opc runs list[/yellow]")
+        return
+
+    root = Path(args.project_dir) / "artifacts" if args.project_dir else Path(args.root) if args.root else _get_workspace_root()
+    artifacts_dirs = [root] if root.name == "artifacts" and root.exists() else find_run_artifacts(root)
+    table = Table(title="Run 记录")
+    table.add_column("Run ID")
+    table.add_column("状态")
+    table.add_column("耗时(s)", justify="right")
+    table.add_column("失败原因")
+    table.add_column("Artifacts")
+    for artifacts_dir in artifacts_dirs:
+        summary = summarize_run(artifacts_dir)
+        table.add_row(
+            summary.run_id,
+            summary.final_status or "unknown",
+            "" if summary.duration_seconds is None else str(summary.duration_seconds),
+            summary.failed_reason,
+            str(summary.artifacts_dir),
+        )
+    console.print(table)
+
+
+def _run_trace(args):
+    if args.trace_command == "summary":
+        data = trace_summary(Path(args.artifacts_dir))
+        table = Table(title="Trace 摘要")
+        table.add_column("字段")
+        table.add_column("值")
+        for key, value in data.items():
+            table.add_row(key, "" if value is None else str(value))
+        console.print(table)
+        return
+
+    if args.trace_command == "show":
+        from .run_store import RunStore
+
+        store = RunStore.load(Path(args.artifacts_dir))
+        events = store.read_trace().get("events", [])[-args.limit:]
+        table = Table(title="Trace 事件")
+        table.add_column("时间")
+        table.add_column("类型")
+        table.add_column("Payload")
+        for event in events:
+            table.add_row(event.get("timestamp", ""), event.get("type", ""), str(event.get("payload", {})))
+        console.print(table)
+        return
+
+    console.print("[yellow]请使用 opc trace show 或 opc trace summary[/yellow]")
 
 
 # ---- opc init / doctor / config ----

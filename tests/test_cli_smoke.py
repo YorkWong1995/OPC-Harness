@@ -178,6 +178,20 @@ def test_doctor_runs_without_config(tmp_path: Path):
     _call_main_with_args(["doctor", "--project-dir", str(tmp_path)])
 
 
+def test_runs_list_and_trace_commands(tmp_path: Path):
+    artifacts = tmp_path / "demo" / "artifacts"
+    artifacts.mkdir(parents=True)
+    from opc.run_store import RunStore
+
+    store = RunStore(artifacts, run_id="run-1")
+    store.append("stage_started", stage="pm")
+    store.write_trace(final_status="done", metrics={"totals": {"duration_seconds": 1}})
+
+    _call_main_with_args(["runs", "list", "--root", str(tmp_path)])
+    _call_main_with_args(["trace", "summary", "--artifacts-dir", str(artifacts)])
+    _call_main_with_args(["trace", "show", "--artifacts-dir", str(artifacts), "--limit", "1"])
+
+
 # ---------------------------------------------------------------------------
 # opc index / query 冒烟测试
 # ---------------------------------------------------------------------------

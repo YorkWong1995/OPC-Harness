@@ -10,11 +10,24 @@ from typing import Any
 from uuid import uuid4
 
 
+TRACE_SCHEMA_VERSION = 1
+
+
 @dataclass
 class RunEvent:
     type: str
     payload: dict[str, Any]
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+@dataclass
+class RunSummary:
+    artifacts_dir: Path
+    run_id: str
+    final_status: str | None
+    duration_seconds: float | int | None
+    failed_reason: str
+    updated_at: float
 
 
 class RunStore:
@@ -41,6 +54,7 @@ class RunStore:
 
     def write_trace(self, final_status: str | None = None, metrics: dict[str, Any] | None = None) -> Path:
         trace = {
+            "trace_schema_version": TRACE_SCHEMA_VERSION,
             "run_id": self.run_id,
             "final_status": final_status,
             "metrics": metrics or {},
@@ -48,6 +62,18 @@ class RunStore:
         }
         self.trace_path.write_text(json.dumps(trace, ensure_ascii=False, indent=2), encoding="utf-8")
         return self.trace_path
+
+    def read_trace(self) -> dict[str, Any]:
+        trace: dict[str, Any] = {}
+        if self.trace_path.exists():
+            trace = json.loads(self.trace_path.read_text(encoding="utf-8"))
+        trace.setdefault("trace_schema_version", 0)
+        trace.setdefault("run_id", self.run_id)
+        trace.setdefault("final_status", None)
+        trace.setdefault("metrics", {})
+        if "events" not in trace:
+            trace["events"] = [asdict(event) for event in self.events]
+        return trace
 
     # Alias requested by the roadmap; kept as a thin wrapper to avoid churn at call sites.
     finalize = write_trace
@@ -80,6 +106,58 @@ class RunStore:
         store = cls(artifacts_dir, run_id=trace.get("run_id"))
         store.events = [RunEvent(**event) for event in trace.get("events", [])]
         return store
+
+
+def find_run_artifacts(root: Path) -> list[Path]:
+    if not root.exists():
+        return []
+    candidates = [path for path in root.rglob("artifacts") if path.is_dir()]
+    candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+    return candidates
+
+
+def summarize_run(artifacts_dir: Path) -> RunSummary:
+    store = RunStore.load(artifacts_dir)
+    trace = store.read_trace()
+    metrics_path = artifacts_dir / "run_metrics.json"
+    metrics = trace.get("metrics") or {}
+    if not metrics and metrics_path.exists():
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+
+    totals = metrics.get("totals", {}) if isinstance(metrics, dict) else {}
+    failed_reason = ""
+    for event in reversed(trace.get("events", [])):
+        payload = event.get("payload", {}) if isinstance(event, dict) else {}
+        reason = payload.get("reason") or payload.get("error") or payload.get("message")
+        if reason and ("fail" in event.get("type", "") or event.get("type") in {"workflow_stopped", "tool_call"}):
+            failed_reason = str(reason)
+            break
+
+    return RunSummary(
+        artifacts_dir=artifacts_dir,
+        run_id=str(trace.get("run_id") or store.run_id),
+        final_status=trace.get("final_status"),
+        duration_seconds=totals.get("duration_seconds"),
+        failed_reason=failed_reason,
+        updated_at=artifacts_dir.stat().st_mtime,
+    )
+
+
+def trace_summary(artifacts_dir: Path) -> dict[str, Any]:
+    store = RunStore.load(artifacts_dir)
+    trace = store.read_trace()
+    events = trace.get("events", [])
+    metrics = trace.get("metrics") or {}
+    totals = metrics.get("totals", {}) if isinstance(metrics, dict) else {}
+    return {
+        "trace_schema_version": trace.get("trace_schema_version", 0),
+        "run_id": trace.get("run_id"),
+        "final_status": trace.get("final_status"),
+        "event_count": len(events),
+        "stage_events": len([event for event in events if event.get("type") in {"stage_started", "stage_completed"}]),
+        "tool_calls": len([event for event in events if event.get("type") == "tool_call"]),
+        "duration_seconds": totals.get("duration_seconds"),
+    }
 
 
 def _json_safe(value: Any) -> Any:

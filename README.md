@@ -92,6 +92,17 @@ python examples/quickstart_minimal.py
 python examples/quickstart_minimal.py --execute --auto-confirm
 ```
 
+### Run / Trace 查看
+
+```bash
+# 列出 workspace 下的历史 run
+opc runs list
+
+# 查看单次 run 的摘要和最近事件
+opc trace summary --artifacts-dir workspace/demo-login/artifacts
+opc trace show --artifacts-dir workspace/demo-login/artifacts --limit 20
+```
+
 ### 知识索引与检索
 
 ```bash

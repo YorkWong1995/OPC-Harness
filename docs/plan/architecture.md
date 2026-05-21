@@ -69,3 +69,15 @@ Harness Engineering 在 OPC 中不是替代 SDLC、DevOps 或 Agile 的新流程
 6. **验证与评估能力**：结果必须经过测试、审查、验收或规则检查。
 7. **可观测能力**：执行过程、日志、指标、结论应可追踪。
 8. **人工干预能力**：允许用户在关键环节中止、修正、批准或重规划。
+
+## 4. Run Trace Schema
+
+OPC 的运行记录存放在项目 `artifacts/` 目录，第一版 schema 面向只读复盘与兼容读取：
+
+| 文件 | 用途 | 兼容要求 |
+| --- | --- | --- |
+| `run_events.jsonl` | append-only 事件流，记录 stage、tool、guardrail 等过程事件 | 新读取逻辑优先使用该文件重建事件 |
+| `run_trace.json` | 单次 run 的完整快照，包含 `trace_schema_version`、`run_id`、`final_status`、`metrics`、`events` | 缺少 `trace_schema_version` 的旧文件按 version 0 读取 |
+| `run_metrics.json` | token、耗时、工具调用、质量指标等聚合结果 | trace 缺少 metrics 时可回退读取该文件 |
+
+当前 schema version 为 `1`。新增字段必须保持向后兼容：旧 trace 缺字段时使用空指标、空事件或未知状态，不阻断 `opc runs list`、`opc trace summary`、`opc trace show` 等只读命令。

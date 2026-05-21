@@ -12,6 +12,7 @@ from opc.knowledge.bm25_index import BM25Index
 from opc.knowledge.indexer import Indexer
 from opc.knowledge.retriever import Retriever
 from opc.knowledge.vector_store import VectorStore
+from opc.run_store import find_run_artifacts
 from opc.workflow import HarnessWorkflow
 
 
@@ -128,11 +129,7 @@ def render_history_page(st) -> None:
 
 
 def find_runs(root: Path) -> list[Path]:
-    if not root.exists():
-        return []
-    candidates = [path for path in root.rglob("artifacts") if path.is_dir()]
-    candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
-    return candidates
+    return find_run_artifacts(root)
 
 
 def render_artifacts(st, artifacts_dir: Path) -> None:
