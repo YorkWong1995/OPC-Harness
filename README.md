@@ -103,7 +103,12 @@ opc runs list
 # 查看单次 run 的摘要和最近事件
 opc trace summary --artifacts-dir workspace/demo-login/artifacts
 opc trace show --artifacts-dir workspace/demo-login/artifacts --limit 20
+
+# P6/P7 规划中的只读诊断视图：不重跑、不调用模型或工具
+opc trace inspect --artifacts-dir workspace/demo-login/artifacts
 ```
+
+`opc trace inspect` 的目标是从已有 trace/state/metrics/artifacts 重建阶段时间线、失败点、审批/回退/熔断决策、工具调用和产物路径；第一版只定义只读能力边界，具体 CLI 实现按后续任务落地。
 
 ### Golden Run Walkthrough
 
