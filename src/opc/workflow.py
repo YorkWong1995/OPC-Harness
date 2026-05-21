@@ -363,6 +363,31 @@ class HarnessWorkflow:
         with audit_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+    def _open_circuit_breaker(self, reason: str, **payload) -> None:
+        self.run_store.append(
+            "circuit_breaker_open",
+            reason=reason,
+            default_action="stop_workflow",
+            **payload,
+        )
+
+    def _record_rollback_decision(
+        self,
+        from_stage: str,
+        to_stage: str,
+        reason: str,
+        default_action: str = "rerun_target_stage",
+        **payload,
+    ) -> None:
+        self.run_store.append(
+            "rollback_decision",
+            from_stage=from_stage,
+            to_stage=to_stage,
+            reason=reason,
+            default_action=default_action,
+            **payload,
+        )
+
     def _observe_cost_limits(self, stage_name: str, stage_tokens: int, stage_api_calls: int):
         """观测成本限制：soft_limit 仅警告，hard_limit 触发 _StopWorkflow"""
         cost = self.opc_config.cost
@@ -390,6 +415,12 @@ class HarnessWorkflow:
                 msg = (f"工作流 token 用量 ({total_tokens}) 超过硬上限 "
                        f"({cost.workflow_token_hard_limit})，中止工作流")
                 print(f"[ERROR] {msg}")
+                self._open_circuit_breaker(
+                    "workflow_token_hard_limit",
+                    kind="workflow_token_hard_limit",
+                    current=total_tokens,
+                    limit=cost.workflow_token_hard_limit,
+                )
                 self.run_store.append("cost_hard_limit", kind="workflow_token_hard_limit",
                                      current=total_tokens, limit=cost.workflow_token_hard_limit)
                 raise _StopWorkflow(msg)
@@ -397,6 +428,13 @@ class HarnessWorkflow:
                 msg = (f"角色 {stage_name} token 用量 ({stage_tokens}) 超过硬上限 "
                        f"({cost.role_token_hard_limit})，中止工作流")
                 print(f"[ERROR] {msg}")
+                self._open_circuit_breaker(
+                    "role_token_hard_limit",
+                    kind="role_token_hard_limit",
+                    stage=stage_name,
+                    current=stage_tokens,
+                    limit=cost.role_token_hard_limit,
+                )
                 self.run_store.append("cost_hard_limit", kind="role_token_hard_limit",
                                      stage=stage_name, current=stage_tokens,
                                      limit=cost.role_token_hard_limit)
@@ -604,6 +642,12 @@ class HarnessWorkflow:
             rounds += 1
             if rounds > self.max_rounds:
                 self.state = "已退回"
+                self._open_circuit_breaker(
+                    "max_rounds_exceeded",
+                    stage="workflow",
+                    current_round=rounds,
+                    limit=self.max_rounds,
+                )
                 self.run_store.append("workflow_stopped", reason="max_rounds_exceeded", max_rounds=self.max_rounds)
                 self.save_state()
                 return
@@ -621,6 +665,12 @@ class HarnessWorkflow:
                         self.workflow_state.completed_stages.remove(cur_state_name)
                     if prev_state_name in self.workflow_state.completed_stages:
                         self.workflow_state.completed_stages.remove(prev_state_name)
+                    self._record_rollback_decision(
+                        from_stage=current,
+                        to_stage=prev,
+                        reason="manual_go_back",
+                        default_action="rerun_previous_stage",
+                    )
                     self.save_state()
                     stage_idx -= 1
                     console.print(f"[yellow]退回到上一阶段: {prev}[/yellow]")
@@ -629,6 +679,12 @@ class HarnessWorkflow:
                     cur_state_name = self._stage_to_state_name(current)
                     if cur_state_name in self.workflow_state.completed_stages:
                         self.workflow_state.completed_stages.remove(cur_state_name)
+                    self._record_rollback_decision(
+                        from_stage=current,
+                        to_stage=current,
+                        reason="manual_go_back_at_first_stage",
+                        default_action="rerun_current_stage",
+                    )
                     self.save_state()
                     console.print("[yellow]已经是第一个阶段，将重做当前阶段。[/yellow]")
             except _StopWorkflow:
@@ -1009,6 +1065,15 @@ class HarnessWorkflow:
             self.state = "已退回"
             if "已退回" not in self.workflow_state.completed_stages:
                 self.workflow_state.completed_stages.append("已退回")
+            self._record_rollback_decision(
+                from_stage="qa",
+                to_stage=qa_output.rollback_stage if isinstance(qa_output, QAOutput) and qa_output.rollback_stage else "engineer",
+                reason="qa_failed",
+                default_action="rework",
+                rework_attempts=self.workflow_state.rework_attempts,
+                defects=qa_output.defects if isinstance(qa_output, QAOutput) else [acceptance],
+                failure_root_cause=qa_output.failure_root_cause if isinstance(qa_output, QAOutput) else "",
+            )
             self.run_store.append(
                 "qa_failed",
                 rework_attempts=self.workflow_state.rework_attempts,
@@ -1020,6 +1085,12 @@ class HarnessWorkflow:
             self.save_state()
             if self.workflow_state.rework_attempts > self.max_rework_attempts:
                 console.print("\n[bold red]QA 验收未通过且超过最大返工次数[/]，工作流暂停。")
+                self._open_circuit_breaker(
+                    "max_rework_attempts_exceeded",
+                    stage="qa",
+                    rework_attempts=self.workflow_state.rework_attempts,
+                    limit=self.max_rework_attempts,
+                )
                 raise _StopWorkflow()
             outputs["implementation"] = await self._run_rework(outputs, acceptance)
             # 继续下一轮 QA
@@ -1102,6 +1173,12 @@ class HarnessWorkflow:
             )
             self.workflow_state.stage_logs["_self_repair_attempts"] = (
                 self.workflow_state.stage_logs.get("_self_repair_attempts", 0) + 1
+            )
+            self._open_circuit_breaker(
+                "role_output_validation_failed",
+                stage=role,
+                failure_branch=failure_branch,
+                schema_errors=validation.schema_errors,
             )
             self.run_store.append(
                 "self_repair_attempted",
@@ -1199,24 +1276,70 @@ class HarnessWorkflow:
         """
         if self.auto_confirm:
             console.print(f"[dim]|| {stage} (自动确认)[/dim]")
+            self.run_store.append(
+                "approval_required",
+                stage=stage,
+                mode="auto_confirm",
+                default_action="continue",
+            )
+            self.run_store.append(
+                "approval_decision",
+                stage=stage,
+                decision="y",
+                actor="auto_confirm",
+                result="continued",
+            )
             return "y"
 
         if self.enabled("ceo"):
             # CEO LLM 审查
+            self.run_store.append(
+                "approval_required",
+                stage=stage,
+                mode="ceo_review",
+                default_action="stop_without_approval",
+            )
             console.print(f"\n[bold yellow][CEO][/bold yellow] 正在审查...")
             decision = self.ceo.run(f"审查以下内容并给出决策：\n\n{stage}\n\n{content[:2000]}")
             console.print(Panel(decision, title="CEO 决策", border_style="yellow"))
 
             if "退回" in decision:
                 console.print("[red]CEO 决策：退回，工作流终止[/red]")
+                self.run_store.append(
+                    "approval_decision",
+                    stage=stage,
+                    decision="n",
+                    actor="ceo",
+                    result="stopped",
+                )
                 return "n"
             elif "需要调整" in decision:
                 console.print("[yellow]CEO 建议调整[/yellow]")
+                self.run_store.append(
+                    "approval_decision",
+                    stage=stage,
+                    decision="e",
+                    actor="ceo",
+                    result="needs_prompt_edit",
+                )
                 return self._prompt_review_input(stage, current_prompt)
             else:  # 批准
                 console.print("[green]CEO 决策：批准[/green]")
+                self.run_store.append(
+                    "approval_decision",
+                    stage=stage,
+                    decision="y",
+                    actor="ceo",
+                    result="continued",
+                )
                 return "y"
         else:
+            self.run_store.append(
+                "approval_required",
+                stage=stage,
+                mode="manual_review",
+                default_action="stop_without_approval",
+            )
             return self._prompt_review_input(stage, current_prompt)
 
     def _prompt_review_input(self, stage: str, current_prompt: str = "") -> str:
@@ -1237,8 +1360,22 @@ class HarnessWorkflow:
 
         if response == "n":
             console.print("[yellow]工作流已终止。[/]")
+            self.run_store.append(
+                "approval_decision",
+                stage=stage,
+                decision=response,
+                actor="user",
+                result="stopped",
+            )
         elif response == "r":
             console.print("[yellow]退回到上一阶段重新执行。[/]")
+            self.run_store.append(
+                "approval_decision",
+                stage=stage,
+                decision=response,
+                actor="user",
+                result="rollback_requested",
+            )
         elif response == "e":
             # 显示当前 prompt 供用户参考
             if current_prompt:
@@ -1255,6 +1392,21 @@ class HarnessWorkflow:
             else:
                 self.last_edited_prompt = edited
             console.print("[yellow]将使用编辑后的提示重做当前阶段。[/]")
+            self.run_store.append(
+                "approval_decision",
+                stage=stage,
+                decision=response,
+                actor="user",
+                result="prompt_edited",
+            )
+        else:
+            self.run_store.append(
+                "approval_decision",
+                stage=stage,
+                decision=response,
+                actor="user",
+                result="continued",
+            )
 
         return response
 
