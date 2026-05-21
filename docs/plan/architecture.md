@@ -81,3 +81,24 @@ OPC 的运行记录存放在项目 `artifacts/` 目录，第一版 schema 面向
 | `run_metrics.json` | token、耗时、工具调用、质量指标等聚合结果 | trace 缺少 metrics 时可回退读取该文件 |
 
 当前 schema version 为 `1`。新增字段必须保持向后兼容：旧 trace 缺字段时使用空指标、空事件或未知状态，不阻断 `opc runs list`、`opc trace summary`、`opc trace show` 等只读命令。
+
+## 5. 权限 Profile 与危险操作策略
+
+OPC P6 第一版采用开发友好的默认策略，但危险操作不直接执行：
+
+| Profile | 可见工具权限 | 用途 |
+| --- | --- | --- |
+| `read-only` | `read` | review、诊断、只读 trace inspect |
+| `write` | `read`、`write` | 文档或代码编辑，不允许执行命令 |
+| `execute` | `read`、`write`、`execute` | 默认本地开发闭环，可运行定向测试 |
+| `dangerous` | `read`、`write`、`execute` | 仅表示允许声明高风险意图，危险命令仍受策略控制 |
+
+危险命令策略通过 `dangerous_command_policy` 表达：
+
+| 策略 | 行为 |
+| --- | --- |
+| `deny` | 默认策略，直接返回 `guardrail_blocked` |
+| `approval` | 返回 `approval_required`，不继续执行 |
+| `audit` | 记录 `guardrail_warning` 后允许继续执行 |
+
+危险命令包括 `git push --force`、`git reset --hard`、`git clean -f`、`npm publish` 等模式。发布、强推、删除、外部影响动作默认应保持 deny 或 approval，不作为普通 execute 工具直接运行。

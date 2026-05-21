@@ -1,7 +1,7 @@
 """测试工具注册协议。"""
 
 from opc.agent import TOOLS_READ_ONLY, TOOLS_READ_WRITE, Agent
-from opc.tools import list_tool_definitions, list_tool_schemas
+from opc.tools import list_tool_definitions, list_tool_schemas, list_tool_schemas_for_profile
 
 
 def test_tool_registry_definitions_include_protocol_fields():
@@ -34,13 +34,13 @@ def test_read_only_tools_are_derived_from_permissions():
     assert read_only_names.isdisjoint(write_or_execute_names)
 
 
-def test_dangerous_params_detected_in_run_command(tmp_path):
+def test_dangerous_params_denied_by_default_in_run_command(tmp_path):
     from pathlib import Path
 
     agent = Agent(role="test", system_prompt="test", tools=TOOLS_READ_WRITE, project_dir=tmp_path)
 
     result = agent._tool_run_command("git push --force origin main")
-    assert "[WARNING]" in result
+    assert "[guardrail_blocked]" in result
     assert "push --force" in result
 
 
@@ -81,6 +81,45 @@ def test_dangerous_command_writes_audit_log(tmp_path):
 
     assert len(agent.audit_log) == 1
     entry = agent.audit_log[0]
-    assert entry["event"] == "dangerous_command"
+    assert entry["event"] == "guardrail_blocked"
     assert "push --force" in entry["matched_patterns"]
     assert entry["role"] == "test"
+
+
+def test_permission_profiles_filter_tool_visibility():
+    read_names = {tool["name"] for tool in list_tool_schemas_for_profile("read-only")}
+    write_names = {tool["name"] for tool in list_tool_schemas_for_profile("write")}
+    execute_names = {tool["name"] for tool in list_tool_schemas_for_profile("execute")}
+
+    assert "read_file" in read_names
+    assert "write_file" not in read_names
+    assert "write_file" in write_names
+    assert "run_command" not in write_names
+    assert "run_command" in execute_names
+
+
+def test_permission_profile_blocks_disallowed_tool(tmp_path):
+    agent = Agent(
+        role="test",
+        system_prompt="test",
+        tools=TOOLS_READ_WRITE,
+        project_dir=tmp_path,
+        permission_profile="read-only",
+    )
+
+    result = agent._execute_tool("write_file", {"path": "x.txt", "content": "x"})
+    assert "[guardrail_blocked]" in result
+    assert not (tmp_path / "x.txt").exists()
+
+
+def test_dangerous_command_can_require_approval(tmp_path):
+    agent = Agent(
+        role="test",
+        system_prompt="test",
+        tools=TOOLS_READ_WRITE,
+        project_dir=tmp_path,
+        dangerous_command_policy="approval",
+    )
+
+    result = agent._tool_run_command("git push --force origin main")
+    assert "[approval_required]" in result

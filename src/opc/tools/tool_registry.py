@@ -102,6 +102,13 @@ def list_tool_schemas(
     return [definition.to_schema() for definition in _filter_definitions(names, permissions)]
 
 
+def list_tool_schemas_for_profile(profile: str) -> list[dict]:
+    from ..security.guardrail import GuardrailPolicy, normalize_permission_profile
+
+    policy = GuardrailPolicy(profile=normalize_permission_profile(profile))
+    return list_tool_schemas(permissions=policy.allowed_permissions())
+
+
 def list_tool_definitions(
     names: set[str] | None = None,
     permissions: set[ToolPermission] | None = None,

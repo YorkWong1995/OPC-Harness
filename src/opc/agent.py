@@ -11,6 +11,7 @@ import anthropic
 
 from .rag import SimpleRAG, create_rag_for_project
 from .schema import Message, MessageQueue
+from .security.guardrail import GuardrailPolicy, normalize_permission_profile
 from .security.path_validator import check_workspace_boundary, resolve_safe_path
 from .tools.build_tools import BuildToolsMixin
 from .tools.command_tools import CommandToolsMixin
@@ -52,6 +53,8 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
         max_tool_rounds: int | None = None,
         run_store: "RunStore | None" = None,
         retry_mode: str | None = None,
+        permission_profile: str = "execute",
+        dangerous_command_policy: str = "deny",
     ):
         self.role = role
         self.system_prompt = system_prompt
@@ -66,6 +69,10 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
             max_tool_rounds = int(os.environ.get("OPC_MAX_TOOL_ROUNDS", "15"))
         self.max_tool_rounds = max_tool_rounds
         self.run_store = run_store
+        self.guardrail_policy = GuardrailPolicy(
+            profile=normalize_permission_profile(permission_profile),
+            dangerous_command_policy=dangerous_command_policy,
+        )
         # 重试模式：interactive (10s) / batch (1800s)；默认 interactive
         mode = retry_mode or os.environ.get("OPC_RETRY_MODE", "interactive")
         self.retry_mode = mode if mode in RETRY_BASE_DELAYS else "interactive"
@@ -274,6 +281,31 @@ class Agent(FileToolsMixin, KnowledgeToolsMixin, GitToolsMixin, BuildToolsMixin,
             handler = getattr(self, definition.handler_name)
         else:
             handler = definition.handler
+
+        decision = self.guardrail_policy.check_tool(definition, inputs)
+        if not decision.allowed:
+            event_name = "approval_required" if decision.action == "approval" else "guardrail_blocked"
+            message = f"[{event_name}] {decision.reason}"
+            if decision.matched_patterns:
+                message += f": {', '.join(decision.matched_patterns)}"
+            self.audit_log.append({
+                "event": event_name,
+                "tool_name": name,
+                "reason": decision.reason,
+                "matched_patterns": decision.matched_patterns,
+                "role": self.role,
+            })
+            if self.run_store is not None:
+                self.run_store.append(event_name, role=self.role, tool_name=name, reason=decision.reason, matched_patterns=decision.matched_patterns)
+            return message
+        if decision.action == "audit":
+            self.audit_log.append({
+                "event": "guardrail_warning",
+                "tool_name": name,
+                "reason": decision.reason,
+                "matched_patterns": decision.matched_patterns,
+                "role": self.role,
+            })
 
         # 日志：工具调用开始
         print(f"[DEBUG][{self.role}] 执行工具: {name}")

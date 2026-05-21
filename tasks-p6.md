@@ -22,7 +22,7 @@
 
 ## 4. 权限治理与插件生态
 
-- [ ] 增加权限 profile 与危险操作审批策略 <!-- files: src/opc/config.py, src/opc/tools/, src/opc/security/, docs/plan/architecture.md, tests/ --> <!-- context: 责任角色=Ops/Architect；输入=ToolDefinition.permission、command whitelist、dangerous command audit、SecurityConfig；输出=read-only/write/execute/dangerous profile 与 per-role tool grants；依赖关系=无；完成标准=默认 profile 不允许危险命令直接执行，危险命令可配置为 deny/approval/audit，测试覆盖各 profile 的工具可见性和拒绝路径 --> <!-- review: 工业安全边界，需确认默认策略 -->
+- [x] 增加权限 profile 与危险操作审批策略 <!-- files: src/opc/config.py, src/opc/tools/, src/opc/security/, docs/plan/architecture.md, tests/ --> <!-- context: 责任角色=Ops/Architect；输入=ToolDefinition.permission、command whitelist、dangerous command audit、SecurityConfig；输出=read-only/write/execute/dangerous profile 与 per-role tool grants；依赖关系=无；完成标准=默认 profile 不允许危险命令直接执行，危险命令可配置为 deny/approval/audit，测试覆盖各 profile 的工具可见性和拒绝路径 --> <!-- review: 工业安全边界，需确认默认策略 -->
 - [ ] 增加插件与 MCP 接入安全契约 <!-- files: src/opc/tools/tool_registry.py, docs/plan/architecture.md, examples/opc_plugins/, tests/ --> <!-- context: 责任角色=Architect/Engineer；输入=load_plugin_tools、ToolDefinition 字段、DeerFlow MCP/tool 配置模式；输出=插件 manifest、权限声明、禁用默认策略、最小 sample plugin、MCP roadmap；依赖关系=依赖权限 profile 任务；完成标准=未声明权限的插件不加载，样例插件可被发现并显示审计信息，文档说明 MCP 何时接入及边界 --> <!-- order: 依赖权限 profile 完成 -->
 
 ## 5. Harness 分层对齐与上下文治理

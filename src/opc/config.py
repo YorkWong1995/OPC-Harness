@@ -73,6 +73,8 @@ class SecurityConfig:
     ])
     audit_dangerous_commands: bool = True
     block_env_file_write: bool = True
+    permission_profile: str = "execute"
+    dangerous_command_policy: str = "deny"
 
 
 @dataclass
@@ -182,6 +184,8 @@ def load_project_config(
                 command_whitelist=security.get("command_whitelist", SecurityConfig().command_whitelist),
                 audit_dangerous_commands=bool(security.get("audit_dangerous_commands", True)),
                 block_env_file_write=bool(security.get("block_env_file_write", True)),
+                permission_profile=str(security.get("permission_profile", "execute")),
+                dangerous_command_policy=str(security.get("dangerous_command_policy", "deny")),
             ),
             memory=MemoryConfig(
                 enable_rag=bool(memory.get("enable_rag", True)),
@@ -224,6 +228,10 @@ def _apply_env_overrides(config: OPCConfig) -> None:
         config.tools.max_retries = int(val)
     if val := os.environ.get("OPC_TOOL_TIMEOUT"):
         config.tools.default_timeout_seconds = int(val)
+    if val := os.environ.get("OPC_PERMISSION_PROFILE"):
+        config.security.permission_profile = val
+    if val := os.environ.get("OPC_DANGEROUS_COMMAND_POLICY"):
+        config.security.dangerous_command_policy = val
 
 
 def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
@@ -255,6 +263,10 @@ def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
         config.tools.max_retries = int(overrides["tool_max_retries"])
     if "tool_timeout" in overrides:
         config.tools.default_timeout_seconds = int(overrides["tool_timeout"])
+    if "permission_profile" in overrides:
+        config.security.permission_profile = str(overrides["permission_profile"])
+    if "dangerous_command_policy" in overrides:
+        config.security.dangerous_command_policy = str(overrides["dangerous_command_policy"])
 
 
 def load_workflow_config(project_dir: Path, profile: str | None = None) -> WorkflowConfig:

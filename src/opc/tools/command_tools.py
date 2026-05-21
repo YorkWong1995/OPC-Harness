@@ -24,7 +24,9 @@ class CommandToolsMixin:
         if cmd_name not in COMMAND_WHITELIST:
             return f"错误：命令 '{cmd_name}' 不在白名单中，允许的命令：{', '.join(sorted(COMMAND_WHITELIST))}"
 
-        danger_warning = self._check_dangerous_params(cmd_name, command)
+        danger_decision = self._check_dangerous_params(cmd_name, command)
+        if danger_decision and danger_decision.startswith("["):
+            return danger_decision
         workspace_violation = self._check_workspace_boundary(parts[1:])
         if workspace_violation:
             return workspace_violation
@@ -36,8 +38,8 @@ class CommandToolsMixin:
             asyncio.set_event_loop(loop)
             try:
                 output = loop.run_until_complete(self._run_command_async(command, timeout))
-                if danger_warning:
-                    output = f"[WARNING] {danger_warning}\n{output}"
+                if danger_decision:
+                    output = f"[WARNING] {danger_decision}\n{output}"
                 return output
             finally:
                 loop.close()
@@ -79,12 +81,20 @@ class CommandToolsMixin:
         matched = match_dangerous_params(cmd_name, full_command)
         if not matched:
             return None
+        policy = getattr(self, "guardrail_policy", None)
+        if policy is not None:
+            action = policy.dangerous_command_policy
+            event_name = "guardrail_warning" if action == "audit" else "approval_required" if action == "approval" else "guardrail_blocked"
+            reason = "dangerous command audited" if action == "audit" else "dangerous command requires approval" if action == "approval" else "dangerous command denied"
+            self.audit_log.append({
+                "event": event_name,
+                "role": self.role,
+                "command": full_command,
+                "matched_patterns": matched,
+                "reason": reason,
+            })
+            if action != "audit":
+                return f"[{event_name}] {reason}: {', '.join(matched)}"
         warning = f"检测到危险参数: {', '.join(matched)}"
         print(f"[AUDIT][{self.role}] {warning} | 命令: {full_command}")
-        self.audit_log.append({
-            "event": "dangerous_command",
-            "role": self.role,
-            "command": full_command,
-            "matched_patterns": matched,
-        })
         return warning
