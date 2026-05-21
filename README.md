@@ -271,6 +271,14 @@ block_env_file_write = true
 
 持久后台服务、集中审计、多用户审批、远端 trace 聚合、托管数据库、备份恢复和升级回滚属于后续 server/control plane 设计范围，暂不作为 v1 可用能力承诺。
 
+### 合规与数据边界
+
+- API Key、token、密码等密钥只能通过环境变量或 secret provider 注入，禁止写入 `opc.toml`、memory、artifact 或版本控制文件。
+- 客户代码、RAG 索引、run trace、tool audit 和 artifacts 默认保存在本机目录，不默认上传到 OPC 服务端。
+- 调用模型、插件、MCP 或外部工具时，相关上下文可能进入外部处理链路；这类动作必须受 permission profile、manifest 和 guardrail 策略约束。
+- 长期 memory 只应保存经确认的用户偏好、项目决策和外部引用；凭证、临时调试内容和一次性 run 状态默认不写入长期 memory。
+- 删除边界：P6 可通过删除本地 workspace/artifacts/index 文件清理副本；细粒度 memory 删除、审计保留期和导出策略属于 P7 治理任务。
+
 ## 开发指南
 
 ### 添加新角色
