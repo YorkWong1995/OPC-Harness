@@ -6,12 +6,35 @@
 3. 工作记忆和长期记忆的区分
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Literal, List, Optional, Set, Dict
 from .schema import Message
 
 MemoryScope = Literal["user", "project", "workflow", "run", "artifact"]
+MemoryWriteAction = Literal["write", "review", "reject", "delete", "supersede"]
+
+SENSITIVE_MEMORY_PATTERNS = [
+    "api_key",
+    "apikey",
+    "anthropic_api_key",
+    "secret",
+    "password",
+    "token=",
+    "bearer ",
+    "private key",
+    "-----begin",
+    ".env",
+]
+EPHEMERAL_MEMORY_MARKERS = ["临时", "temporary", "debug", "调试", "stacktrace", "traceback", "run state"]
+
+
+@dataclass(frozen=True)
+class MemoryWriteDecision:
+    action: MemoryWriteAction
+    reason: str
+    record: "MemoryRecord | None" = None
+    audit_event: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -50,6 +73,79 @@ def can_promote_to_long_term(record: MemoryRecord, confirmed: bool = False) -> b
     if record.scope in EPHEMERAL_SCOPES:
         return False
     return confirmed and bool(record.source)
+
+
+def _memory_audit_event(action: MemoryWriteAction, reason: str, record: MemoryRecord | None = None) -> dict[str, str]:
+    event = {"type": "memory_write_policy", "action": action, "reason": reason}
+    if record is not None:
+        event.update({"scope": record.scope, "source": record.source})
+    return event
+
+
+def detect_sensitive_memory_content(content: str) -> list[str]:
+    lowered = content.lower()
+    return [pattern for pattern in SENSITIVE_MEMORY_PATTERNS if pattern in lowered]
+
+
+def evaluate_memory_write(record: MemoryRecord, confirmed: bool = False) -> MemoryWriteDecision:
+    matched = detect_sensitive_memory_content(record.content)
+    if matched:
+        reason = "sensitive_content_rejected"
+        return MemoryWriteDecision("reject", reason, audit_event=_memory_audit_event("reject", reason, record))
+    lowered = record.content.lower()
+    if any(marker in lowered for marker in EPHEMERAL_MEMORY_MARKERS):
+        reason = "ephemeral_content_rejected"
+        return MemoryWriteDecision("reject", reason, audit_event=_memory_audit_event("reject", reason, record))
+    if record.scope in EPHEMERAL_SCOPES:
+        reason = "ephemeral_scope_rejected"
+        return MemoryWriteDecision("reject", reason, audit_event=_memory_audit_event("reject", reason, record))
+    if not record.source:
+        reason = "missing_source_rejected"
+        return MemoryWriteDecision("reject", reason, audit_event=_memory_audit_event("reject", reason, record))
+    if requires_write_review(record) and not confirmed:
+        reason = "long_term_memory_requires_confirmation"
+        return MemoryWriteDecision("review", reason, record, _memory_audit_event("review", reason, record))
+    reason = "memory_write_allowed"
+    return MemoryWriteDecision("write", reason, record, _memory_audit_event("write", reason, record))
+
+
+def write_memory_record(records: list[MemoryRecord], record: MemoryRecord, confirmed: bool = False) -> tuple[list[MemoryRecord], MemoryWriteDecision]:
+    decision = evaluate_memory_write(record, confirmed=confirmed)
+    if decision.action != "write":
+        return records, decision
+    return [*records, record], decision
+
+
+def delete_memory_record(records: list[MemoryRecord], index: int, confirmed: bool = False) -> tuple[list[MemoryRecord], MemoryWriteDecision]:
+    if index < 0 or index >= len(records):
+        reason = "memory_not_found"
+        return records, MemoryWriteDecision("reject", reason, audit_event=_memory_audit_event("reject", reason))
+    record = records[index]
+    if not confirmed:
+        reason = "memory_delete_requires_confirmation"
+        return records, MemoryWriteDecision("review", reason, record, _memory_audit_event("review", reason, record))
+    reason = "memory_deleted"
+    return [*records[:index], *records[index + 1:]], MemoryWriteDecision("delete", reason, record, _memory_audit_event("delete", reason, record))
+
+
+def supersede_memory_record(
+    records: list[MemoryRecord],
+    index: int,
+    replacement: MemoryRecord,
+    confirmed: bool = False,
+) -> tuple[list[MemoryRecord], MemoryWriteDecision]:
+    if index < 0 or index >= len(records):
+        reason = "memory_not_found"
+        return records, MemoryWriteDecision("reject", reason, audit_event=_memory_audit_event("reject", reason))
+    write_decision = evaluate_memory_write(replacement, confirmed=confirmed)
+    if write_decision.action != "write":
+        return records, write_decision
+    memory_id = f"memory:{len(records)}"
+    updated = [*records]
+    updated[index] = replace(records[index], superseded_by=memory_id, updated_at=datetime.now(timezone.utc).isoformat())
+    updated.append(replacement)
+    reason = "memory_superseded"
+    return updated, MemoryWriteDecision("supersede", reason, replacement, _memory_audit_event("supersede", reason, replacement))
 
 
 def select_memory_for_context(

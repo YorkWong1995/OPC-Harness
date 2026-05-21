@@ -10,9 +10,14 @@ from opc.memory import (
     Memory,
     MemoryRecord,
     WorkingMemory,
+    delete_memory_record,
+    detect_sensitive_memory_content,
+    evaluate_memory_write,
     can_promote_to_long_term,
     requires_write_review,
     select_memory_for_context,
+    supersede_memory_record,
+    write_memory_record,
 )
 
 
@@ -182,3 +187,47 @@ def test_memory_record_expiration_and_write_review_policy():
     assert can_promote_to_long_term(expired, confirmed=True)
     assert not can_promote_to_long_term(run_state, confirmed=True)
     assert not requires_write_review(run_state)
+
+
+
+
+def test_memory_write_policy_rejects_sensitive_and_ephemeral_content():
+    secret = MemoryRecord(content="ANTHROPIC_API_KEY=secret", scope="project", source="manual")
+    temporary = MemoryRecord(content="临时 debug 结论", scope="project", source="trace")
+    run_state = MemoryRecord(content="长期偏好", scope="run", source="run_trace")
+
+    assert detect_sensitive_memory_content(secret.content) == ["api_key", "anthropic_api_key", "secret"]
+    assert evaluate_memory_write(secret).action == "reject"
+    assert evaluate_memory_write(temporary).reason == "ephemeral_content_rejected"
+    assert evaluate_memory_write(run_state).reason == "ephemeral_scope_rejected"
+
+
+def test_memory_write_policy_requires_review_before_long_term_write():
+    record = MemoryRecord(content="用户偏好：使用定向测试", scope="user", source="manual")
+
+    records, review = write_memory_record([], record, confirmed=False)
+    written, decision = write_memory_record([], record, confirmed=True)
+
+    assert records == []
+    assert review.action == "review"
+    assert review.audit_event["reason"] == "long_term_memory_requires_confirmation"
+    assert written == [record]
+    assert decision.action == "write"
+    assert decision.audit_event["scope"] == "user"
+
+
+def test_memory_delete_and_supersede_require_confirmed_paths():
+    original = MemoryRecord(content="旧项目决策", scope="project", source="manual")
+    replacement = MemoryRecord(content="新项目决策", scope="project", source="manual")
+
+    unchanged, delete_review = delete_memory_record([original], 0, confirmed=False)
+    deleted, delete_decision = delete_memory_record([original], 0, confirmed=True)
+    superseded, supersede_decision = supersede_memory_record([original], 0, replacement, confirmed=True)
+
+    assert unchanged == [original]
+    assert delete_review.action == "review"
+    assert deleted == []
+    assert delete_decision.action == "delete"
+    assert superseded[0].superseded_by == "memory:1"
+    assert superseded[1] == replacement
+    assert supersede_decision.action == "supersede"

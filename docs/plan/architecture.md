@@ -201,4 +201,6 @@ Memory 与 RAG、Session、Checkpoint、Artifact 分工不同：RAG 定位当前
 
 Memory 检索注入策略：按任务、角色和 scope 只选择未过期的 `user/project/workflow` 长期事实；`run/artifact` scope 只能作为 trace 或证据引用，不作为 prompt memory 注入。注入时必须写入 `context_sources`，包含 memory id、scope、role、status 和 reason；如果 memory 与当前 workspace 文件事实、stage summary 或 ContextPack facts 冲突，当前事实优先，memory 标记为 `conflict_current_fact` 后不注入。Memory 不允许全量注入 prompt，也不能绕过 `ROLE_CONTEXT_SECTIONS` 的角色可见字段。
 
+Memory 写入审核与安全边界：长期 `user/project/workflow` memory 写入默认返回 `review`，只有确认后才允许 `write`；`run/artifact`、凭证、`.env`、API key、token、password、private key、临时调试状态和 trace 片段默认 `reject`，不提升为长期 memory。删除和 supersede 也必须走确认路径，并产生 `memory_write_policy` 审计事件，记录 action、reason、scope 与 source；旧 memory 被替代时必须写入 `superseded_by`，而不是静默覆盖。
+
 默认原则：当前 workspace 文件事实优先；凭证、临时调试内容、无来源长历史全文和未授权外部数据不得进入长期 memory；任何外部工具、插件或 MCP 出域动作都必须能在 trace/audit 中定位来源和权限原因。

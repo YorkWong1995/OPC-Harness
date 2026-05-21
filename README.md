@@ -110,6 +110,10 @@ opc trace inspect --artifacts-dir workspace/demo-login/artifacts
 
 `opc trace inspect` 的目标是从已有 trace/state/metrics/artifacts 重建阶段时间线、失败点、审批/回退/熔断决策、工具调用和产物路径；第一版只定义只读能力边界，具体 CLI 实现按后续任务落地。
 
+### Memory 写入边界
+
+OPC 的长期 memory 仅用于保存经过确认、可跨任务复用的用户偏好、项目决策和 workflow 经验。用户偏好、项目决策、安全策略、外部引用等长期 memory 写入前必须有可审计确认；凭证、`.env`、API key、token、password、private key、临时调试内容、run 状态和 trace 片段默认不写入长期 memory。删除或替代旧 memory 也必须走确认路径，并通过审计事件记录 action、reason、scope 和 source。
+
 ### Golden Run Walkthrough
 
 可复现样例见 [docs/runs/golden_run_walkthrough.md](docs/runs/golden_run_walkthrough.md)，覆盖安装、运行、trace 查看、验收标准和失败排查。
