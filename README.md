@@ -47,11 +47,25 @@ pip install -e .[bge]
 # 配置环境变量
 cp .env.example .env
 # 编辑 .env 文件，填入你的 ANTHROPIC_API_KEY
+
+# 初始化项目配置并检查本地环境
+opc init
+opc doctor
+opc config validate
 ```
 
 ### 基础使用
 
 ```bash
+# 初始化当前目录的 opc.toml
+opc init
+
+# 检查 API key、opc.toml、workspace、索引目录与可用命令状态
+opc doctor
+
+# 校验 opc.toml 中的 role/profile 等配置
+opc config validate
+
 # 在当前目录运行最小 harness 工作流
 opc run "帮我设计一个用户登录功能"
 
@@ -209,6 +223,11 @@ ANTHROPIC_API_KEY=your_api_key_here
 > **安全规则**：API Key 等敏感信息只能通过环境变量或 secret provider 注入。禁止将敏感信息写入 opc.toml 或任何版本控制文件。OPC 运行时会阻止对 .env 文件的写入操作。
 
 ### OPC 配置（opc.example.toml）
+
+```bash
+opc init
+opc config validate
+```
 
 ```toml
 [model]

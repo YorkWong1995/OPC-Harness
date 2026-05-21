@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from opc.config import load_project_config
+from opc.config import load_project_config, validate_project_config
 
 
 def test_default_config_without_toml(tmp_path: Path):
@@ -36,7 +36,6 @@ def test_cli_overrides_env(tmp_path: Path, monkeypatch):
     config = load_project_config(tmp_path, cli_overrides={"max_rounds": 99})
     assert config.workflow.max_rounds == 99
 
-
 def test_runtime_overrides_cli(tmp_path: Path):
     config = load_project_config(
         tmp_path,
@@ -44,3 +43,25 @@ def test_runtime_overrides_cli(tmp_path: Path):
         runtime_overrides={"max_rounds": 3},
     )
     assert config.workflow.max_rounds == 3
+
+
+def test_validate_project_config_accepts_example(tmp_path: Path):
+    example = Path(__file__).resolve().parent.parent / "opc.example.toml"
+    (tmp_path / "opc.toml").write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+    issues = validate_project_config(tmp_path)
+    assert issues == []
+
+
+def test_validate_project_config_rejects_unknown_role(tmp_path: Path):
+    (tmp_path / "opc.toml").write_text("[workflow]\nroles = ['engineer']\n", encoding="utf-8")
+    issues = validate_project_config(tmp_path)
+    assert len(issues) == 1
+    assert issues[0].level == "error"
+    assert "未知 OPC 角色" in issues[0].message
+
+
+def test_validate_project_config_rejects_unknown_profile(tmp_path: Path):
+    (tmp_path / "opc.toml").write_text("[workflow]\nprofile = 'missing'\n", encoding="utf-8")
+    issues = validate_project_config(tmp_path)
+    assert len(issues) == 1
+    assert issues[0].location == "workflow.profile"

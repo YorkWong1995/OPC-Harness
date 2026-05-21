@@ -157,6 +157,27 @@ def test_ui_command_launches_streamlit():
     assert "8600" in args
 
 
+def test_config_validate_success(tmp_path: Path):
+    (tmp_path / "opc.toml").write_text("[workflow]\nroles = ['architect']\n", encoding="utf-8")
+    _call_main_with_args(["config", "validate", "--project-dir", str(tmp_path)])
+
+
+def test_config_validate_failure_exits(tmp_path: Path):
+    (tmp_path / "opc.toml").write_text("[workflow]\nroles = ['engineer']\n", encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        _call_main_with_args(["config", "validate", "--project-dir", str(tmp_path)])
+    assert exc.value.code == 1
+
+
+def test_init_creates_opc_toml(tmp_path: Path):
+    _call_main_with_args(["init", "--project-dir", str(tmp_path)])
+    assert (tmp_path / "opc.toml").exists()
+
+
+def test_doctor_runs_without_config(tmp_path: Path):
+    _call_main_with_args(["doctor", "--project-dir", str(tmp_path)])
+
+
 # ---------------------------------------------------------------------------
 # opc index / query 冒烟测试
 # ---------------------------------------------------------------------------

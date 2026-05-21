@@ -22,6 +22,13 @@ ALL_OPTIONAL_ROLES = {"ceo", "architect", "ops", "growth"}
 
 
 @dataclass
+class ConfigIssue:
+    level: str
+    message: str
+    location: str
+
+
+@dataclass
 class WorkflowConfig:
     roles: set[str] = field(default_factory=lambda: {"architect"})
     ceo_review: bool = False
@@ -84,6 +91,52 @@ class OPCConfig:
     cost: CostConfig = field(default_factory=CostConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
+
+
+def validate_project_config(project_dir: Path, profile: str | None = None) -> list[ConfigIssue]:
+    config_path = project_dir.resolve() / "opc.toml"
+    if not config_path.exists():
+        return [ConfigIssue("error", "未找到 opc.toml", str(config_path))]
+
+    issues: list[ConfigIssue] = []
+    try:
+        data = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as exc:
+        return [ConfigIssue("error", f"TOML 解析失败: {exc}", str(config_path))]
+
+    workflow = data.get("workflow", {})
+    active_profile = profile or workflow.get("profile", "default")
+    profiles = data.get("profile", {})
+    if active_profile != "default" and active_profile not in profiles:
+        issues.append(ConfigIssue("error", f"未知 profile: {active_profile}", "workflow.profile"))
+
+    _collect_role_issues(set(str(role).strip().lower() for role in workflow.get("roles", []) if str(role).strip()), "workflow.roles", issues)
+    _collect_role_issues({str(role).strip().lower() for role in data.get("roles", {})}, "roles", issues)
+
+    for profile_name, profile_data in profiles.items():
+        if not isinstance(profile_data, dict):
+            issues.append(ConfigIssue("error", f"profile 必须是表: {profile_name}", f"profile.{profile_name}"))
+            continue
+        profile_workflow = profile_data.get("workflow", {})
+        profile_roles = profile_data.get("roles", {})
+        _collect_role_issues(set(str(role).strip().lower() for role in profile_workflow.get("roles", []) if str(role).strip()), f"profile.{profile_name}.workflow.roles", issues)
+        _collect_role_issues({str(role).strip().lower() for role in profile_roles}, f"profile.{profile_name}.roles", issues)
+
+    if not issues:
+        try:
+            load_project_config(project_dir, profile=profile)
+        except (TypeError, ValueError) as exc:
+            issues.append(ConfigIssue("error", str(exc), str(config_path)))
+
+    return issues
+
+
+def _collect_role_issues(roles: set[str], location: str, issues: list[ConfigIssue]) -> None:
+    unknown = roles - OPTIONAL_ROLES
+    if unknown:
+        allowed = ", ".join(sorted(OPTIONAL_ROLES))
+        invalid = ", ".join(sorted(unknown))
+        issues.append(ConfigIssue("error", f"未知 OPC 角色：{invalid}。允许的角色：{allowed}", location))
 
 
 def load_project_config(

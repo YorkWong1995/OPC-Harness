@@ -22,8 +22,8 @@ ceo = false
 ops = false
 growth = false
 
-# embedded profile: 启用 embedded_engineer 并跳过 architect 阶段
+# embedded profile: 保持最小 PM → Engineer → QA 主链路并跳过 architect 阶段
 # 使用方式: opc run --profile embedded
 [profile.embedded]
-[profile.embedded.workflow]
-roles = ["engineer"]
+[profile.embedded.roles]
+architect = false

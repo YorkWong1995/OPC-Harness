@@ -14,7 +14,12 @@ from rich.table import Table
 
 from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
-from .config import load_workflow_config, normalize_roles, ALL_OPTIONAL_ROLES
+from .config import (
+    ALL_OPTIONAL_ROLES,
+    load_workflow_config,
+    normalize_roles,
+    validate_project_config,
+)
 
 console = Console()
 
@@ -150,6 +155,23 @@ def main():
     del_parser = subparsers.add_parser("index-delete", help="删除索引")
     del_parser.add_argument("--name", required=True, help="索引名称")
 
+    # ---- opc config validate ----
+    config_parser = subparsers.add_parser("config", help="管理 OPC 配置")
+    config_subparsers = config_parser.add_subparsers(dest="config_command")
+    config_validate_parser = config_subparsers.add_parser("validate", help="校验 opc.toml")
+    config_validate_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    config_validate_parser.add_argument("--profile", default=None, help="指定要校验的 profile")
+
+    # ---- opc init ----
+    init_parser = subparsers.add_parser("init", help="初始化 opc.toml")
+    init_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    init_parser.add_argument("--force", action="store_true", help="覆盖已有 opc.toml")
+
+    # ---- opc doctor ----
+    doctor_parser = subparsers.add_parser("doctor", help="检查 OPC 本地使用环境")
+    doctor_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    doctor_parser.add_argument("--profile", default=None, help="指定要检查的 profile")
+
     # ---- opc ui ----
     ui_parser = subparsers.add_parser("ui", help="启动 Streamlit 可视化控制台")
     ui_parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认 127.0.0.1）")
@@ -171,6 +193,12 @@ def main():
         _run_index_list(args)
     elif args.command == "index-delete":
         _run_index_delete(args)
+    elif args.command == "config":
+        _run_config(args)
+    elif args.command == "init":
+        _run_init(args)
+    elif args.command == "doctor":
+        _run_doctor(args)
     elif args.command == "ui":
         _run_ui(args)
     else:
@@ -522,7 +550,67 @@ def _run_index_delete(args):
     console.print(f"[green]索引 '{args.name}' 已删除[/green]")
 
 
+# ---- opc init / doctor / config ----
+
+
+def _run_config(args):
+    if args.config_command != "validate":
+        console.print("[yellow]请使用 opc config validate[/yellow]")
+        return
+
+    project_dir = Path(args.project_dir)
+    issues = validate_project_config(project_dir, profile=args.profile)
+    if issues:
+        table = Table(title="配置校验失败")
+        table.add_column("级别", style="red")
+        table.add_column("位置")
+        table.add_column("问题")
+        for issue in issues:
+            table.add_row(issue.level, issue.location, issue.message)
+        console.print(table)
+        raise SystemExit(1)
+
+    console.print(f"[green]配置有效:[/green] {project_dir.resolve() / 'opc.toml'}")
+
+
+def _run_init(args):
+    project_dir = Path(args.project_dir)
+    project_dir.mkdir(parents=True, exist_ok=True)
+    target = project_dir / "opc.toml"
+    if target.exists() and not args.force:
+        console.print(f"[yellow]opc.toml 已存在:[/yellow] {target}")
+        return
+
+    example = Path(__file__).resolve().parent.parent.parent / "opc.example.toml"
+    target.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+    console.print(f"[green]已创建 opc.toml:[/green] {target}")
+
+
+def _run_doctor(args):
+    project_dir = Path(args.project_dir)
+    workspace_root = _get_workspace_root()
+    config_path = project_dir / "opc.toml"
+    api_key_present = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    issues = validate_project_config(project_dir, profile=args.profile) if config_path.exists() else []
+
+    table = Table(title="OPC Doctor")
+    table.add_column("检查项")
+    table.add_column("状态")
+    table.add_column("详情")
+    table.add_row("API key", "ok" if api_key_present else "missing", "ANTHROPIC_API_KEY" if api_key_present else "请在环境变量或 .env 中设置 ANTHROPIC_API_KEY")
+    table.add_row("opc.toml", "ok" if config_path.exists() else "missing", str(config_path.resolve()))
+    table.add_row("config validate", "ok" if not issues else "failed", "; ".join(issue.message for issue in issues) if issues else "配置可读取")
+    table.add_row("workspace", "ok" if workspace_root.exists() else "missing", str(workspace_root))
+    table.add_row("index root", "ok", str(_get_index_root("<name>").parent))
+    table.add_row("commands", "ok", "run, resume, init, doctor, config validate, index, query, task, ui")
+    console.print(table)
+
+    if issues:
+        raise SystemExit(1)
+
+
 # ---- opc ui ----
+
 
 def _run_ui(args):
     streamlit = shutil.which("streamlit")
