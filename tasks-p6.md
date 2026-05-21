@@ -29,7 +29,7 @@
 
 - [x] 建立 OPC Harness L1-L6 能力矩阵 <!-- files: docs/plan/architecture.md, README.md, tasks-p6.md --> <!-- context: 责任角色=Architect/PM；输入=当前 L1 信息边界、L2 工具系统、L3 执行编排、L4 记忆与状态、L5 评估与观测、L6 约束校验与恢复分层，以及 DeerFlow 的 runtime/middleware/memory/sandbox/skills 使用方式；输出=OPC 当前能力、已有证据、短板、P6 对应任务的矩阵；依赖关系=无；完成标准=矩阵能说明 OPC 哪些层已具备、哪些只需产品化、哪些暂不做，避免盲目复制 DeerFlow 的 super agent 宽度 --> <!-- auto: 文档归纳，不引入新功能 -->
 - [x] 补充信息边界与上下文治理契约 <!-- files: docs/plan/architecture.md, docs/knowledge-retrieval-design.md, src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Architect/QA；输入=现有 ROLE_CONTEXT_SECTIONS、RAG 检索、角色 schema、memory 边界规则，以及 DeerFlow context engineering / summarization / memory post-run 思路；输出=每类角色可见上下文、禁止注入内容、RAG 来源标注、memory 使用前验证规则；依赖关系=无；完成标准=文档明确 L1 信息边界，测试或轻量检查覆盖角色上下文 allowlist、RAG source attribution、memory 不覆盖当前文件事实 --> <!-- review: 需要确认上下文边界粒度 -->
-- [ ] 定义 thread / session / run 的使用边界 <!-- files: docs/plan/workflow.md, src/opc/cli.py, src/opc/run_store.py, README.md --> <!-- context: 责任角色=PM/Engineer；输入=现有 run_id、resume、workspace artifacts、RunStore，以及 DeerFlow thread/run/checkpoint 使用体验；输出=thread、session、run、artifact、checkpoint 的 OPC 语义定义和用户可见命令规划；依赖关系=依赖 runs / trace CLI UX；完成标准=用户能理解何时新建 run、何时 resume、哪些状态可恢复、哪些中间产物仅用于回放，不把一次 run 与长期 memory 混淆 --> <!-- order: 依赖 trace CLI 完成 -->
+- [x] 定义 thread / session / run 的使用边界 <!-- files: docs/plan/workflow.md, src/opc/cli.py, src/opc/run_store.py, README.md --> <!-- context: 责任角色=PM/Engineer；输入=现有 run_id、resume、workspace artifacts、RunStore，以及 DeerFlow thread/run/checkpoint 使用体验；输出=thread、session、run、artifact、checkpoint 的 OPC 语义定义和用户可见命令规划；依赖关系=依赖 runs / trace CLI UX；完成标准=用户能理解何时新建 run、何时 resume、哪些状态可恢复、哪些中间产物仅用于回放，不把一次 run 与长期 memory 混淆 --> <!-- order: 依赖 trace CLI 完成 -->
 
 ## 6. P6 后工业化缺口评估
 

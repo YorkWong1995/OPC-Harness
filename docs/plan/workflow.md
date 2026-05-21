@@ -198,3 +198,21 @@ Workflow pack 是可复用的工作流说明单元，用来把一类任务的输
 - OPC runtime workflow 适合需要 run_id、artifact、trace、角色产物和 QA 回退的任务，由 `opc run` 执行。
 - review pack 第一版推荐作为 Claude 协作 skill 执行；如果评审需要写入代码或触发回归，则转为 bugfix 或 docs-update runtime workflow。
 - 每个 pack 都必须声明权限边界，未声明写入或命令执行权限时默认只读。
+
+## 10. Thread / Session / Run / Artifact / Checkpoint 边界
+
+| 概念 | OPC 语义 | 用户可见入口 | 是否长期保存 |
+| --- | --- | --- | --- |
+| Thread | 同一目标下多次 run 的逻辑讨论线，P6 仅作为规划概念 | 暂无一等命令 | 否，P6 不持久化 thread |
+| Session | 一次 CLI/交互式使用过程，可能包含一次或多次命令 | shell / UI 会话 | 否，关闭后不作为 OPC 状态恢复单位 |
+| Run | 一次 `opc run` 或 `opc resume` 的执行实例，拥有 run_id 和 artifacts | `opc run`、`opc resume`、`opc runs list` | 是，保存在 artifacts |
+| Artifact | run 产生的报告、角色输出、metrics、trace、state | `workspace/<project>/artifacts/` | 是，作为复盘和验收证据 |
+| Checkpoint | 可恢复状态快照，目前对应 `.opc_state.json` | `opc resume` | 是，但只服务恢复，不等同长期 memory |
+
+使用规则：
+
+- 新需求、新目标或验收标准变化明显时新建 run。
+- 中断、失败修复或 QA 退回后继续同一目标时使用 resume。
+- `run_events.jsonl`、`run_trace.json`、`run_metrics.json` 用于回放和复盘，不写入长期 memory。
+- Artifact 是证据，memory 是经确认的长期偏好/项目决策；二者不能混用。
+- P6 不提供 thread 级长期记忆或团队协作语义，避免把单次 run 扩展为多用户工作台。

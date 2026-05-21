@@ -94,6 +94,8 @@ python examples/quickstart_minimal.py --execute --auto-confirm
 
 ### Run / Trace 查看
 
+一次 `opc run` 或 `opc resume` 会形成一个 run；run 的报告、状态、指标和 trace 保存在项目 `artifacts/` 目录，用于恢复、验收和复盘，不等同于长期 memory。
+
 ```bash
 # 列出 workspace 下的历史 run
 opc runs list
