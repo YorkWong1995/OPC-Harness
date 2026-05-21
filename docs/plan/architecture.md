@@ -122,3 +122,24 @@ permissions = ["read"]
 - 插件工具仍受 permission profile 与危险命令策略约束。
 
 MCP 接入暂不在 P6 内直接实现。后续接入时必须复用同一安全契约：服务 manifest、权限声明、默认禁用、审计信息可见、外部出域动作默认 approval。
+
+## 7. OPC Harness L1-L6 能力矩阵
+
+| 层级 | OPC 当前能力 | P6 处理结论 |
+| --- | --- | --- |
+| L1 信息边界 | `ROLE_CONTEXT_SECTIONS` 按角色裁剪 ContextPack，RAG 来源通过 `context_sources` 标注 | 产品化为上下文治理契约，不复制宽泛 super-agent 上下文 |
+| L2 工具系统 | ToolDefinition 声明 permission、side_effect、timeout，支持 profile 过滤 | 已具备基础能力，P6 加强权限 profile 与插件 manifest |
+| L3 执行编排 | PM → Engineer → QA 主链路，动态 Architect/Ops/Growth，run trace 记录阶段事件 | 保持 MVP 工作流，完整 DAG 作为 P6/P7 分步增强 |
+| L4 记忆与状态 | WorkingMemory、workflow state、artifacts、run trace 分离 | 明确 run 状态不写入长期 memory，长期写入需确认 |
+| L5 评估与观测 | run_metrics、run_events、run_trace、QA 输出 schema | P6 增加 CLI inspect/trace 查看与 golden 样例 |
+| L6 约束校验与恢复 | schema 校验、max rounds、dangerous command guardrail、resume | 加强 GuardrailPolicy、审批事件、失败分支记录 |
+
+结论：OPC 已具备 harness 的主干骨架，P6 重点是把已有能力产品化和可验证化；暂不复制 DeerFlow 的宽 agent 编排、长期自治 memory 或服务化控制面。
+
+## 8. 信息边界与上下文治理契约
+
+- 角色只能看到 `ROLE_CONTEXT_SECTIONS` allowlist 中的 ContextPack 字段。
+- RAG、impact analyzer、stage summary 等外部上下文必须进入 `context_sources`，禁止无来源注入事实。
+- 当前文件事实优先于 memory、历史摘要和 RAG；若冲突，必须重新读取当前文件或标记冲突。
+- memory 只能作为候选上下文，不能全量注入 prompt，也不能覆盖当前 workspace 中可验证事实。
+- 禁止注入内容：凭证、`.env`、未授权外部数据、一次性调试日志、无来源长历史全文。
