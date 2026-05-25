@@ -22,6 +22,7 @@ from .config import (
     normalize_roles,
     validate_project_config,
 )
+from .knowledge.index_paths import get_index_root, get_workspace_root
 
 console = Console()
 
@@ -150,6 +151,38 @@ def main():
     task_status_parser = task_subparsers.add_parser("status", help="显示任务统计")
     task_status_parser.add_argument("--tasks", type=Path, default=Path("tasks.md"), help="任务清单路径")
 
+    # ---- opc memory ----
+    memory_parser = subparsers.add_parser("memory", help="管理长期 memory")
+    memory_subparsers = memory_parser.add_subparsers(dest="memory_command")
+    memory_list_parser = memory_subparsers.add_parser("list", help="列出长期 memory")
+    memory_list_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    memory_list_parser.add_argument("--scope", choices=["user", "project", "workflow"], default=None, help="按 scope 过滤")
+    memory_list_parser.add_argument("--json", action="store_true", help="输出 JSON")
+    memory_add_parser = memory_subparsers.add_parser("add", help="写入长期 memory")
+    memory_add_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    memory_add_parser.add_argument("--scope", choices=["user", "project", "workflow"], required=True, help="memory scope")
+    memory_add_parser.add_argument("--content", required=True, help="memory 内容")
+    memory_add_parser.add_argument("--source", required=True, help="来源说明")
+    memory_add_parser.add_argument("--confidence", type=float, default=1.0, help="置信度")
+    memory_add_parser.add_argument("--expires-at", default="", help="ISO 过期时间")
+    memory_add_parser.add_argument("--confirm", action="store_true", help="确认写入长期 memory")
+    memory_delete_parser = memory_subparsers.add_parser("delete", help="删除长期 memory")
+    memory_delete_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    memory_delete_parser.add_argument("--id", required=True, help="memory id")
+    memory_delete_parser.add_argument("--confirm", action="store_true", help="确认删除")
+    memory_supersede_parser = memory_subparsers.add_parser("supersede", help="用新 memory 替代旧 memory")
+    memory_supersede_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    memory_supersede_parser.add_argument("--id", required=True, help="被替代的 memory id")
+    memory_supersede_parser.add_argument("--content", required=True, help="新 memory 内容")
+    memory_supersede_parser.add_argument("--source", required=True, help="来源说明")
+    memory_supersede_parser.add_argument("--scope", choices=["user", "project", "workflow"], default=None, help="新 memory scope，默认沿用旧 scope")
+    memory_supersede_parser.add_argument("--confidence", type=float, default=1.0, help="置信度")
+    memory_supersede_parser.add_argument("--expires-at", default="", help="ISO 过期时间")
+    memory_supersede_parser.add_argument("--confirm", action="store_true", help="确认替代")
+    memory_gc_parser = memory_subparsers.add_parser("gc", help="检查过期和重复 memory")
+    memory_gc_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    memory_gc_parser.add_argument("--confirm", action="store_true", help="确认删除过期和重复 memory")
+
     # ---- opc index-list ----
     subparsers.add_parser("index-list", help="列出所有已有索引")
 
@@ -216,6 +249,8 @@ def main():
         _run_query(args)
     elif args.command == "task":
         _run_task(args)
+    elif args.command == "memory":
+        _run_memory(args)
     elif args.command == "index-list":
         _run_index_list(args)
     elif args.command == "index-delete":
@@ -238,7 +273,7 @@ def main():
 
 def _get_workspace_root() -> Path:
     """获取 workspace 根目录"""
-    return Path(__file__).resolve().parent.parent.parent / "workspace"
+    return get_workspace_root()
 
 
 def _get_index_root(name: str) -> Path:
@@ -247,10 +282,7 @@ def _get_index_root(name: str) -> Path:
     支持通过环境变量 OPC_INDEX_ROOT 覆盖默认位置，
     C 盘空间受限场景可设置为 D:/opc_index
     """
-    override = os.environ.get("OPC_INDEX_ROOT")
-    if override:
-        return Path(override).resolve() / name / "index"
-    return _get_workspace_root() / name / "index"
+    return get_index_root(name)
 
 
 # ---- opc run ----
@@ -518,6 +550,121 @@ def _run_task(args):
 
 
 # ---- opc index-list ----
+
+def _memory_store_for_project(project_dir: Path):
+    from .memory import MemoryStore
+
+    return MemoryStore(project_dir.resolve() / "artifacts" / "memory.jsonl")
+
+
+def _run_memory(args):
+    from .memory import MemoryRecord, delete_memory_record, evaluate_memory_write, supersede_memory_record
+
+    project_dir = Path(args.project_dir)
+    store = _memory_store_for_project(project_dir)
+    records = store.load()
+
+    if args.memory_command == "list":
+        if args.scope:
+            records = [record for record in records if record.scope == args.scope]
+        if args.json:
+            console.print(json.dumps([record.__dict__ for record in records], ensure_ascii=False, indent=2))
+            return
+        table = Table(title="长期 Memory")
+        table.add_column("ID")
+        table.add_column("Scope")
+        table.add_column("Source")
+        table.add_column("状态")
+        table.add_column("内容")
+        for record in records:
+            status = "expired" if record.is_expired() else ("superseded" if record.superseded_by else "active")
+            table.add_row(record.id, record.scope, record.source, status, record.content[:80])
+        console.print(table)
+        return
+
+    if args.memory_command == "add":
+        record = MemoryRecord(
+            content=args.content,
+            scope=args.scope,
+            source=args.source,
+            confidence=args.confidence,
+            expires_at=args.expires_at,
+        )
+        decision = evaluate_memory_write(record, confirmed=args.confirm)
+        if decision.action == "review":
+            console.print(f"[yellow]需要确认后才能写入长期 memory: {decision.reason}[/yellow]")
+            return
+        if decision.action != "write":
+            console.print(f"[red]memory 写入被拒绝: {decision.reason}[/red]")
+            return
+        store.append(record)
+        console.print(f"[green]memory 已写入[/green] {record.id}")
+        return
+
+    if args.memory_command == "delete":
+        index = next((i for i, record in enumerate(records) if record.id == args.id), -1)
+        records, decision = delete_memory_record(records, index, confirmed=args.confirm)
+        if decision.action == "review":
+            console.print(f"[yellow]需要确认后才能删除: {decision.reason}[/yellow]")
+            return
+        if decision.action != "delete":
+            console.print(f"[red]memory 删除失败: {decision.reason}[/red]")
+            return
+        store.replace(records)
+        console.print(f"[green]memory 已删除[/green] {args.id}")
+        return
+
+    if args.memory_command == "supersede":
+        index = next((i for i, record in enumerate(records) if record.id == args.id), -1)
+        if index < 0:
+            console.print(f"[red]未找到 memory: {args.id}[/red]")
+            return
+        target = records[index]
+        replacement = MemoryRecord(
+            content=args.content,
+            scope=args.scope or target.scope,
+            source=args.source,
+            confidence=args.confidence,
+            expires_at=args.expires_at,
+        )
+        records, decision = supersede_memory_record(records, index, replacement, confirmed=args.confirm)
+        if decision.action == "review":
+            console.print(f"[yellow]需要确认后才能替代: {decision.reason}[/yellow]")
+            return
+        if decision.action != "supersede":
+            console.print(f"[red]memory 替代失败: {decision.reason}[/red]")
+            return
+        store.replace(records)
+        console.print(f"[green]memory 已替代[/green] {args.id} -> {replacement.id}")
+        return
+
+    if args.memory_command == "gc":
+        expired = [record for record in records if record.is_expired()]
+        if not expired:
+            console.print("[green]没有需要清理的过期 memory[/green]")
+            return
+        if not args.confirm:
+            table = Table(title="待清理 memory")
+            table.add_column("ID")
+            table.add_column("Scope")
+            table.add_column("Source")
+            table.add_column("内容")
+            for record in expired:
+                table.add_row(record.id, record.scope, record.source, record.content[:80])
+            console.print(table)
+            console.print("[yellow]使用 --confirm 才会真正删除过期 memory[/yellow]")
+            return
+        records = [record for record in records if not record.is_expired()]
+        store.replace(records)
+        console.print(f"[green]已清理 {len(expired)} 条过期 memory[/green]")
+        return
+
+    console.print("[yellow]请使用 opc memory list/add/delete/supersede/gc[/yellow]")
+    return
+
+
+# ---- opc index-list ----
+
 
 def _run_index_list(args):
     workspace = _get_workspace_root()

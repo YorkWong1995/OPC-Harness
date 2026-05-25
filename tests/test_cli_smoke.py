@@ -178,7 +178,24 @@ def test_doctor_runs_without_config(tmp_path: Path):
     _call_main_with_args(["doctor", "--project-dir", str(tmp_path)])
 
 
-def test_runs_list_and_trace_commands(tmp_path: Path):
+def test_memory_commands_smoke(tmp_path: Path):
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    memory_file = project_dir / "artifacts" / "memory.jsonl"
+    memory_file.parent.mkdir(parents=True, exist_ok=True)
+
+    _call_main_with_args(["memory", "add", "--project-dir", str(project_dir), "--scope", "project", "--content", "项目决策", "--source", "manual", "--confirm"])
+    _call_main_with_args(["memory", "list", "--project-dir", str(project_dir)])
+
+    from opc.memory import MemoryStore
+    store = MemoryStore(memory_file)
+    records = store.load()
+    assert len(records) == 1
+    record_id = records[0].id
+
+    _call_main_with_args(["memory", "supersede", "--project-dir", str(project_dir), "--id", record_id, "--content", "新项目决策", "--source", "manual", "--confirm"])
+    _call_main_with_args(["memory", "delete", "--project-dir", str(project_dir), "--id", record_id, "--confirm"])
+    _call_main_with_args(["memory", "gc", "--project-dir", str(project_dir)])
     artifacts = tmp_path / "demo" / "artifacts"
     artifacts.mkdir(parents=True)
     from opc.run_store import RunStore
