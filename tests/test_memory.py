@@ -10,6 +10,7 @@ from opc.memory import (
     Memory,
     MemoryRecord,
     WorkingMemory,
+    MemoryStore,
     delete_memory_record,
     detect_sensitive_memory_content,
     evaluate_memory_write,
@@ -216,6 +217,17 @@ def test_memory_write_policy_requires_review_before_long_term_write():
     assert decision.audit_event["scope"] == "user"
 
 
+def test_memory_store_persists_records_with_stable_ids(tmp_path):
+    store = MemoryStore(tmp_path / "memory.jsonl")
+    record = MemoryRecord(content="项目决策", scope="project", source="manual")
+
+    store.save([record])
+    loaded = store.load()
+
+    assert loaded == [record]
+    assert loaded[0].id == record.id
+
+
 def test_memory_delete_and_supersede_require_confirmed_paths():
     original = MemoryRecord(content="旧项目决策", scope="project", source="manual")
     replacement = MemoryRecord(content="新项目决策", scope="project", source="manual")
@@ -228,6 +240,6 @@ def test_memory_delete_and_supersede_require_confirmed_paths():
     assert delete_review.action == "review"
     assert deleted == []
     assert delete_decision.action == "delete"
-    assert superseded[0].superseded_by == "memory:1"
+    assert superseded[0].superseded_by == replacement.id
     assert superseded[1] == replacement
     assert supersede_decision.action == "supersede"

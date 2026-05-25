@@ -28,7 +28,7 @@ from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .security.guardrail import GuardrailPolicy, normalize_permission_profile
-from .memory import MemoryRecord, select_memory_for_context
+from .memory import MemoryRecord, MemoryStore, select_memory_for_context
 from .store import Store
 from .workflow_spec import StageResult, StageValidation, load_workflow_spec
 
@@ -268,7 +268,8 @@ class HarnessWorkflow:
         self.workflow_state = WorkflowState(task_description=task, run_id=self.run_store.run_id)
         self.workflow_spec = load_workflow_spec(self.project_dir)
         self.stage_summaries: dict[str, StageSummary] = {}
-        self.memory_records: list[MemoryRecord] = []
+        self.memory_store = MemoryStore(self.project_dir / "artifacts" / "memory.jsonl")
+        self.memory_records: list[MemoryRecord] = self.memory_store.load()
         self.last_edited_prompt: str = ""
 
         self.pm = create_pm_agent(model=model)
@@ -706,6 +707,7 @@ class HarnessWorkflow:
         console.print("\n[bold green]工作流完成！[/] 所有产物已保存到 artifacts/ 目录。")
         metrics_path = generate_metrics(self.workflow_state, self.store.dir)
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        self.memory_store.replace(self.memory_records)
         self.run_store.write_trace(final_status=self.state, metrics=metrics)
 
     @staticmethod

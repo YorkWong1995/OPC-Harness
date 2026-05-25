@@ -6,9 +6,13 @@
 3. 工作记忆和长期记忆的区分
 """
 
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
+import json
+from pathlib import Path
 from typing import Literal, List, Optional, Set, Dict
+from uuid import uuid4
+
 from .schema import Message
 
 MemoryScope = Literal["user", "project", "workflow", "run", "artifact"]
@@ -42,6 +46,7 @@ class MemoryRecord:
     content: str
     scope: MemoryScope
     source: str
+    id: str = field(default_factory=lambda: _memory_id())
     confidence: float = 1.0
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = ""
@@ -62,7 +67,40 @@ class MemoryRecord:
 
 LONG_TERM_SCOPES: set[MemoryScope] = {"user", "project", "workflow"}
 EPHEMERAL_SCOPES: set[MemoryScope] = {"run", "artifact"}
-REQUIRED_MEMORY_FIELDS = {"scope", "created_at", "updated_at", "expires_at", "source", "confidence"}
+REQUIRED_MEMORY_FIELDS = {"id", "scope", "created_at", "updated_at", "expires_at", "source", "confidence"}
+
+
+def _memory_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _memory_id() -> str:
+    return f"memory:{uuid4().hex}"
+
+
+def _memory_record_to_dict(record: MemoryRecord) -> dict[str, object]:
+    return asdict(record)
+
+
+def _memory_record_from_dict(data: dict[str, object]) -> MemoryRecord:
+    values = dict(data)
+    values.setdefault("id", _memory_id())
+    values.setdefault("confidence", 1.0)
+    values.setdefault("created_at", _memory_timestamp())
+    values.setdefault("updated_at", "")
+    values.setdefault("expires_at", "")
+    values.setdefault("superseded_by", "")
+    return MemoryRecord(
+        id=str(values["id"]),
+        content=str(values.get("content", "")),
+        scope=values.get("scope", "project"),
+        source=str(values.get("source", "")),
+        confidence=float(values.get("confidence", 1.0)),
+        created_at=str(values.get("created_at", _memory_timestamp())),
+        updated_at=str(values.get("updated_at", "")),
+        expires_at=str(values.get("expires_at", "")),
+        superseded_by=str(values.get("superseded_by", "")),
+    )
 
 
 def requires_write_review(record: MemoryRecord) -> bool:
@@ -78,7 +116,7 @@ def can_promote_to_long_term(record: MemoryRecord, confirmed: bool = False) -> b
 def _memory_audit_event(action: MemoryWriteAction, reason: str, record: MemoryRecord | None = None) -> dict[str, str]:
     event = {"type": "memory_write_policy", "action": action, "reason": reason}
     if record is not None:
-        event.update({"scope": record.scope, "source": record.source})
+        event.update({"id": record.id, "scope": record.scope, "source": record.source})
     return event
 
 
@@ -140,9 +178,8 @@ def supersede_memory_record(
     write_decision = evaluate_memory_write(replacement, confirmed=confirmed)
     if write_decision.action != "write":
         return records, write_decision
-    memory_id = f"memory:{len(records)}"
     updated = [*records]
-    updated[index] = replace(records[index], superseded_by=memory_id, updated_at=datetime.now(timezone.utc).isoformat())
+    updated[index] = replace(records[index], superseded_by=replacement.id, updated_at=datetime.now(timezone.utc).isoformat())
     updated.append(replacement)
     reason = "memory_superseded"
     return updated, MemoryWriteDecision("supersede", reason, replacement, _memory_audit_event("supersede", reason, replacement))
@@ -158,8 +195,8 @@ def select_memory_for_context(
     facts = current_facts or set()
     selected: list[MemoryRecord] = []
     sources: list[dict[str, str]] = []
-    for index, record in enumerate(records):
-        memory_id = f"memory:{index}"
+    for record in records:
+        memory_id = record.id
         if record.scope not in scopes:
             continue
         if record.is_expired():
@@ -310,6 +347,37 @@ class Memory:
 
     def __repr__(self) -> str:
         return f"Memory(messages={len(self.storage)}, roles={len(self._index_by_role)})"
+
+
+class MemoryStore:
+    def __init__(self, store_path: Path):
+        self.path = store_path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def load(self) -> list[MemoryRecord]:
+        if not self.path.exists():
+            return []
+        records: list[MemoryRecord] = []
+        for line in self.path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            records.append(_memory_record_from_dict(json.loads(line)))
+        return records
+
+    def save(self, records: list[MemoryRecord]) -> Path:
+        payload = "\n".join(json.dumps(_memory_record_to_dict(record), ensure_ascii=False) for record in records)
+        if payload:
+            payload += "\n"
+        self.path.write_text(payload, encoding="utf-8")
+        return self.path
+
+    def append(self, record: MemoryRecord) -> Path:
+        records = self.load()
+        records.append(record)
+        return self.save(records)
+
+    def replace(self, records: list[MemoryRecord]) -> Path:
+        return self.save(records)
 
 
 class WorkingMemory(Memory):

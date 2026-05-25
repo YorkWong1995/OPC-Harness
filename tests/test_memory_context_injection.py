@@ -16,8 +16,9 @@ def _workflow(tmp_path):
 
 def test_context_pack_injects_selected_memory_with_sources(tmp_path):
     workflow = _workflow(tmp_path)
+    selected = MemoryRecord(content="优先使用本地 trace", scope="user", source="manual")
     workflow.memory_records = [
-        MemoryRecord(content="优先使用本地 trace", scope="user", source="manual"),
+        selected,
         MemoryRecord(content="临时 run 状态", scope="run", source="run_trace"),
     ]
 
@@ -29,7 +30,7 @@ def test_context_pack_injects_selected_memory_with_sources(tmp_path):
     assert memory_sources == [
         {
             "type": "memory",
-            "name": "memory:0",
+            "name": selected.id,
             "scope": "user",
             "source": "manual",
             "role": "engineer",
