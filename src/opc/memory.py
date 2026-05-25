@@ -185,6 +185,134 @@ def supersede_memory_record(
     return updated, MemoryWriteDecision("supersede", reason, replacement, _memory_audit_event("supersede", reason, replacement))
 
 
+def _normalize_memory_text(value: str) -> str:
+    return " ".join(value.lower().split())
+
+
+def _memory_created_at_value(record: MemoryRecord) -> datetime:
+    try:
+        return datetime.fromisoformat(record.created_at)
+    except ValueError:
+        return datetime.now(timezone.utc)
+
+
+def score_memory_relevance(record: MemoryRecord, role: str, current_facts: set[str] | None = None) -> float:
+    facts = current_facts or set()
+    score = 0.0
+    scope_weights = {"user": 3.0, "project": 2.0, "workflow": 1.0}
+    score += scope_weights.get(record.scope, 0.0)
+    score += min(max(record.confidence, 0.0), 1.0)
+    if record.source:
+        score += 0.5
+    if role and role.lower() in record.content.lower():
+        score += 0.25
+    if record.content in facts:
+        score -= 100.0
+    if record.is_expired():
+        score -= 50.0
+    if record.superseded_by:
+        score -= 25.0
+    age_days = max(0.0, (datetime.now(timezone.utc) - _memory_created_at_value(record)).days)
+    if age_days <= 7:
+        score += 0.75
+    elif age_days <= 30:
+        score += 0.5
+    elif age_days <= 180:
+        score += 0.25
+    return score
+
+
+def memory_record_key(record: MemoryRecord) -> tuple[str, str, str]:
+    return (
+        record.scope,
+        _normalize_memory_text(record.content),
+        _normalize_memory_text(record.source),
+    )
+
+
+def dedupe_memory_records(records: list[MemoryRecord]) -> tuple[list[MemoryRecord], list[dict[str, str]]]:
+    kept: dict[tuple[str, str, str], tuple[float, int, MemoryRecord]] = {}
+    duplicates: list[dict[str, str]] = []
+    for index, record in enumerate(records):
+        key = memory_record_key(record)
+        score = score_memory_relevance(record, role="")
+        current = kept.get(key)
+        if current is None:
+            kept[key] = (score, index, record)
+            continue
+        current_score, _, current_record = current
+        current_created = _memory_created_at_value(current_record)
+        record_created = _memory_created_at_value(record)
+        keep_new_record = score > current_score or (score == current_score and record_created > current_created)
+        if keep_new_record:
+            duplicates.append({
+                "type": "memory",
+                "duplicate_id": current_record.id,
+                "kept_id": record.id,
+                "scope": record.scope,
+                "source": record.source,
+                "reason": "duplicate_replaced",
+            })
+            kept[key] = (score, index, record)
+        else:
+            duplicates.append({
+                "type": "memory",
+                "duplicate_id": record.id,
+                "kept_id": current_record.id,
+                "scope": record.scope,
+                "source": record.source,
+                "reason": "duplicate_skipped",
+            })
+    unique_records = [entry[2] for entry in sorted(kept.values(), key=lambda item: item[1])]
+    return unique_records, duplicates
+
+
+def build_memory_audit_entries(records: list[MemoryRecord], role: str = "engineer", current_facts: set[str] | None = None) -> list[dict[str, str]]:
+    facts = current_facts or set()
+    unique_records, duplicates = dedupe_memory_records(records)
+    unique_ids = {record.id for record in unique_records}
+    duplicate_map = {entry["duplicate_id"]: entry for entry in duplicates}
+    entries: list[dict[str, str]] = []
+    for record in records:
+        if record.id in duplicate_map:
+            duplicate_entry = duplicate_map[record.id]
+            entries.append({
+                "type": "memory",
+                "id": record.id,
+                "scope": record.scope,
+                "source": record.source,
+                "status": "duplicate",
+                "reason": duplicate_entry["reason"],
+                "score": f"{score_memory_relevance(record, role, facts):.2f}",
+                "duplicate_of": duplicate_entry["kept_id"],
+            })
+            continue
+        status = "active"
+        reason = "selected"
+        if record.is_expired():
+            status = "expired"
+            reason = "expired"
+        elif record.superseded_by:
+            status = "superseded"
+            reason = "superseded"
+        elif record.content in facts:
+            status = "conflict"
+            reason = "current_fact_preferred"
+        elif record.id not in unique_ids:
+            status = "duplicate"
+            reason = "duplicate_skipped"
+        entries.append({
+            "type": "memory",
+            "id": record.id,
+            "scope": record.scope,
+            "source": record.source,
+            "status": status,
+            "reason": reason,
+            "score": f"{score_memory_relevance(record, role, facts):.2f}",
+        })
+    return entries
+
+
 def select_memory_for_context(
     records: list[MemoryRecord],
     role: str,
@@ -193,9 +321,16 @@ def select_memory_for_context(
 ) -> tuple[list[MemoryRecord], list[dict[str, str]]]:
     scopes = allowed_scopes or LONG_TERM_SCOPES
     facts = current_facts or set()
+    deduped_records, duplicates = dedupe_memory_records(records)
     selected: list[MemoryRecord] = []
     sources: list[dict[str, str]] = []
-    for record in records:
+    duplicate_map = {entry["duplicate_id"]: entry for entry in duplicates}
+    ordered_records = sorted(
+        deduped_records,
+        key=lambda record: score_memory_relevance(record, role, facts),
+        reverse=True,
+    )
+    for record in ordered_records:
         memory_id = record.id
         if record.scope not in scopes:
             continue
@@ -227,8 +362,19 @@ def select_memory_for_context(
             "source": record.source,
             "role": role,
             "status": "selected",
-            "reason": "scope_role_match",
+            "reason": "score_and_scope_match",
         })
+    for record in records:
+        duplicate = duplicate_map.get(record.id)
+        if duplicate:
+            sources.append({
+                "type": "memory",
+                "name": record.id,
+                "scope": record.scope,
+                "source": record.source,
+                "status": "duplicate",
+                "reason": duplicate["reason"],
+            })
     return selected, sources
 
 

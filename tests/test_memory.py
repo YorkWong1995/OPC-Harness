@@ -9,13 +9,16 @@ from opc.memory import (
     REQUIRED_MEMORY_FIELDS,
     Memory,
     MemoryRecord,
-    WorkingMemory,
     MemoryStore,
+    WorkingMemory,
+    build_memory_audit_entries,
+    dedupe_memory_records,
     delete_memory_record,
     detect_sensitive_memory_content,
     evaluate_memory_write,
     can_promote_to_long_term,
     requires_write_review,
+    score_memory_relevance,
     select_memory_for_context,
     supersede_memory_record,
     write_memory_record,
@@ -215,6 +218,34 @@ def test_memory_write_policy_requires_review_before_long_term_write():
     assert written == [record]
     assert decision.action == "write"
     assert decision.audit_event["scope"] == "user"
+
+
+def test_memory_dedupe_relevance_and_audit_entries():
+    duplicate_a = MemoryRecord(content="使用定向测试", scope="project", source="manual", confidence=0.5)
+    duplicate_b = MemoryRecord(content="使用定向测试", scope="project", source="manual", confidence=0.9)
+    user_pref = MemoryRecord(content="engineer 优先使用 E 盘临时目录", scope="user", source="manual")
+
+    unique_records, duplicates = dedupe_memory_records([duplicate_a, duplicate_b, user_pref])
+    audit = build_memory_audit_entries([duplicate_a, duplicate_b, user_pref], role="engineer")
+
+    assert duplicate_b in unique_records
+    assert duplicate_a not in unique_records
+    assert duplicates[0]["duplicate_id"] == duplicate_a.id
+    assert score_memory_relevance(user_pref, "engineer") > score_memory_relevance(duplicate_b, "engineer")
+    assert any(entry["status"] == "duplicate" for entry in audit)
+
+
+def test_select_memory_for_context_dedupes_and_sorts_by_relevance():
+    project = MemoryRecord(content="项目约束", scope="project", source="manual")
+    user = MemoryRecord(content="engineer 偏好", scope="user", source="manual")
+    duplicate = MemoryRecord(content="项目约束", scope="project", source="manual", confidence=0.2)
+
+    records, sources = select_memory_for_context([project, user, duplicate], role="engineer")
+
+    assert records[0] == user
+    assert records[1] == project
+    assert duplicate not in records
+    assert any(source["status"] == "duplicate" for source in sources)
 
 
 def test_memory_store_persists_records_with_stable_ids(tmp_path):

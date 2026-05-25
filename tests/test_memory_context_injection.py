@@ -35,7 +35,7 @@ def test_context_pack_injects_selected_memory_with_sources(tmp_path):
             "source": "manual",
             "role": "engineer",
             "status": "selected",
-            "reason": "scope_role_match",
+            "reason": "score_and_scope_match",
         }
     ]
 

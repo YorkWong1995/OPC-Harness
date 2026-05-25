@@ -558,27 +558,34 @@ def _memory_store_for_project(project_dir: Path):
 
 
 def _run_memory(args):
-    from .memory import MemoryRecord, delete_memory_record, evaluate_memory_write, supersede_memory_record
+    from .memory import MemoryRecord, build_memory_audit_entries, delete_memory_record, evaluate_memory_write, supersede_memory_record, dedupe_memory_records
 
     project_dir = Path(args.project_dir)
     store = _memory_store_for_project(project_dir)
     records = store.load()
 
     if args.memory_command == "list":
+        audit_entries = build_memory_audit_entries(records, role="engineer")
+
         if args.scope:
             records = [record for record in records if record.scope == args.scope]
+            audit_entries = [entry for entry in audit_entries if entry.get("scope") == args.scope]
         if args.json:
-            console.print(json.dumps([record.__dict__ for record in records], ensure_ascii=False, indent=2))
+            console.print(json.dumps({"records": [record.__dict__ for record in records], "audit": audit_entries}, ensure_ascii=False, indent=2))
             return
         table = Table(title="长期 Memory")
         table.add_column("ID")
         table.add_column("Scope")
         table.add_column("Source")
         table.add_column("状态")
+        table.add_column("Score")
         table.add_column("内容")
+        audit_map = {entry["id"]: entry for entry in audit_entries}
         for record in records:
-            status = "expired" if record.is_expired() else ("superseded" if record.superseded_by else "active")
-            table.add_row(record.id, record.scope, record.source, status, record.content[:80])
+            entry = audit_map.get(record.id, {})
+            status = entry.get("status") or ("expired" if record.is_expired() else ("superseded" if record.superseded_by else "active"))
+            score = entry.get("score", "-")
+            table.add_row(record.id, record.scope, record.source, status, score, record.content[:80])
         console.print(table)
         return
 
@@ -639,24 +646,28 @@ def _run_memory(args):
         return
 
     if args.memory_command == "gc":
-        expired = [record for record in records if record.is_expired()]
-        if not expired:
-            console.print("[green]没有需要清理的过期 memory[/green]")
+        unique_records, duplicates = dedupe_memory_records(records)
+        expired = [record for record in unique_records if record.is_expired()]
+        if not expired and not duplicates:
+            console.print("[green]没有需要清理的过期或重复 memory[/green]")
             return
         if not args.confirm:
             table = Table(title="待清理 memory")
             table.add_column("ID")
             table.add_column("Scope")
             table.add_column("Source")
+            table.add_column("状态")
             table.add_column("内容")
             for record in expired:
-                table.add_row(record.id, record.scope, record.source, record.content[:80])
+                table.add_row(record.id, record.scope, record.source, "expired", record.content[:80])
+            for duplicate in duplicates:
+                table.add_row(duplicate["duplicate_id"], duplicate.get("scope", ""), duplicate.get("source", ""), duplicate["reason"], "")
             console.print(table)
-            console.print("[yellow]使用 --confirm 才会真正删除过期 memory[/yellow]")
+            console.print("[yellow]使用 --confirm 才会真正删除过期和重复 memory[/yellow]")
             return
-        records = [record for record in records if not record.is_expired()]
+        records = [record for record in unique_records if not record.is_expired()]
         store.replace(records)
-        console.print(f"[green]已清理 {len(expired)} 条过期 memory[/green]")
+        console.print(f"[green]已清理 {len(expired)} 条过期 memory，合并 {len(duplicates)} 条重复 memory[/green]")
         return
 
     console.print("[yellow]请使用 opc memory list/add/delete/supersede/gc[/yellow]")
