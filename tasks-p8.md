@@ -99,3 +99,7 @@
 - [ ] P8 runtime metrics 验收 <!-- files: src/opc/workflow.py, src/opc/run_store.py, src/opc/config.py, tests/ --> <!-- context: 责任角色=QA/Ops；输入=token/model/cost 指标任务；输出=metrics 验收记录；依赖关系=依赖 token/model/cost 指标完成；完成标准=run_metrics.json 可表达分阶段 model、token、cost 和总计，缺 usage 信息时兼容 --> <!-- order: 依赖 runtime metrics 任务完成 -->
 - [ ] P8 资产层验收 <!-- files: docs/workflow-packs/, scripts/, .claude/agents/, docs/DOCS_STRUCTURE.md --> <!-- context: 责任角色=QA/Architect；输入=workflow pack、scripts、agent 资产和索引；输出=资产层验收记录；依赖关系=依赖 P1/P2 资产任务完成；完成标准=workflow packs、scripts、agents 都有 README 或索引，样板可找到且边界清楚 --> <!-- order: 依赖资产层任务完成 -->
 - [ ] P8 总体验收 <!-- files: tasks-p8.md, docs/plan/roadmap.md, tasks-p7.md --> <!-- context: 责任角色=QA/Ops；输入=P8 所有产物和 P7 路线图；输出=总体验收记录；依赖关系=依赖前述 P8 验收完成；完成标准=P8 任务能覆盖 P7 全部能力方向，且每个能力方向至少有一个可检查产物或测试证据 --> <!-- order: 依赖 P8 前述验收完成 -->
+
+## 12. 长任务拆解与执行机制优化
+
+- [x] LT-01 定义长任务字段标准 <!-- files: docs/claude/standards.md --> <!-- context: 责任角色=PM/Architect；输入=现有任务清单字段、P8 长任务执行问题；输出=任务条目新增 id、depends_on、read_before_start、execution、evidence、handoff 字段说明；依赖关系=无；完成标准=standards.md 明确哪些字段是长任务必填、哪些字段可选，并说明字段含义 --> <!-- review: 需确认字段是否进入项目级标准 --> <!-- evidence: docs/claude/standards.md 已新增长任务字段表；验证=文本检查字段名与必填/可选要求；结果=通过 -->

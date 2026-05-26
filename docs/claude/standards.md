@@ -1,0 +1,99 @@
+# 文档产出规范
+
+项目中的核心文档应尽量标准化。
+
+## PRD 应至少包含
+
+- 背景
+- 目标
+- 用户场景
+- 功能范围
+- 非目标
+- 验收标准
+
+> 参考样例：[docs/plan/vision.md](../plan/vision.md)、[docs/plan/success.md](../plan/success.md)
+
+## 架构文档应至少包含
+
+- 目标问题
+- 模块拆分
+- 关键数据流
+- 接口定义
+- 技术约束
+- 风险与取舍
+
+> 参考样例：[docs/plan/architecture.md](../plan/architecture.md)、[docs/knowledge-retrieval-design.md](../knowledge-retrieval-design.md)
+
+## 任务清单应至少包含
+
+- 任务名称
+- 责任角色
+- 输入
+- 输出
+- 依赖关系
+- 完成标准
+
+长任务或跨会话任务还应补充可恢复字段：
+
+| 字段 | 长任务要求 | 含义 |
+| --- | --- | --- |
+| `id` | 必填 | 稳定任务编号，用于跨会话引用、验收记录、commit message 和后续任务依赖。 |
+| `depends_on` | 必填 | 前置任务 ID 列表；无依赖时写 `none`，不得只用自然语言描述依赖。 |
+| `read_before_start` | 必填 | 开始或继续任务前必须读取的任务条目、依赖产物、相关文件、pending diff 或验收记录。 |
+| `execution` | 必填 | 执行主体或协作方式，例如主会话、Explore subagent、skill、人工评审或 QA 验收。 |
+| `evidence` | 完成时必填 | 完成后的产物、验证方式、验证结果；无法验证时写明未验证原因。 |
+| `handoff` | 跨会话时必填 | 当前状态、下一步、阻塞项、需重读文件和最近验证结果，用于清空上下文后继续。 |
+
+> 参考样例：[tasks-p4.md](../../tasks-p4.md)、[tasks.example.md](../../tasks.example.md)
+
+## 验收文档应至少包含
+
+- 验收对象
+- 验收标准
+- 检查方法
+- 结果记录
+- 是否通过
+
+> 参考样例：[docs/completed_tasks/tasks-p2.md](../completed_tasks/tasks-p2.md)（含验收项条目）
+
+## 决策文档应至少包含
+
+- 审查对象
+- 决策结论
+- 决策理由
+- 风险判断
+- 后续建议
+
+> 参考样例：[docs/plan/organization.md](../plan/organization.md)
+
+## Workflow Pack 应至少包含
+
+- Manifest：id、kind、owner_roles、inputs、outputs、permissions、acceptance、trace
+- 适用场景：何时使用，何时不使用
+- 角色边界：哪些由 Claude 协作 skill 完成，哪些由 OPC runtime workflow 完成
+- 权限边界：只读、写入、命令执行、审批动作分别如何声明
+- 验收方式：可复现命令、检查路径或人工验收项
+
+> 参考样例：[docs/plan/workflow.md](../plan/workflow.md#9-workflow-pack-使用规范)
+
+## 发布检查应至少包含
+
+- 发布对象
+- 发布前检查项
+- 运行验证方式
+- 监控关注点
+- 回滚条件
+- 发布结论
+
+> 参考样例：[docs/runs/harness_interactive_mode.md](../runs/harness_interactive_mode.md)
+
+## 研究建议应至少包含
+
+- 用户反馈或市场信息摘要
+- 增长假设
+- 实验方案
+- 观察指标
+- 后续产品或需求建议
+- 风险与边界
+
+> 参考样例：[docs/plan/success.md](../plan/success.md)
