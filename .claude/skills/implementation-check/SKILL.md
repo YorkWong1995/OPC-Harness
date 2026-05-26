@@ -51,11 +51,17 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 4. 若关键验证缺失或失败，不得给出“建议进入 QA”。
 5. 发现问题时输出退回 Engineer 的具体修正项。
 
+## 示例
+
+- `/implementation-check tasks-p8.md 中 token-report skill 变更，核对 pending diff 是否只包含 SKILL.md 和任务勾选`
+- `/implementation-check bugfix 提交涉及 unrelated README 改动，判断是否偏离任务范围`
+
 ## 输出骨架
 
 ```
+[示例：实现符合任务]
 [自检对象] ...
-[范围一致性] 通过 / 不通过（证据：...）
+[范围一致性] 通过（证据：...）
 [文件变更检查]
 - path: 与任务输出的关系 / 是否在范围内
 [验证证据]
@@ -67,7 +73,25 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 [结论] 建议进入 QA / 不建议进入 QA
 [理由] ...
 [退回项] （仅当不建议进入 QA 时）
+
+[示例：实现偏离任务]
+[范围一致性] 不通过（证据：...）
+[文件变更检查]
+- path: 与任务无关 / 需要移出本次提交
+[验证证据]
+- 缺失或失败：...
+[结论] 不建议进入 QA
+[退回项]
+- 移除无关变更或拆分任务
+- 补齐失败/缺失的定向验证
 ```
+
+## 验收标准
+
+- 示例覆盖“实现符合任务”和“实现偏离任务”两种结果
+- 输出骨架包含范围一致性、文件变更、测试证据、已知限制和风险项
+- 结论只能是 `建议进入 QA` 或 `不建议进入 QA`
+- 偏离任务或验证失败时必须输出退回项
 
 ## 验收
 
