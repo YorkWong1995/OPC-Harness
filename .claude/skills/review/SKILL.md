@@ -81,20 +81,57 @@ description: Read pending diff, PRs, task results, or selected files and produce
 4. non-blocking 建议不得阻止通过，除非它会破坏验收标准或安全边界。
 5. 评审结论必须与问题分类一致：存在 blocking 时为 `needs-work`；信息不足时为 `needs-info`；无 blocking 时可为 `pass`。
 
+## 示例
+
+- `/review pending diff for tasks-p8.md review skill，检查是否只读且输出分类完整`
+- `/review PR #123，重点检查配置兼容性、测试证据和是否存在 blocking 问题`
+- `/review src/opc/workflow.py tests/test_metrics.py，判断 run_metrics cost 汇总是否满足任务验收`
+
 ## 输出骨架
 
 ```
-[评审对象] ...
-[任务目标/验收标准] ...
+[示例：pass]
+[评审对象] .claude/skills/review/SKILL.md pending diff
+[任务目标/验收标准] 增加只读 review skill，包含分类规则、输出骨架和验收标准
 [Blocking 问题]
-- 问题 / 影响 / 证据 / 建议修正方向
+- 未发现
 [Non-blocking 建议]
-- 建议 / 理由 / 证据
+- 可在后续索引文档中补充该 skill 的入口说明；不阻塞，因为当前任务只要求 SKILL.md
 [风险判断]
-- 正确性 / 安全 / 兼容性 / 测试 / 发布
-[结论] pass / needs-work / needs-info
-[后续动作] ...
+- 正确性：未发现（证据：...）
+- 安全：未发现（证据：...）
+- 兼容性：未发现（证据：...）
+- 测试：未发现（证据：...）
+- 发布：未发现
+[结论] pass
+[后续动作] 可进入 QA 或下一任务
+
+[示例：needs-work]
+[评审对象] pending diff
+[任务目标/验收标准] 增加只读 review skill，不应修改代码
+[Blocking 问题]
+- 问题：实现中修改了 runtime 代码但任务只要求 skill 文档
+  影响：超出范围，可能引入未验证行为
+  证据：src/opc/workflow.py:...
+  建议修正方向：移出无关代码改动，单独建任务处理
+[Non-blocking 建议]
+- 未发现
+[风险判断]
+- 正确性：信息不足，runtime 改动无对应验收
+- 安全：未发现
+- 兼容性：有风险，改动范围超出任务
+- 测试：信息不足，缺少对应测试
+- 发布：未发现
+[结论] needs-work
+[后续动作] 退回 Engineer 拆分无关改动并补验证
 ```
+
+## 验收标准
+
+- 示例覆盖 `pass` 和 `needs-work` 两种结论
+- 输出骨架包含评审对象、任务目标、blocking、non-blocking、风险判断、结论和后续动作
+- blocking 问题必须包含影响、证据和建议修正方向
+- `pass` 结论不得包含未处理 blocking
 
 ## 验收
 
