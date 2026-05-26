@@ -21,7 +21,7 @@
 - [x] 补充 implementation-check 检查清单 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=任务定义、实现 diff、验证结果；输出=范围一致性、文件变更、测试证据、已知限制、风险项检查清单；依赖关系=依赖 implementation-check 基础说明；完成标准=检查清单能输出“建议进入 QA / 不建议进入 QA”的明确结论 --> <!-- order: 依赖 implementation-check 基础说明 -->
 - [x] 补充 implementation-check 示例与验收 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA；输入=implementation-check 检查清单；输出=调用示例、输出骨架、验收标准；依赖关系=依赖检查清单；完成标准=示例覆盖“实现符合任务”和“实现偏离任务”两种结果 --> <!-- order: 依赖 implementation-check 检查清单 -->
 
-- [ ] 定义 token-report skill 基础说明 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=Ops/QA；输入=run_metrics.json、run_trace.json、run_events.jsonl；输出=token-report skill 的 name、description、目标、适用场景；依赖关系=现有 run metrics；完成标准=SKILL.md 存在且说明只读 artifacts，不重新调用模型 --> <!-- auto: 新增单个 skill 文档 -->
+- [x] 定义 token-report skill 基础说明 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=Ops/QA；输入=run_metrics.json、run_trace.json、run_events.jsonl；输出=token-report skill 的 name、description、目标、适用场景；依赖关系=现有 run metrics；完成标准=SKILL.md 存在且说明只读 artifacts，不重新调用模型 --> <!-- auto: 新增单个 skill 文档 -->
 - [ ] 补充 token-report 输出字段模板 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=Ops；输入=单次 run 的 metrics；输出=总 input/output tokens、api_calls、duration、分阶段消耗、最高消耗阶段、异常项、优化建议；依赖关系=依赖 token-report 基础说明；完成标准=输出字段能直接对应 run_metrics.json 的已有或计划字段 --> <!-- order: 依赖 token-report 基础说明 -->
 - [ ] 补充 token-report 示例与验收 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=QA/Ops；输入=token-report 输出字段模板；输出=调用示例、报告骨架、验收标准；依赖关系=依赖输出字段模板；完成标准=示例覆盖 latest run 和指定 artifacts 路径两种用法 --> <!-- order: 依赖 token-report 输出字段模板 -->
 
