@@ -57,8 +57,23 @@ description: Generate or append a task entry into tasks-pX.md following the task
 10. `order`、`review`、`auto`、`decision` 只是执行或审批标注，不能替代 `depends_on`；有先后关系时两者应同时存在。
 11. 无前置任务必须写 `depends_on: none`，不得写“无依赖”“见上文”或只在 `context` 中描述。
 
+## 示例任务条目
+
+无前置依赖示例：
+
+```
+- [ ] LT-01 定义长任务字段标准 <!-- files: docs/claude/standards.md --> <!-- context: 责任角色=PM/Architect；输入=现有任务清单字段；输出=长任务字段说明；完成标准=standards.md 明确字段含义和必填性 --> <!-- depends_on: none --> <!-- read_before_start: tasks-p8.md LT-01 条目、docs/claude/standards.md --> <!-- execution: main --> <!-- evidence: pending --> <!-- handoff: pending --> <!-- review -->
+```
+
+有前置依赖示例：
+
+```
+- [ ] LT-07 更新 task-spec 字段要求 <!-- files: .claude/skills/task-spec/SKILL.md --> <!-- context: 责任角色=PM/Engineer；输入=LT-01 到 LT-06 字段标准；输出=task-spec 支持长任务字段；完成标准=新生成任务包含可恢复字段 --> <!-- depends_on: LT-01, LT-02, LT-03, LT-04, LT-05, LT-06 --> <!-- read_before_start: tasks-p8.md LT-07 条目、docs/claude/standards.md 长任务字段规则、.claude/skills/task-spec/SKILL.md --> <!-- execution: main --> <!-- evidence: pending --> <!-- handoff: pending --> <!-- order -->
+```
+
 ## 验收
 
-- 生成条目包含全部 6 个字段
+- 生成条目包含全部基础字段和长任务可恢复字段
 - 条目格式与目标文件其他条目一致（同样的 HTML 注释结构）
+- 依赖关系必须写入 `depends_on`，执行/审批属性写入 `auto`、`review`、`order` 或 `decision`
 - 不破坏目标文件已有内容
