@@ -69,7 +69,7 @@
 
 - [x] 定义 agent 资产格式 <!-- files: .claude/agents/README.md, docs/plan/architecture.md --> <!-- context: 责任角色=Architect；输入=runtime agent、roles.py、skills、workflow pack；输出=agent 资产字段、边界、与 skill/workflow 的区别；依赖关系=依赖 workflow pack 目录结构；完成标准=文档说明 agent 资产不是 runtime 实现，而是可复用角色/任务配置 --> <!-- review: 需确认资产格式 -->
 - [x] 新增 PM agent 资产样板 <!-- files: .claude/agents/pm.md --> <!-- context: 责任角色=PM；输入=roles.py 中 PM prompt、roles.md PM 职责；输出=PM agent 资产样板；依赖关系=依赖 agent 资产格式；完成标准=样板包含用途、输入、输出、工具边界和禁止事项 --> <!-- order: 依赖 agent 资产格式 -->
-- [ ] 新增 Engineer agent 资产样板 <!-- files: .claude/agents/engineer.md --> <!-- context: 责任角色=Engineer；输入=roles.py 中 Engineer prompt、roles.md Engineer 职责；输出=Engineer agent 资产样板；依赖关系=依赖 agent 资产格式；完成标准=样板说明可写代码但必须最小实现和可验证 --> <!-- order: 依赖 agent 资产格式 -->
+- [x] 新增 Engineer agent 资产样板 <!-- files: .claude/agents/engineer.md --> <!-- context: 责任角色=Engineer；输入=roles.py 中 Engineer prompt、roles.md Engineer 职责；输出=Engineer agent 资产样板；依赖关系=依赖 agent 资产格式；完成标准=样板说明可写代码但必须最小实现和可验证 --> <!-- order: 依赖 agent 资产格式 -->
 - [ ] 新增 QA agent 资产样板 <!-- files: .claude/agents/qa.md --> <!-- context: 责任角色=QA；输入=roles.py 中 QA prompt、roles.md QA 职责；输出=QA agent 资产样板；依赖关系=依赖 agent 资产格式；完成标准=样板说明只读验收、证据要求和 pass/fail 结论 --> <!-- order: 依赖 agent 资产格式 -->
 
 ## 8. P2 - 知识复用与 Memory 边界
