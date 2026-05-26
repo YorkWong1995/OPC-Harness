@@ -32,6 +32,25 @@ description: Read OPC run artifacts and summarize token, API call, duration, and
 - 代替真实账单或供应商计费记录
 - 对缺失 metrics 做无依据估算
 
+## 输出字段模板
+
+字段应优先直接对应 `run_metrics.json` 的现有或计划字段；字段缺失时标注为“缺失”：
+
+| 字段 | 来源 | 输出要求 |
+| --- | --- | --- |
+| `run_id` | `run_trace.json` 或 artifacts 路径 | 标识本次 run |
+| `input_tokens` | `run_metrics.json.totals.input_tokens` | 输出总输入 token |
+| `output_tokens` | `run_metrics.json.totals.output_tokens` | 输出总输出 token |
+| `api_calls` | `run_metrics.json.totals.api_calls` | 输出 API 调用总数 |
+| `duration_seconds` | `run_metrics.json.totals.duration_seconds` | 输出总耗时 |
+| `stage_usage` | `run_metrics.json.stages` | 按 stage 列出 tokens、api_calls、duration、model、estimated_cost |
+| `highest_usage_stage` | `stage_usage` 派生 | 标出 token 或 cost 最高阶段 |
+| `estimated_cost` | `run_metrics.json.totals.estimated_cost` | 仅在 artifacts 已存在时输出 |
+| `currency` | `run_metrics.json.totals.currency` | 缺失时标注不适用 |
+| `pricing_source` | `run_metrics.json.totals.pricing_source` | 说明价格来源或缺失 |
+| `anomalies` | metrics/trace/events 对比 | 标记缺字段、异常耗时、异常调用数 |
+| `optimization_suggestions` | 分阶段消耗派生 | 给出证据驱动的优化建议 |
+
 ## 执行规则
 
 1. 只读取用户指定或 latest run 的 artifacts。
@@ -45,9 +64,10 @@ description: Read OPC run artifacts and summarize token, API call, duration, and
 ```
 [分析对象] ...
 [读取 artifacts] run_metrics.json / run_trace.json / run_events.jsonl
-[总量] input_tokens / output_tokens / api_calls / duration
-[分阶段消耗] ...
-[最高消耗阶段] ...
+[总量] input_tokens / output_tokens / api_calls / duration / estimated_cost / currency / pricing_source
+[分阶段消耗]
+- stage: model / input_tokens / output_tokens / api_calls / duration / estimated_cost
+[最高消耗阶段] stage / 指标 / 数值
 [异常项] ...
 [优化建议] ...
 [结论] ...
