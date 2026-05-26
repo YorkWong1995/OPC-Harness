@@ -204,6 +204,15 @@ OPC-Harness/
 └── README.md               # 本文件
 ```
 
+### 脚本入口盘点
+
+| 脚本 | 用途 | 决策 | 风险边界 |
+| --- | --- | --- | --- |
+| `run_opc.py` | 本地开发期进入 `opc.cli.main()` 的兼容入口 | 保留根入口，后续可在 `scripts/` 增加 run wrapper | 运行 CLI，可能触发 workflow 行为 |
+| `run_tasks.py` | 读取 markdown task list 并调用 Claude CLI 执行任务 | 保留根入口，后续在 `scripts/` 下提供说明或包装 | 可执行命令、写文件、自动提交，默认使用前需人工确认范围 |
+| `pre_upload_check.sh` | 上传前本地检查敏感文件、必要文件、缓存、git 状态和文档完整性 | 保留根入口，后续在 `scripts/` 下提供 check wrapper | 只读检查为主，但依赖 shell 命令扫描本地文件 |
+| `upload_to_github.sh` | 交互式检查、提交、设置 remote 并 push 到远端 | 暂不纳入自动迁移；如保留必须明确人工确认 | 会 `git add .`、commit、修改 remote、push，属于高风险入口 |
+
 ## 核心概念
 
 ### Harness Engineering

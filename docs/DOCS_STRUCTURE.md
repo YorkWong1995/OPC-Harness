@@ -28,6 +28,15 @@
 ### 分享文档 (docs/share/)
 - `internal_technical_share.md` - 公司内部技术分享文档，介绍项目能力、技术栈、模块优化与后续计划
 
+### 脚本入口盘点
+
+| 脚本 | 分类 | 当前决策 | 说明 |
+| --- | --- | --- | --- |
+| `run_opc.py` | run | 保留 | 兼容本地开发入口，转发到 `opc.cli.main()` |
+| `run_tasks.py` | run/review | 保留 | 自动任务执行器，涉及 Claude CLI、文件写入和自动提交，使用前需确认任务范围 |
+| `pre_upload_check.sh` | check | 保留 | 上传前本地检查入口，适合后续包装到 `scripts/check-*` |
+| `upload_to_github.sh` | upload | 暂不自动迁移 | 未跟踪且含 `git add .`、commit、remote、push 等高风险动作，后续如纳入需保留人工确认 |
+
 ### 开发记录文档 (docs/)
 - `*_summary.md` - 各类总结文档
 - `*_issues.md` - 问题记录
