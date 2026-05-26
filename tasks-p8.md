@@ -17,7 +17,7 @@
 - [x] 补充 test-spec 测试维度模板 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA；输入=PRD、bug、任务描述、验收标准；输出=正常路径、失败路径、边界条件、回归风险、验证命令模板；依赖关系=依赖 test-spec 基础说明；完成标准=模板覆盖至少 5 类测试维度，且每类都有输出要求 --> <!-- order: 依赖 test-spec 基础说明 -->
 - [x] 补充 test-spec 示例与验收 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA；输入=test-spec 测试维度模板；输出=调用示例、输出骨架、验收标准；依赖关系=依赖测试维度模板；完成标准=至少包含从需求生成测试点和从 bug 生成回归测试两类示例 --> <!-- order: 依赖 test-spec 测试维度模板 -->
 
-- [ ] 定义 implementation-check skill 基础说明 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=task-spec、PRD、架构约束、pending diff；输出=implementation-check skill 的 name、description、目标、适用场景；依赖关系=现有 task-spec 与 acceptance-check；完成标准=SKILL.md 存在且说明该 skill 是 QA 前实现自检，不替代 QA 验收 --> <!-- order: 依赖 task-spec 与 acceptance-check 已存在 -->
+- [x] 定义 implementation-check skill 基础说明 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=task-spec、PRD、架构约束、pending diff；输出=implementation-check skill 的 name、description、目标、适用场景；依赖关系=现有 task-spec 与 acceptance-check；完成标准=SKILL.md 存在且说明该 skill 是 QA 前实现自检，不替代 QA 验收 --> <!-- order: 依赖 task-spec 与 acceptance-check 已存在 -->
 - [ ] 补充 implementation-check 检查清单 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=任务定义、实现 diff、验证结果；输出=范围一致性、文件变更、测试证据、已知限制、风险项检查清单；依赖关系=依赖 implementation-check 基础说明；完成标准=检查清单能输出“建议进入 QA / 不建议进入 QA”的明确结论 --> <!-- order: 依赖 implementation-check 基础说明 -->
 - [ ] 补充 implementation-check 示例与验收 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA；输入=implementation-check 检查清单；输出=调用示例、输出骨架、验收标准；依赖关系=依赖检查清单；完成标准=示例覆盖“实现符合任务”和“实现偏离任务”两种结果 --> <!-- order: 依赖 implementation-check 检查清单 -->
 

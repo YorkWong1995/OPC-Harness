@@ -1,0 +1,61 @@
+---
+name: implementation-check
+description: Run a pre-QA implementation self-check against task scope, acceptance criteria, validation evidence, and pending diff.
+---
+
+# implementation-check
+
+在 Engineer 完成实现后、进入 QA 验收前，对任务范围、实现 diff、验证结果和已知风险做自检；它是 QA 前门禁，不替代 QA 的独立验收结论。
+
+## 用法
+
+`/implementation-check <任务定义、PRD 或 pending diff>`
+
+## 目标
+
+- 确认实现是否匹配 task-spec、PRD 或架构约束
+- 检查变更文件是否落在声明范围内
+- 汇总定向验证证据和未覆盖项
+- 给出“建议进入 QA / 不建议进入 QA”的明确结论
+
+## 适用场景
+
+- 实现已完成，准备提交 QA 前
+- 需要核对 pending diff 是否偏离任务范围
+- 需要整理验证证据和已知限制
+- 多文件改动需要先做实现侧自检
+
+## 不适用场景
+
+- 替代 `/acceptance-check` 的 QA 验收
+- 在实现前生成任务或需求
+- 直接修改代码
+- 掩盖测试失败或未完成实现
+
+## 执行规则
+
+1. 先定位任务定义、验收标准、架构约束和 pending diff 来源。
+2. 每个检查项必须给出证据：文件路径、命令或 diff 范围。
+3. 若实现偏离任务范围，结论必须是“不建议进入 QA”。
+4. 若关键验证缺失或失败，不得给出“建议进入 QA”。
+5. 发现问题时输出退回 Engineer 的具体修正项。
+
+## 输出骨架
+
+```
+[自检对象] ...
+[范围一致性] 通过 / 不通过
+[文件变更检查] ...
+[验证证据] ...
+[已知限制] ...
+[风险项] ...
+[结论] 建议进入 QA / 不建议进入 QA
+[退回项] （仅当不建议进入 QA 时）
+```
+
+## 验收
+
+- 明确该 skill 是 QA 前实现自检，不替代 QA 验收
+- 输入覆盖 task-spec、PRD、架构约束和 pending diff
+- 输出能给出“建议进入 QA / 不建议进入 QA”的明确结论
+- 结论必须由检查项和验证证据支撑
