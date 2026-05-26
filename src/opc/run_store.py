@@ -143,6 +143,104 @@ def summarize_run(artifacts_dir: Path) -> RunSummary:
     )
 
 
+def _metric_number(value: Any) -> float:
+    return value if isinstance(value, (int, float)) else 0.0
+
+
+def _load_run_metrics(artifacts_dir: Path, trace: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    metrics_path = artifacts_dir / "run_metrics.json"
+    if metrics_path.exists():
+        return json.loads(metrics_path.read_text(encoding="utf-8")), []
+    metrics = trace.get("metrics")
+    if isinstance(metrics, dict) and metrics:
+        return metrics, [f"{artifacts_dir}: run_metrics.json missing; using trace metrics"]
+    return {}, [f"{artifacts_dir}: run_metrics.json missing"]
+
+
+def aggregate_run_cost_trend(root: Path, limit: int = 10) -> dict[str, Any]:
+    artifacts_dirs = [root] if root.name == "artifacts" and root.exists() else find_run_artifacts(root)
+    if limit > 0:
+        artifacts_dirs = artifacts_dirs[:limit]
+
+    result: dict[str, Any] = {
+        "runs": [],
+        "stages": [],
+        "totals": {
+            "runs": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "estimated_cost": 0.0,
+            "duration_seconds": 0.0,
+            "api_calls": 0,
+            "tool_calls": 0,
+        },
+        "compatibility": [],
+    }
+    stage_totals: dict[str, dict[str, Any]] = {}
+
+    for artifacts_dir in artifacts_dirs:
+        store = RunStore.load(artifacts_dir)
+        trace = store.read_trace()
+        metrics, compatibility = _load_run_metrics(artifacts_dir, trace)
+        result["compatibility"].extend(compatibility)
+        totals = metrics.get("totals", {}) if isinstance(metrics, dict) else {}
+        if not isinstance(totals, dict):
+            totals = {}
+        stages = metrics.get("stages", {}) if isinstance(metrics, dict) else {}
+        if not isinstance(stages, dict):
+            stages = {}
+
+        if "estimated_cost" not in totals:
+            result["compatibility"].append(f"{artifacts_dir}: totals.estimated_cost missing")
+        if not stages:
+            result["compatibility"].append(f"{artifacts_dir}: stages missing")
+
+        run_row = {
+            "run_id": str(trace.get("run_id") or metrics.get("run_id") or store.run_id),
+            "status": trace.get("final_status") or "unknown",
+            "input_tokens": int(_metric_number(totals.get("input_tokens"))),
+            "output_tokens": int(_metric_number(totals.get("output_tokens"))),
+            "estimated_cost": totals.get("estimated_cost") if isinstance(totals.get("estimated_cost"), (int, float)) else None,
+            "currency": totals.get("currency"),
+            "duration_seconds": _metric_number(totals.get("duration_seconds")),
+            "pricing_source": totals.get("pricing_source") or "unknown",
+            "artifacts_dir": str(artifacts_dir),
+        }
+        result["runs"].append(run_row)
+        result["totals"]["runs"] += 1
+        for key in ["input_tokens", "output_tokens", "duration_seconds", "api_calls", "tool_calls"]:
+            result["totals"][key] += _metric_number(totals.get(key))
+        if isinstance(totals.get("estimated_cost"), (int, float)):
+            result["totals"]["estimated_cost"] += totals["estimated_cost"]
+
+        for stage_name, stage_metrics in stages.items():
+            if not isinstance(stage_metrics, dict):
+                continue
+            stage_row = stage_totals.setdefault(
+                str(stage_name),
+                {
+                    "stage": str(stage_name),
+                    "runs": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "estimated_cost": 0.0,
+                    "duration_seconds": 0.0,
+                    "api_calls": 0,
+                    "tool_calls": 0,
+                },
+            )
+            stage_row["runs"] += 1
+            for key in ["input_tokens", "output_tokens", "duration_seconds", "api_calls", "tool_calls"]:
+                stage_row[key] += _metric_number(stage_metrics.get(key))
+            if isinstance(stage_metrics.get("estimated_cost"), (int, float)):
+                stage_row["estimated_cost"] += stage_metrics["estimated_cost"]
+
+    result["stages"] = sorted(stage_totals.values(), key=lambda row: row["stage"])
+    result["totals"]["duration_seconds"] = round(result["totals"]["duration_seconds"], 2)
+    result["totals"]["estimated_cost"] = round(result["totals"]["estimated_cost"], 6)
+    return result
+
+
 def trace_summary(artifacts_dir: Path) -> dict[str, Any]:
     store = RunStore.load(artifacts_dir)
     trace = store.read_trace()

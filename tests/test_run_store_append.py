@@ -4,7 +4,7 @@ import json
 import os
 import time
 
-from opc.run_store import RunStore, find_run_artifacts, summarize_run, trace_inspect, trace_summary
+from opc.run_store import RunStore, aggregate_run_cost_trend, find_run_artifacts, summarize_run, trace_inspect, trace_summary
 
 
 def test_append_writes_jsonl_not_trace(tmp_path):
@@ -162,6 +162,69 @@ def test_trace_inspect_focus_and_compatibility(tmp_path):
     assert list(inspect) == ["trace_schema_version", "run_id", "final_status", "compatibility", "decisions"]
     assert inspect["decisions"][0]["type"] == "circuit_breaker_open"
     assert any("run_trace.json missing" in item for item in inspect["compatibility"])
+
+
+def test_aggregate_run_cost_trend_handles_missing_legacy_and_multiple_runs(tmp_path):
+    missing = tmp_path / "missing" / "artifacts"
+    missing.mkdir(parents=True)
+    RunStore(missing, run_id="missing-run").write_trace(final_status="done")
+
+    legacy = tmp_path / "legacy" / "artifacts"
+    legacy.mkdir(parents=True)
+    RunStore(legacy, run_id="legacy-run").write_trace(final_status="done")
+    (legacy / "run_metrics.json").write_text(
+        json.dumps({"totals": {"input_tokens": 10, "output_tokens": 5, "duration_seconds": 1.5}}),
+        encoding="utf-8",
+    )
+
+    current = tmp_path / "current" / "artifacts"
+    current.mkdir(parents=True)
+    RunStore(current, run_id="current-run").write_trace(final_status="done")
+    (current / "run_metrics.json").write_text(
+        json.dumps({
+            "totals": {
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "duration_seconds": 2.5,
+                "api_calls": 2,
+                "tool_calls": 3,
+                "estimated_cost": 0.12,
+                "currency": "USD",
+                "pricing_source": "test",
+            },
+            "stages": {
+                "pm": {
+                    "input_tokens": 8,
+                    "output_tokens": 3,
+                    "duration_seconds": 1,
+                    "api_calls": 1,
+                    "tool_calls": 0,
+                    "estimated_cost": 0.04,
+                }
+            },
+        }),
+        encoding="utf-8",
+    )
+
+    trend = aggregate_run_cost_trend(tmp_path, limit=10)
+
+    assert len(trend["runs"]) == 3
+    assert trend["totals"]["input_tokens"] == 30
+    assert trend["totals"]["output_tokens"] == 12
+    assert trend["totals"]["estimated_cost"] == 0.12
+    assert trend["stages"] == [{
+        "stage": "pm",
+        "runs": 1,
+        "input_tokens": 8,
+        "output_tokens": 3,
+        "estimated_cost": 0.04,
+        "duration_seconds": 1.0,
+        "api_calls": 1,
+        "tool_calls": 0,
+    }]
+    assert any("run_metrics.json missing" in item for item in trend["compatibility"])
+    assert any("totals.estimated_cost missing" in item for item in trend["compatibility"])
+    assert any("stages missing" in item for item in trend["compatibility"])
 
 
 def test_find_run_artifacts_returns_recent_first(tmp_path):
