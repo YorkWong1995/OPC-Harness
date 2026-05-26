@@ -318,7 +318,7 @@ class HarnessWorkflow:
         start = time.monotonic()
         result = await asyncio.to_thread(agent.run, prompt)
         duration = time.monotonic() - start
-        self._record_stage_metrics(agent, stage_name, duration)
+        stage_metrics = self._record_stage_metrics(agent, stage_name, duration)
 
         # 记录工具调用和结果
         if hasattr(agent, "audit_log") and agent.audit_log:
@@ -337,11 +337,11 @@ class HarnessWorkflow:
             "stage_completed",
             stage=stage_name,
             role=getattr(agent, "role", stage_name),
-            duration_seconds=round(duration, 2),
-            input_tokens=getattr(agent, "last_input_tokens", 0),
-            output_tokens=getattr(agent, "last_output_tokens", 0),
-            tool_calls=getattr(agent, "last_tool_calls", 0),
-            api_calls=getattr(agent, "last_api_calls", 0),
+            duration_seconds=stage_metrics["duration_seconds"],
+            input_tokens=stage_metrics["input_tokens"],
+            output_tokens=stage_metrics["output_tokens"],
+            tool_calls=stage_metrics["tool_calls"],
+            api_calls=stage_metrics["api_calls"],
             output=result,
         )
         return result
@@ -354,7 +354,7 @@ class HarnessWorkflow:
         output_tokens = _metric_int(getattr(agent, "last_output_tokens", 0))
         tool_calls = _metric_int(getattr(agent, "last_tool_calls", 0))
         api_calls = _metric_int(getattr(agent, "last_api_calls", 0))
-        self.workflow_state.stage_logs[stage_name] = {
+        stage_metrics = {
             "model": model,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
@@ -362,7 +362,9 @@ class HarnessWorkflow:
             "tool_calls": tool_calls,
             "api_calls": api_calls,
         }
+        self.workflow_state.stage_logs[stage_name] = stage_metrics
         self._observe_cost_limits(stage_name, input_tokens + output_tokens, api_calls)
+        return stage_metrics
 
     def _write_tool_audit(self, stage: str, role: str, record: dict):
         """将工具调用写入独立审计日志文件"""

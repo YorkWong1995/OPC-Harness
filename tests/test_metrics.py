@@ -45,6 +45,25 @@ def test_workflow_stage_metrics_include_duration_and_tokens(tmp_path):
     assert metrics["duration_seconds"] >= 0
 
 
+def test_workflow_stage_metrics_default_tokens_when_usage_missing(tmp_path):
+    wf = HarnessWorkflow(task="t", project_dir=tmp_path, auto_confirm=True)
+    agent = MagicMock()
+    agent.run.return_value = "result"
+    del agent.last_input_tokens
+    del agent.last_output_tokens
+    agent.last_tool_calls = None
+    agent.last_api_calls = "unknown"
+    agent.model = "claude-test-model"
+
+    assert asyncio.run(wf._run_stage(agent, "prompt", "已定义")) == "result"
+
+    metrics = wf.workflow_state.stage_logs["已定义"]
+    assert metrics["input_tokens"] == 0
+    assert metrics["output_tokens"] == 0
+    assert metrics["tool_calls"] == 0
+    assert metrics["api_calls"] == 0
+
+
 def test_generate_metrics_writes_json(tmp_path):
     state = WorkflowState(
         current_stage="已复盘",
