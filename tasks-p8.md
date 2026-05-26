@@ -27,7 +27,7 @@
 
 ## 2. P0 - Token / Model / Cost 运行指标
 
-- [ ] 设计 run_metrics 的 cost 字段结构 <!-- files: docs/plan/workflow.md, src/opc/workflow.py --> <!-- context: 责任角色=Architect/Ops；输入=现有 run_metrics.json、stage_logs、token-report 字段需求；输出=model、input_tokens、output_tokens、estimated_cost、currency、pricing_source 的字段说明；依赖关系=依赖 token-report 输出字段模板；完成标准=字段结构能支持单阶段和总计两级统计 --> <!-- order: 依赖 token-report 字段模板 -->
+- [x] 设计 run_metrics 的 cost 字段结构 <!-- files: docs/plan/workflow.md, src/opc/workflow.py --> <!-- context: 责任角色=Architect/Ops；输入=现有 run_metrics.json、stage_logs、token-report 字段需求；输出=model、input_tokens、output_tokens、estimated_cost、currency、pricing_source 的字段说明；依赖关系=依赖 token-report 输出字段模板；完成标准=字段结构能支持单阶段和总计两级统计 --> <!-- order: 依赖 token-report 字段模板 -->
 - [ ] 在 workflow 阶段日志中记录 model 字段 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer；输入=Agent model、现有 stage_logs；输出=每个 stage log 记录 model；依赖关系=依赖 cost 字段设计；完成标准=run_metrics.json 的每个阶段可看到 model，缺省 model 时有兼容值 --> <!-- order: 依赖 cost 字段设计 -->
 - [ ] 在 workflow 阶段日志中记录 token 字段兼容逻辑 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=Agent usage、现有 input_tokens/output_tokens；输出=缺 usage 时安全落空，存在 usage 时写入 token；依赖关系=依赖 model 字段记录；完成标准=测试覆盖 usage 存在和缺失两种情况 --> <!-- order: 依赖 model 字段记录 -->
 - [ ] 增加 cost 估算配置 <!-- files: src/opc/config.py, opc.example.toml, tests/ --> <!-- context: 责任角色=Ops/Engineer；输入=模型价格、currency、是否启用估算；输出=CostConfig 或等价配置；依赖关系=依赖 cost 字段设计；完成标准=配置有默认值，用户可关闭估算或覆盖模型价格 --> <!-- review: 需确认价格来源和默认模型价格策略 -->
