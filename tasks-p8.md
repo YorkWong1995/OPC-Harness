@@ -54,7 +54,7 @@
 
 ## 5. P1 - 可选角色启用规则
 
-- [ ] 梳理可选角色触发词表 <!-- files: src/opc/roles.py, docs/plan/workflow.md --> <!-- context: 责任角色=PM/Architect；输入=OPTIONAL_ROLE_KEYWORDS、ROLE_CLASSIFIER_PROMPT、现有文档；输出=Architect/Ops/Growth 的触发词和语义说明；依赖关系=无；完成标准=文档和代码中的触发语义一致 --> <!-- auto: 文档与代码核对 -->
+- [x] 梳理可选角色触发词表 <!-- files: src/opc/roles.py, docs/plan/workflow.md --> <!-- context: 责任角色=PM/Architect；输入=OPTIONAL_ROLE_KEYWORDS、ROLE_CLASSIFIER_PROMPT、现有文档；输出=Architect/Ops/Growth 的触发词和语义说明；依赖关系=无；完成标准=文档和代码中的触发语义一致 --> <!-- auto: 文档与代码核对 -->
 - [ ] 补充手动角色开关说明 <!-- files: docs/plan/workflow.md, README.md --> <!-- context: 责任角色=PM；输入=CLI --with-architect/--with-ops/--with-growth/--skip-architect/--ceo-review；输出=用户何时手动打开或关闭可选角色的说明；依赖关系=依赖触发词表梳理；完成标准=README 或 workflow 文档能解释自动识别与手动覆盖的关系 --> <!-- order: 依赖触发词表梳理 -->
 - [ ] 增加可选角色分类测试 <!-- files: tests/test_roles.py, src/opc/roles.py --> <!-- context: 责任角色=QA/Engineer；输入=典型 architect/ops/growth/无可选角色任务描述；输出=分类或关键词兜底测试；依赖关系=依赖触发词表梳理；完成标准=测试覆盖 4 类任务描述，避免明显误触或漏触 --> <!-- order: 依赖触发词表梳理 -->
 
