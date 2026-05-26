@@ -78,6 +78,20 @@ opc run "帮我设计一个用户登录功能" --project demo-login
 opc run "补充登录功能验收标准" --project-dir . --skip-architect
 ```
 
+### 可选角色开关
+
+OPC 默认使用 PM → Engineer → QA 主链路，并根据任务描述自动识别是否需要 Architect、Ops 或 Growth。自动识别会优先使用角色分类器；分类器不可用或返回无效结果时，使用关键词兜底。
+
+| 开关 | 用途 | 适用场景 |
+| --- | --- | --- |
+| `--with-architect` | 显式加入 Architect | 任务涉及架构、系统设计、模块/接口边界、数据结构、复杂重构或技术取舍 |
+| `--with-ops` | 显式加入 Ops | 任务涉及部署、发布、上线、环境、运行检查、监控、回滚或运维风险 |
+| `--with-growth` | 显式加入 Growth | 任务涉及用户研究、用户反馈、增长、竞品、转化指标、产品实验或市场反馈假设 |
+| `--skip-architect` | 显式移除 Architect | 简单任务、文档小修或用户明确不需要架构环节 |
+| `--ceo-review` | 加入 CEO 决策审查 | 范围、优先级或风险需要更高层决策，不替代用户最终确认 |
+
+显式开关用于覆盖自动识别：`--with-*` 会强制加入对应角色，`--skip-architect` 会移除 Architect，即使配置中启用了全部可选角色。
+
 ### 最小可运行示例
 
 仓库提供一个安全的 Quickstart 脚本，默认只打印将要执行的命令，不会调用 API 或修改 workspace：
