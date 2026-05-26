@@ -58,6 +58,10 @@ class CostConfig:
     role_token_limit: int = 50_000
     role_call_limit: int = 10
     api_calls_per_minute: int = 30
+    estimate_enabled: bool = False
+    currency: str = "USD"
+    pricing_source: str = "opc.toml"
+    model_prices: dict[str, dict[str, float]] = field(default_factory=dict)
     # 硬限制：超过即抛出 _StopWorkflow 中止；为 0 表示不启用
     workflow_token_hard_limit: int = 0
     role_token_hard_limit: int = 0
@@ -175,6 +179,10 @@ def load_project_config(
                 role_token_limit=int(cost.get("role_token_limit", 50_000)),
                 role_call_limit=int(cost.get("role_call_limit", 10)),
                 api_calls_per_minute=int(cost.get("api_calls_per_minute", 30)),
+                estimate_enabled=bool(cost.get("estimate_enabled", False)),
+                currency=str(cost.get("currency", "USD")),
+                pricing_source=str(cost.get("pricing_source", "opc.toml")),
+                model_prices=_normalize_model_prices(cost.get("model_prices", {})),
                 workflow_token_hard_limit=int(cost.get("workflow_token_hard_limit", 0)),
                 role_token_hard_limit=int(cost.get("role_token_hard_limit", 0)),
                 enforce_hard_limit=bool(cost.get("enforce_hard_limit", True)),
@@ -201,6 +209,21 @@ def load_project_config(
     return config
 
 
+def _normalize_model_prices(raw_prices: object) -> dict[str, dict[str, float]]:
+    if not isinstance(raw_prices, dict):
+        raise TypeError("cost.model_prices 必须是 TOML 表")
+
+    model_prices: dict[str, dict[str, float]] = {}
+    for model, prices in raw_prices.items():
+        if not isinstance(prices, dict):
+            raise TypeError(f"cost.model_prices.{model} 必须是 TOML 表")
+        model_prices[str(model)] = {
+            "input_per_million": float(prices.get("input_per_million", 0.0)),
+            "output_per_million": float(prices.get("output_per_million", 0.0)),
+        }
+    return model_prices
+
+
 def _apply_env_overrides(config: OPCConfig) -> None:
     if val := os.environ.get("OPC_MAX_REWORK_ATTEMPTS"):
         config.workflow.max_rework_attempts = int(val)
@@ -216,6 +239,12 @@ def _apply_env_overrides(config: OPCConfig) -> None:
         config.cost.role_call_limit = int(val)
     if val := os.environ.get("OPC_API_CALLS_PER_MINUTE"):
         config.cost.api_calls_per_minute = int(val)
+    if val := os.environ.get("OPC_COST_ESTIMATE_ENABLED"):
+        config.cost.estimate_enabled = val.lower() in ("1", "true", "yes")
+    if val := os.environ.get("OPC_COST_CURRENCY"):
+        config.cost.currency = val
+    if val := os.environ.get("OPC_COST_PRICING_SOURCE"):
+        config.cost.pricing_source = val
     if val := os.environ.get("OPC_WORKFLOW_TOKEN_HARD_LIMIT"):
         config.cost.workflow_token_hard_limit = int(val)
     if val := os.environ.get("OPC_ROLE_TOKEN_HARD_LIMIT"):
@@ -251,6 +280,14 @@ def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
         config.cost.role_call_limit = int(overrides["role_call_limit"])
     if "api_calls_per_minute" in overrides:
         config.cost.api_calls_per_minute = int(overrides["api_calls_per_minute"])
+    if "cost_estimate_enabled" in overrides:
+        config.cost.estimate_enabled = bool(overrides["cost_estimate_enabled"])
+    if "cost_currency" in overrides:
+        config.cost.currency = str(overrides["cost_currency"])
+    if "cost_pricing_source" in overrides:
+        config.cost.pricing_source = str(overrides["cost_pricing_source"])
+    if "cost_model_prices" in overrides:
+        config.cost.model_prices = _normalize_model_prices(overrides["cost_model_prices"])
     if "workflow_token_hard_limit" in overrides:
         config.cost.workflow_token_hard_limit = int(overrides["workflow_token_hard_limit"])
     if "role_token_hard_limit" in overrides:

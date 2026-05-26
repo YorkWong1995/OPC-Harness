@@ -10,6 +10,16 @@ ceo = false
 ops = false
 growth = false
 
+[cost]
+estimate_enabled = false
+currency = "USD"
+pricing_source = "user-configured"
+
+# 成本估算默认关闭；如需启用，请自行维护模型价格，单位为每百万 token。
+# [cost.model_prices."claude-sonnet-4-6"]
+# input_per_million = 0.0
+# output_per_million = 0.0
+
 [profile.full]
 [profile.full.workflow]
 roles = ["all"]

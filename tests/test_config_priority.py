@@ -22,6 +22,40 @@ def test_toml_overrides_defaults(tmp_path: Path):
     assert config.cost.workflow_token_limit == 100_000
 
 
+def test_cost_estimation_defaults_disabled(tmp_path: Path):
+    config = load_project_config(tmp_path)
+    assert config.cost.estimate_enabled is False
+    assert config.cost.currency == "USD"
+    assert config.cost.pricing_source == "opc.toml"
+    assert config.cost.model_prices == {}
+
+
+def test_cost_estimation_reads_model_prices(tmp_path: Path):
+    (tmp_path / "opc.toml").write_text(
+        """
+[cost]
+estimate_enabled = true
+currency = "CNY"
+pricing_source = "internal-rate-card"
+
+[cost.model_prices."claude-test-model"]
+input_per_million = 3.0
+output_per_million = 15.0
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_project_config(tmp_path)
+
+    assert config.cost.estimate_enabled is True
+    assert config.cost.currency == "CNY"
+    assert config.cost.pricing_source == "internal-rate-card"
+    assert config.cost.model_prices["claude-test-model"] == {
+        "input_per_million": 3.0,
+        "output_per_million": 15.0,
+    }
+
+
 def test_env_overrides_toml(tmp_path: Path, monkeypatch):
     (tmp_path / "opc.toml").write_text("[workflow]\nmax_rounds = 5\n", encoding="utf-8")
     monkeypatch.setenv("OPC_MAX_ROUNDS", "20")
