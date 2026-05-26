@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from opc import roles
 
 
@@ -35,3 +37,21 @@ def test_invalid_classifier_payload_falls_back_to_keywords(monkeypatch):
     result = roles.infer_optional_roles("需要设计模块边界")
 
     assert result == {"architect"}
+
+
+@pytest.mark.parametrize(
+    ("task", "expected"),
+    [
+        ("重新设计接口边界和数据结构", {"architect"}),
+        ("发布前检查运行风险和回滚方案", {"ops"}),
+        ("分析用户反馈和转化指标", {"growth"}),
+        ("修正文档里的一个错别字", set()),
+    ],
+)
+def test_keyword_fallback_covers_optional_role_categories(monkeypatch, task, expected):
+    def fail_client():
+        raise RuntimeError("offline")
+
+    monkeypatch.setattr(roles.anthropic, "Anthropic", fail_client)
+
+    assert roles.infer_optional_roles(task) == expected
