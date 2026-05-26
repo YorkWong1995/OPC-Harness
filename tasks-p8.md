@@ -11,7 +11,7 @@
 
 - [x] 定义 bugfix skill 基础说明 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=Engineer/QA；输入=tasks-p7.md 中 bugfix skill 要求、现有 task-spec/acceptance-check skill 格式；输出=bugfix skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明 bugfix 只做缺陷定位、最小修复和定向验证 --> <!-- auto: 新增单个 skill 文档 -->
 - [x] 补充 bugfix skill 执行流程 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=Engineer/QA；输入=缺陷描述、复现路径、预期行为、相关文件；输出=定位→根因→最小修复→验证→验收证据的步骤；依赖关系=依赖 bugfix skill 基础说明；完成标准=执行规则明确禁止超范围重构，并要求输出根因和验证证据 --> <!-- order: 依赖 bugfix 基础说明 -->
-- [ ] 补充 bugfix skill 示例与验收 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=QA；输入=bugfix 执行流程；输出=用户调用示例、输出骨架、验收标准；依赖关系=依赖 bugfix 执行流程；完成标准=至少包含 2 个调用示例和 1 个可检查输出骨架 --> <!-- order: 依赖 bugfix 执行流程 -->
+- [x] 补充 bugfix skill 示例与验收 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=QA；输入=bugfix 执行流程；输出=用户调用示例、输出骨架、验收标准；依赖关系=依赖 bugfix 执行流程；完成标准=至少包含 2 个调用示例和 1 个可检查输出骨架 --> <!-- order: 依赖 bugfix 执行流程 -->
 
 - [ ] 定义 test-spec skill 基础说明 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=tasks-p7.md 中 test-spec 要求、现有 standards.md 任务/验收字段；输出=test-spec skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明该 skill 把 PRD、bug 或任务描述转成测试点 --> <!-- auto: 新增单个 skill 文档 -->
 - [ ] 补充 test-spec 测试维度模板 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA；输入=PRD、bug、任务描述、验收标准；输出=正常路径、失败路径、边界条件、回归风险、验证命令模板；依赖关系=依赖 test-spec 基础说明；完成标准=模板覆盖至少 5 类测试维度，且每类都有输出要求 --> <!-- order: 依赖 test-spec 基础说明 -->

@@ -49,17 +49,35 @@ description: Locate a defect, make the smallest safe fix, and collect targeted v
 5. 输出必须包含根因、修复范围和验证证据。
 6. 根因不明确时不得扩大修复范围，只能记录假设、证据和下一步定位建议。
 
+## 示例
+
+- `/bugfix tests/test_metrics.py 中 run_metrics totals 断言失败`
+- `/bugfix CLI 执行 opc runs trace 报 KeyError，复现命令为 python -m opc.cli runs trace latest`
+
 ## 输出骨架
 
 ```
 [缺陷现象] ...
 [复现路径] ...
+[预期行为] ...
 [根因判断] ...
-[修复范围] ...
-[验证命令 / 检查方法] ...
+[修复范围]
+- 文件：...
+- 变更：...
+[验证命令 / 检查方法]
+- ...
 [验证结果] 通过 / 不通过
+[验收证据]
+- 标准 1 → 通过 / 不通过（证据：path:line 或命令关键输出）
 [后续风险] ...
 ```
+
+## 验收标准
+
+- 至少能从输入中识别缺陷现象、复现路径和预期行为
+- 修复范围只包含与根因直接相关的文件
+- 输出包含根因判断、验证命令和验收证据
+- 若验证失败，结论必须是“不通过”并说明退回步骤
 
 ## 验收
 
