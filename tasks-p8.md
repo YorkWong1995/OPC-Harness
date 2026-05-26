@@ -36,7 +36,7 @@
 ## 3. P1 - Review / Release Skills
 
 - [x] 定义 review skill 基础说明 <!-- files: .claude/skills/review/SKILL.md --> <!-- context: 责任角色=QA/Architect；输入=pending diff、PR、指定文件、任务结果；输出=review skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明该 skill 是只读评审，不直接修改代码 --> <!-- auto: 新增单个 skill 文档 -->
-- [ ] 补充 review 输出分类规则 <!-- files: .claude/skills/review/SKILL.md --> <!-- context: 责任角色=QA/Architect；输入=diff 或文件内容；输出=阻塞问题、非阻塞建议、风险判断、通过/不通过/需调整结论；依赖关系=依赖 review 基础说明；完成标准=规则明确区分 blocking 与 non-blocking，要求证据引用文件路径 --> <!-- order: 依赖 review 基础说明 -->
+- [x] 补充 review 输出分类规则 <!-- files: .claude/skills/review/SKILL.md --> <!-- context: 责任角色=QA/Architect；输入=diff 或文件内容；输出=阻塞问题、非阻塞建议、风险判断、通过/不通过/需调整结论；依赖关系=依赖 review 基础说明；完成标准=规则明确区分 blocking 与 non-blocking，要求证据引用文件路径 --> <!-- order: 依赖 review 基础说明 -->
 - [ ] 补充 review 示例与验收 <!-- files: .claude/skills/review/SKILL.md --> <!-- context: 责任角色=QA；输入=review 输出分类规则；输出=调用示例、输出骨架、验收标准；依赖关系=依赖输出分类规则；完成标准=示例覆盖 pass 和 needs-work 两种结论 --> <!-- order: 依赖 review 输出分类规则 -->
 
 - [ ] 定义 release-check skill 基础说明 <!-- files: .claude/skills/release-check/SKILL.md --> <!-- context: 责任角色=Ops；输入=实现结果、验收结果、运行环境、发布对象；输出=release-check skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明该 skill 只做发布建议，不执行真实发布 --> <!-- auto: 新增单个 skill 文档 -->
