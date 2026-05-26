@@ -51,10 +51,17 @@ description: Convert a PRD, bug report, or task description into structured test
 4. 优先推荐定向测试、文档检查或最小复现命令。
 5. 输出必须区分自动验证和人工检查。
 
+## 示例
+
+- `/test-spec docs/plan/vision.md 中登录流程 PRD，生成正常路径、失败路径和边界测试点`
+- `/test-spec bug: opc runs cost 在旧 run_metrics.json 缺 cost 字段时报错，生成回归测试点`
+
 ## 输出骨架
 
 ```
-[输入类型] PRD / bug / task / acceptance
+[示例用例]
+- 从需求生成测试点：输入 PRD/任务 → 输出正常路径、失败路径、边界条件和验收映射
+- 从 bug 生成回归测试：输入缺陷现象/复现路径 → 输出复现检查、修复验证和回归风险
 [测试目标] ...
 [测试点]
 - 正常路径：目标 / 输入 / 检查方式 / 通过标准
@@ -68,6 +75,13 @@ description: Convert a PRD, bug report, or task description into structured test
 - ...
 [回归风险] ...
 ```
+
+## 验收标准
+
+- 至少包含“从需求生成测试点”和“从 bug 生成回归测试”两类示例
+- 输出骨架包含测试目标、测试点、验证命令、人工检查和回归风险
+- 每个测试维度都有检查方式和通过标准
+- 缺少输入或预期行为时能标记待澄清，不输出伪确定结论
 
 ## 验收
 
