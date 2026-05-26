@@ -61,7 +61,7 @@
 ## 6. P1 - Scripts 目录与入口整理
 
 - [x] 盘点根目录脚本用途 <!-- files: README.md, docs/DOCS_STRUCTURE.md, run_opc.py, run_tasks.py, pre_upload_check.sh, upload_to_github.sh --> <!-- context: 责任角色=Ops/PM；输入=当前根目录脚本；输出=脚本用途、是否保留、是否移动到 scripts/ 的决策记录；依赖关系=无；完成标准=每个脚本都有保留/迁移/废弃结论 --> <!-- review: 文件移动前先确认策略 -->
-- [ ] 创建 scripts 目录说明 <!-- files: scripts/README.md --> <!-- context: 责任角色=Ops；输入=脚本盘点结论；输出=scripts/ 分类、命名和使用规则；依赖关系=依赖脚本用途盘点；完成标准=scripts/README.md 说明 run/check/review/cost/upload 的入口分类 --> <!-- order: 依赖脚本盘点 -->
+- [x] 创建 scripts 目录说明 <!-- files: scripts/README.md --> <!-- context: 责任角色=Ops；输入=脚本盘点结论；输出=scripts/ 分类、命名和使用规则；依赖关系=依赖脚本用途盘点；完成标准=scripts/README.md 说明 run/check/review/cost/upload 的入口分类 --> <!-- order: 依赖脚本盘点 -->
 - [ ] 迁移或包装 run 类脚本入口 <!-- files: scripts/, run_opc.py, run_tasks.py --> <!-- context: 责任角色=Engineer/Ops；输入=run_opc.py、run_tasks.py、scripts 目录规则；输出=scripts/ 下 run 相关入口或包装脚本；依赖关系=依赖 scripts 目录说明；完成标准=旧入口是否保留有明确策略，新入口可执行或有说明 --> <!-- review: 涉及入口兼容策略 -->
 - [ ] 迁移或包装 check/upload 类脚本入口 <!-- files: scripts/, pre_upload_check.sh, upload_to_github.sh --> <!-- context: 责任角色=Ops；输入=pre_upload_check.sh、upload_to_github.sh、scripts 目录规则；输出=scripts/ 下 check/upload 相关入口或包装脚本；依赖关系=依赖 scripts 目录说明；完成标准=上传前检查与上传入口位置清晰，危险操作仍需人工确认 --> <!-- review: 涉及 git add/push 脚本安全边界 -->
 
