@@ -84,7 +84,7 @@
 
 ## 8. P2 - 知识复用与 Memory 边界
 
-- [ ] 设计任务结果知识回流规则 <!-- files: docs/knowledge-retrieval-design.md, docs/plan/workflow.md --> <!-- context: 责任角色=Architect/PM；输入=任务结果、验证证据、复盘结论、RAG、memory 边界；输出=哪些内容可回流、哪些必须人工确认、哪些禁止写入；依赖关系=现有 memory 与 RAG 边界；完成标准=规则明确 run artifact、memory、索引三者差异 --> <!-- review: 避免过度自动写 memory -->
+- [x] 设计任务结果知识回流规则 <!-- files: docs/knowledge-retrieval-design.md, docs/plan/workflow.md --> <!-- context: 责任角色=Architect/PM；输入=任务结果、验证证据、复盘结论、RAG、memory 边界；输出=哪些内容可回流、哪些必须人工确认、哪些禁止写入；依赖关系=现有 memory 与 RAG 边界；完成标准=规则明确 run artifact、memory、索引三者差异 --> <!-- review: 避免过度自动写 memory --> <!-- evidence: docs/knowledge-retrieval-design.md 与 docs/plan/workflow.md 已明确 artifact/RAG/memory 分层、长期 memory 人工确认、禁止自动写入 run 状态和敏感内容；验证=python -m pytest tests/test_docs_structure.py -q；结果=1 passed -->
 - [ ] 实现 memory 写入前的复盘内容筛选 <!-- files: src/opc/memory.py, src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=知识回流规则、复盘产物、memory write policy；输出=复盘内容候选筛选逻辑；依赖关系=依赖知识回流规则；完成标准=只有经确认的长期偏好/项目决策/外部引用能进入 memory，测试覆盖临时 run 状态不写入 --> <!-- order: 依赖知识回流规则 -->
 - [ ] 增强检索来源追踪说明 <!-- files: docs/knowledge-retrieval-design.md, src/opc/workflow.py, tests/ --> <!-- context: 责任角色=QA/Engineer；输入=RAG source attribution、context_sources、memory id/source；输出=检索来源记录和文档说明；依赖关系=依赖知识回流规则；完成标准=回答或 Context Pack 中可追踪来源，当前文件事实优先于历史 memory --> <!-- order: 依赖知识回流规则 -->
 

@@ -235,6 +235,16 @@ P6 后，RAG 结果进入 workflow 上下文时必须满足：
 - 客户代码和文档默认保存在本地索引目录；如果通过模型、插件或 MCP 使用检索片段，需要在 trace 中保留 `context_sources`。
 - memory 删除、更新、supersede 与审计保留策略属于 P7 治理任务，P6 先明确不能把一次性 run 状态自动沉淀为长期 memory。
 
+### 任务结果知识回流规则
+
+一次任务完成后，产物只能按用途进入三类位置：
+
+- Run artifact：保存 PRD、实现说明、QA 报告、复盘、trace 和 metrics，作为本次 run 的证据与恢复材料。
+- RAG 索引：只索引用户显式选择的项目文件和文档 chunk，用于后续定位事实来源。
+- Long-term memory：只保存经人工确认、可跨任务复用的用户偏好、项目决策、workflow 经验或外部引用。
+
+禁止自动回流到 long-term memory 的内容包括：一次性 run 状态、trace 片段、临时调试结论、stacktrace、未验证猜测、凭证、`.env`、API key、token、password 和 private key。复盘内容进入 memory 前必须先通过敏感内容、短期内容、scope/source 和人工确认检查；未确认的长期候选只能进入 review 审计，不得直接写入 memory store。
+
 ---
 
 ## 10. Agentic RAG vs 普通 RAG
