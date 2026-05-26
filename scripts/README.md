@@ -26,6 +26,8 @@
 | --- | --- | --- | --- |
 | `run-opc.py` | `../run_opc.py` | run | 兼容启动 OPC CLI，不移动根入口 |
 | `run-tasks.py` | `../run_tasks.py` | run/review | 兼容启动自动任务执行器，使用前确认任务范围和提交策略 |
+| `check-pre-upload.sh` | `../pre_upload_check.sh` | check | 上传前检查 wrapper，只做本地检查 |
+| `upload-to-github.sh` | `../upload_to_github.sh` | upload | 高风险上传 wrapper，执行前必须输入 `upload` 确认 |
 
 ## 当前策略
 
@@ -33,5 +35,5 @@
 | --- | --- |
 | `run_opc.py` | 已提供 `scripts/run-opc.py` wrapper，根入口保留 |
 | `run_tasks.py` | 已提供 `scripts/run-tasks.py` wrapper，根入口保留 |
-| `pre_upload_check.sh` | 后续提供 check wrapper，根入口保留 |
-| `upload_to_github.sh` | 不自动纳入；如纳入 upload wrapper，必须先移除或约束 `git add .` 并保留多次人工确认 |
+| `pre_upload_check.sh` | 已提供 `scripts/check-pre-upload.sh` wrapper，根入口保留 |
+| `upload_to_github.sh` | 已提供 guarded `scripts/upload-to-github.sh` wrapper；根入口本身仍不自动提交，直接使用需人工确认风险 |
