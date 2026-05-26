@@ -28,7 +28,7 @@ from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
 from .security.guardrail import GuardrailPolicy, normalize_permission_profile
-from .memory import MemoryRecord, MemoryStore, select_memory_for_context
+from .memory import MemoryRecord, MemoryStore, screen_retrospective_memory_candidates, select_memory_for_context
 from .store import Store
 from .workflow_spec import StageResult, StageValidation, load_workflow_spec
 
@@ -1317,6 +1317,12 @@ class HarnessWorkflow:
         if "已复盘" not in self.workflow_state.completed_stages:
             self.workflow_state.completed_stages.append("已复盘")
         self.workflow_state.artifact_paths["retrospective"] = str(retro_path)
+        memory_decisions = screen_retrospective_memory_candidates(retro, source=str(retro_path))
+        self.run_store.append(
+            "memory_candidates_reviewed",
+            stage="已复盘",
+            decisions=[decision.audit_event for decision in memory_decisions],
+        )
         self.save_state()
         console.print(f"[green]复盘记录已保存[/]: {retro_path}")
         console.print(Panel(retro[:800] + ("..." if len(retro) > 800 else ""), title="复盘记录预览"))

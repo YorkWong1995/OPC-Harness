@@ -16,6 +16,7 @@ from opc.memory import (
     delete_memory_record,
     detect_sensitive_memory_content,
     evaluate_memory_write,
+    screen_retrospective_memory_candidates,
     can_promote_to_long_term,
     requires_write_review,
     score_memory_relevance,
@@ -218,6 +219,27 @@ def test_memory_write_policy_requires_review_before_long_term_write():
     assert written == [record]
     assert decision.action == "write"
     assert decision.audit_event["scope"] == "user"
+
+
+def test_retrospective_memory_screening_requires_review_and_rejects_run_state():
+    decisions = screen_retrospective_memory_candidates(
+        """
+        - 用户偏好：后续优先运行定向测试
+        - 项目决策：索引默认保存在本地
+        - 临时 run 状态：QA 第一次失败后已重跑通过
+        - 本轮 trace 显示 stage=已复盘
+        """,
+        source="artifacts/retrospective.md",
+    )
+
+    reasons = [decision.reason for decision in decisions]
+    scopes = [decision.record.scope for decision in decisions if decision.record]
+
+    assert decisions[0].action == "review"
+    assert decisions[1].action == "review"
+    assert "ephemeral_content_rejected" in reasons
+    assert "retrospective_line_not_long_term_candidate" in reasons
+    assert scopes[:2] == ["user", "project"]
 
 
 def test_memory_dedupe_relevance_and_audit_entries():

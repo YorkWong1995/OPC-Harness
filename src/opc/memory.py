@@ -9,6 +9,7 @@
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 import json
+import re
 from pathlib import Path
 from typing import Literal, List, Optional, Set, Dict
 from uuid import uuid4
@@ -31,6 +32,11 @@ SENSITIVE_MEMORY_PATTERNS = [
     ".env",
 ]
 EPHEMERAL_MEMORY_MARKERS = ["临时", "temporary", "debug", "调试", "stacktrace", "traceback", "run state"]
+RETROSPECTIVE_MEMORY_SCOPE_HINTS: list[tuple[MemoryScope, tuple[str, ...]]] = [
+    ("user", ("用户偏好", "user preference", "preference")),
+    ("project", ("项目决策", "project decision", "外部引用", "external reference", "reference")),
+    ("workflow", ("workflow", "工作流", "流程经验", "workflow lesson", "process lesson")),
+]
 
 
 @dataclass(frozen=True)
@@ -152,6 +158,40 @@ def write_memory_record(records: list[MemoryRecord], record: MemoryRecord, confi
     if decision.action != "write":
         return records, decision
     return [*records, record], decision
+
+
+def _iter_retrospective_lines(content: str) -> list[str]:
+    lines: list[str] = []
+    for raw_line in content.splitlines():
+        line = re.sub(r"^\s*(?:[-*]|\d+[.)])\s*", "", raw_line).strip()
+        if line:
+            lines.append(line)
+    return lines
+
+
+def _retrospective_scope_for_line(line: str) -> MemoryScope | None:
+    lowered = line.lower()
+    for scope, hints in RETROSPECTIVE_MEMORY_SCOPE_HINTS:
+        if any(hint.lower() in lowered for hint in hints):
+            return scope
+    return None
+
+
+def screen_retrospective_memory_candidates(content: str, source: str = "retrospective") -> list[MemoryWriteDecision]:
+    decisions: list[MemoryWriteDecision] = []
+    for line in _iter_retrospective_lines(content):
+        scope = _retrospective_scope_for_line(line) or "artifact"
+        record = MemoryRecord(content=line, scope=scope, source=source)
+        decision = evaluate_memory_write(record, confirmed=False)
+        if decision.reason in {"sensitive_content_rejected", "ephemeral_content_rejected"}:
+            decisions.append(decision)
+            continue
+        if scope == "artifact":
+            reason = "retrospective_line_not_long_term_candidate"
+            decisions.append(MemoryWriteDecision("reject", reason, record, _memory_audit_event("reject", reason, record)))
+            continue
+        decisions.append(decision)
+    return decisions
 
 
 def delete_memory_record(records: list[MemoryRecord], index: int, confirmed: bool = False) -> tuple[list[MemoryRecord], MemoryWriteDecision]:
