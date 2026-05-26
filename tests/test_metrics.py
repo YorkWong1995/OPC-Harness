@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from opc.agent import Agent
+from opc.config import CostConfig
 from opc.workflow import HarnessWorkflow, WorkflowState, generate_metrics
 
 
@@ -77,8 +78,84 @@ def test_generate_metrics_writes_json(tmp_path):
 
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["stages"]["已定义"]["model"] == "unknown"
+    assert data["stages"]["已定义"]["estimated_cost"] is None
+    assert data["stages"]["已定义"]["currency"] is None
     assert data["totals"]["input_tokens"] == 15
     assert data["totals"]["output_tokens"] == 5
     assert data["totals"]["duration_seconds"] == 3.5
     assert data["totals"]["tool_calls"] == 5
     assert data["totals"]["api_calls"] == 3
+    assert data["totals"]["estimated_cost"] is None
+
+
+def test_generate_metrics_estimates_known_model_cost(tmp_path):
+    state = WorkflowState(
+        current_stage="已复盘",
+        task_description="测试任务",
+        stage_logs={
+            "已定义": {
+                "model": "claude-test-model",
+                "input_tokens": 1_000_000,
+                "output_tokens": 500_000,
+                "duration_seconds": 1.0,
+                "tool_calls": 0,
+                "api_calls": 1,
+            },
+        },
+    )
+    cost_config = CostConfig(
+        estimate_enabled=True,
+        currency="USD",
+        pricing_source="test-rate-card",
+        model_prices={"claude-test-model": {"input_per_million": 3.0, "output_per_million": 15.0}},
+    )
+
+    path = generate_metrics(state, tmp_path, cost_config)
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["stages"]["已定义"]["estimated_cost"] == 10.5
+    assert data["stages"]["已定义"]["currency"] == "USD"
+    assert data["stages"]["已定义"]["pricing_source"] == "test-rate-card"
+    assert data["totals"]["estimated_cost"] == 10.5
+    assert data["totals"]["currency"] == "USD"
+    assert data["totals"]["pricing_source"] == "test-rate-card"
+
+
+def test_generate_metrics_marks_unknown_model_cost_partial(tmp_path):
+    state = WorkflowState(
+        current_stage="已复盘",
+        task_description="测试任务",
+        stage_logs={
+            "已定义": {
+                "model": "known-model",
+                "input_tokens": 1_000_000,
+                "output_tokens": 0,
+                "duration_seconds": 1.0,
+                "tool_calls": 0,
+                "api_calls": 1,
+            },
+            "实现中": {
+                "model": "unknown-model",
+                "input_tokens": 1_000_000,
+                "output_tokens": 0,
+                "duration_seconds": 1.0,
+                "tool_calls": 0,
+                "api_calls": 1,
+            },
+        },
+    )
+    cost_config = CostConfig(
+        estimate_enabled=True,
+        currency="USD",
+        pricing_source="test-rate-card",
+        model_prices={"known-model": {"input_per_million": 2.0, "output_per_million": 4.0}},
+    )
+
+    path = generate_metrics(state, tmp_path, cost_config)
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["stages"]["已定义"]["estimated_cost"] == 2.0
+    assert data["stages"]["实现中"]["estimated_cost"] is None
+    assert data["stages"]["实现中"]["pricing_source"] == "unknown"
+    assert data["totals"]["estimated_cost"] == 2.0
+    assert data["totals"]["pricing_source"] == "partial"

@@ -23,7 +23,7 @@ from .roles import (
     RETROSPECTIVE_PROMPT,
 )
 from .config import load_workflow_config
-from .config import load_project_config, OPCConfig
+from .config import load_project_config, OPCConfig, CostConfig
 from .run_store import RunStore
 from .knowledge.impact_analyzer import ImpactAnalyzer
 from .schema import ContextPack, EngineerOutput, PMOutput, QAOutput, StageSummary, parse_role_output
@@ -150,7 +150,7 @@ def generate_run_report(state: WorkflowState, artifacts_dir: Path) -> Path:
     return report_path
 
 
-def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
+def generate_metrics(state: WorkflowState, artifacts_dir: Path, cost_config: CostConfig | None = None) -> Path:
     """生成 artifacts/run_metrics.json。"""
     totals = {
         "input_tokens": 0,
@@ -158,6 +158,9 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         "duration_seconds": 0.0,
         "tool_calls": 0,
         "api_calls": 0,
+        "estimated_cost": None,
+        "currency": None,
+        "pricing_source": "disabled",
     }
     for key, log in state.stage_logs.items():
         if key.startswith("_") or not isinstance(log, dict):
@@ -188,8 +191,17 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         stage_log = dict(log)
         model = stage_log.get("model")
         if not isinstance(model, str) or not model:
-            stage_log["model"] = "unknown"
+            model = "unknown"
+            stage_log["model"] = model
+        stage_log.update(_estimate_stage_cost(stage_log, cost_config))
         stages[key] = stage_log
+
+    if cost_config and cost_config.estimate_enabled:
+        known_costs = [stage["estimated_cost"] for stage in stages.values() if stage["estimated_cost"] is not None]
+        unknown_costs = any(stage["estimated_cost"] is None for stage in stages.values())
+        totals["estimated_cost"] = round(sum(known_costs), 6) if known_costs else None
+        totals["currency"] = cost_config.currency
+        totals["pricing_source"] = "partial" if unknown_costs else cost_config.pricing_source
 
     metrics = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -207,6 +219,24 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
 
 def _metric_int(value) -> int:
     return int(value) if isinstance(value, (int, float)) else 0
+
+
+def _estimate_stage_cost(stage_log: dict, cost_config: CostConfig | None) -> dict:
+    if not cost_config or not cost_config.estimate_enabled:
+        return {"estimated_cost": None, "currency": None, "pricing_source": "disabled"}
+
+    model = stage_log.get("model")
+    prices = cost_config.model_prices.get(model) if isinstance(model, str) else None
+    if not prices:
+        return {"estimated_cost": None, "currency": cost_config.currency, "pricing_source": "unknown"}
+
+    input_cost = _metric_int(stage_log.get("input_tokens")) * float(prices.get("input_per_million", 0.0)) / 1_000_000
+    output_cost = _metric_int(stage_log.get("output_tokens")) * float(prices.get("output_per_million", 0.0)) / 1_000_000
+    return {
+        "estimated_cost": round(input_cost + output_cost, 6),
+        "currency": cost_config.currency,
+        "pricing_source": cost_config.pricing_source,
+    }
 
 
 # 状态流转（参照 plan.md 9.4节）
@@ -721,7 +751,7 @@ class HarnessWorkflow:
                 return
 
         console.print("\n[bold green]工作流完成！[/] 所有产物已保存到 artifacts/ 目录。")
-        metrics_path = generate_metrics(self.workflow_state, self.store.dir)
+        metrics_path = generate_metrics(self.workflow_state, self.store.dir, self.opc_config.cost)
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         self.memory_store.replace(self.memory_records)
         self.run_store.write_trace(final_status=self.state, metrics=metrics)

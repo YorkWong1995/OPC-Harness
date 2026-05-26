@@ -31,7 +31,7 @@
 - [x] 在 workflow 阶段日志中记录 model 字段 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer；输入=Agent model、现有 stage_logs；输出=每个 stage log 记录 model；依赖关系=依赖 cost 字段设计；完成标准=run_metrics.json 的每个阶段可看到 model，缺省 model 时有兼容值 --> <!-- order: 依赖 cost 字段设计 -->
 - [x] 在 workflow 阶段日志中记录 token 字段兼容逻辑 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=Agent usage、现有 input_tokens/output_tokens；输出=缺 usage 时安全落空，存在 usage 时写入 token；依赖关系=依赖 model 字段记录；完成标准=测试覆盖 usage 存在和缺失两种情况 --> <!-- order: 依赖 model 字段记录 -->
 - [x] 增加 cost 估算配置 <!-- files: src/opc/config.py, opc.example.toml, tests/ --> <!-- context: 责任角色=Ops/Engineer；输入=模型价格、currency、是否启用估算；输出=CostConfig 或等价配置；依赖关系=依赖 cost 字段设计；完成标准=配置有默认值，用户可关闭估算或覆盖模型价格 --> <!-- review: 需确认价格来源和默认模型价格策略 -->
-- [ ] 生成 run_metrics cost 汇总 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer/Ops；输入=阶段 token、model、cost 配置；输出=每阶段 estimated_cost 与 totals.estimated_cost；依赖关系=依赖 token 字段兼容逻辑和 cost 配置；完成标准=run_metrics.json 同时包含阶段成本和总成本，测试覆盖未知模型价格时的行为 --> <!-- order: 依赖 token 字段与 cost 配置 -->
+- [x] 生成 run_metrics cost 汇总 <!-- files: src/opc/workflow.py, tests/ --> <!-- context: 责任角色=Engineer/Ops；输入=阶段 token、model、cost 配置；输出=每阶段 estimated_cost 与 totals.estimated_cost；依赖关系=依赖 token 字段兼容逻辑和 cost 配置；完成标准=run_metrics.json 同时包含阶段成本和总成本，测试覆盖未知模型价格时的行为 --> <!-- order: 依赖 token 字段与 cost 配置 -->
 
 ## 3. P1 - Review / Release Skills
 
