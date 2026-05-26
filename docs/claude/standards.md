@@ -57,6 +57,7 @@
 - `depends_on` 不为 `none` 时，必须读取前置任务的产物、`evidence`、验收记录或对应 diff。
 - 继续跨会话任务前必须读取任务声明中的相关文件、当前 pending diff，以及最近一次 `handoff` 或验收结论。
 - 若某个必读文件或记录不存在，应在 `evidence` 或 `handoff` 中说明缺失原因，不得依赖聊天历史补全。
+- 清空上下文后的继续流程应遵守 [discipline.md#上下文清空后继续协议](discipline.md#上下文清空后继续协议)。
 
 ### `execution` 执行主体规则
 
@@ -65,6 +66,7 @@
 - `skill`：调用项目 skill 产出结构化结果，适用于 task-spec、implementation-check、acceptance-check 等已有流程。
 - `manual_review`：需要人工评审、取舍或审批后才能继续，适用于规则进入项目级标准、风险策略或外部动作。
 - `qa_acceptance`：由 QA 角色或验收 skill 做只读验收，输出 pass/fail、证据和阻塞项，不直接修改实现。
+- subagent 和 skill 的使用边界应遵守 [discipline.md#subagent-使用边界](discipline.md#subagent-使用边界)。
 
 ### `evidence` 完成证据规则
 
@@ -79,6 +81,7 @@
 - `handoff` 至少说明当前状态、下一步、阻塞项、需重读文件和最近验证结果。
 - 无阻塞项时写 `none`；最近验证失败或未执行时，必须写明失败原因或未验证原因。
 - `handoff` 应保证后续执行者只依赖任务文件和产物即可恢复，不依赖聊天历史。
+- 阶段性压缩或换会话触发条件应遵守 [discipline.md#阶段性压缩与换会话触发条件](discipline.md#阶段性压缩与换会话触发条件)。
 
 > 参考样例：[tasks-p4.md](../../tasks-p4.md)、[tasks.example.md](../../tasks.example.md)
 
