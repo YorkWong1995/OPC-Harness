@@ -20,11 +20,18 @@
 - 自动任务执行器默认按危险入口处理，使用前需要确认任务范围、提交策略和验证方式。
 - 脚本新增后同步更新 README、DOCS_STRUCTURE 或本目录索引。
 
+## 当前入口
+
+| scripts 入口 | 调用对象 | 分类 | 说明 |
+| --- | --- | --- | --- |
+| `run-opc.py` | `../run_opc.py` | run | 兼容启动 OPC CLI，不移动根入口 |
+| `run-tasks.py` | `../run_tasks.py` | run/review | 兼容启动自动任务执行器，使用前确认任务范围和提交策略 |
+
 ## 当前策略
 
 | 根入口 | scripts 策略 |
 | --- | --- |
-| `run_opc.py` | 后续提供 run wrapper，根入口保留 |
-| `run_tasks.py` | 后续提供 run/review wrapper 或说明，根入口保留 |
+| `run_opc.py` | 已提供 `scripts/run-opc.py` wrapper，根入口保留 |
+| `run_tasks.py` | 已提供 `scripts/run-tasks.py` wrapper，根入口保留 |
 | `pre_upload_check.sh` | 后续提供 check wrapper，根入口保留 |
 | `upload_to_github.sh` | 不自动纳入；如纳入 upload wrapper，必须先移除或约束 `git add .` 并保留多次人工确认 |
