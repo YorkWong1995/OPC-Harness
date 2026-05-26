@@ -24,6 +24,8 @@
 - `roles.md` - 角色职责
 - `standards.md` - 文档标准
 - `discipline.md` - 执行纪律
+- 长任务规则入口：`standards.md` 定义任务字段与恢复字段，`discipline.md` 定义上下文恢复、subagent 边界和换会话清单
+- 任务生成 / 自检 / 验收：`.claude/skills/task-spec/SKILL.md`、`.claude/skills/implementation-check/SKILL.md`、`.claude/skills/acceptance-check/SKILL.md`
 
 ### 分享文档 (docs/share/)
 - `internal_technical_share.md` - 公司内部技术分享文档，介绍项目能力、技术栈、模块优化与后续计划
