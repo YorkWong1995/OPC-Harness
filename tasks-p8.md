@@ -40,7 +40,7 @@
 - [x] 补充 review 示例与验收 <!-- files: .claude/skills/review/SKILL.md --> <!-- context: 责任角色=QA；输入=review 输出分类规则；输出=调用示例、输出骨架、验收标准；依赖关系=依赖输出分类规则；完成标准=示例覆盖 pass 和 needs-work 两种结论 --> <!-- order: 依赖 review 输出分类规则 -->
 
 - [x] 定义 release-check skill 基础说明 <!-- files: .claude/skills/release-check/SKILL.md --> <!-- context: 责任角色=Ops；输入=实现结果、验收结果、运行环境、发布对象；输出=release-check skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明该 skill 只做发布建议，不执行真实发布 --> <!-- auto: 新增单个 skill 文档 -->
-- [ ] 补充 release-check 发布检查模板 <!-- files: .claude/skills/release-check/SKILL.md --> <!-- context: 责任角色=Ops；输入=发布对象、验证结果、环境信息；输出=发布前检查项、运行验证方式、监控关注点、回滚条件、发布结论；依赖关系=依赖 release-check 基础说明；完成标准=模板与 standards.md 发布检查字段一致 --> <!-- order: 依赖 release-check 基础说明 -->
+- [x] 补充 release-check 发布检查模板 <!-- files: .claude/skills/release-check/SKILL.md --> <!-- context: 责任角色=Ops；输入=发布对象、验证结果、环境信息；输出=发布前检查项、运行验证方式、监控关注点、回滚条件、发布结论；依赖关系=依赖 release-check 基础说明；完成标准=模板与 standards.md 发布检查字段一致 --> <!-- order: 依赖 release-check 基础说明 -->
 - [ ] 补充 release-check 示例与验收 <!-- files: .claude/skills/release-check/SKILL.md --> <!-- context: 责任角色=QA/Ops；输入=发布检查模板；输出=调用示例、输出骨架、验收标准；依赖关系=依赖发布检查模板；完成标准=示例覆盖“可发布”和“需要补充信息”两种结论 --> <!-- order: 依赖 release-check 发布检查模板 -->
 
 ## 4. P1 - Workflow Pack / Manifest
