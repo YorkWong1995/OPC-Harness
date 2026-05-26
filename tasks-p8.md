@@ -1,5 +1,15 @@
 # P8: OPC 功能增强细颗粒度任务拆分
 
+## 执行游标
+
+- 当前任务：LT-18 到 LT-21（任务文件执行游标与样例迁移）
+- 下一任务：LT-22 建立长任务执行检查清单
+- 阻塞项：none
+- 最近验证：LT-16/LT-17 已通过 `python -m pytest tests/test_docs_structure.py -q` 与 acceptance-check 文本检查
+- 继续方式：清空上下文后先读取本执行游标、第 12 节 LT 任务、`docs/claude/standards.md`、`docs/claude/discipline.md` 和当前 pending diff
+- 继续前必须读取：`tasks-p8.md`、`docs/claude/standards.md`、`docs/claude/discipline.md`、`.claude/skills/task-spec/SKILL.md`、`.claude/skills/implementation-check/SKILL.md`、`.claude/skills/acceptance-check/SKILL.md`
+- 最近 handoff：LT-11 到 LT-17 已提交；下一步补充长任务检查清单、角色职责、验收用例和索引说明
+
 > 来源：tasks-p7.md。
 > 目标：把 P7 的能力补齐方向拆成更小、可执行、可验收的任务。
 > 拆分原则：一条任务尽量只覆盖一个文件类型、一个流程步骤或一个可验收目标。
@@ -9,11 +19,11 @@
 
 ## 1. P0 - Coding / QA / Cost Skills
 
-- [x] 定义 bugfix skill 基础说明 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=Engineer/QA；输入=tasks-p7.md 中 bugfix skill 要求、现有 task-spec/acceptance-check skill 格式；输出=bugfix skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明 bugfix 只做缺陷定位、最小修复和定向验证 --> <!-- auto: 新增单个 skill 文档 -->
+- [x] 定义 bugfix skill 基础说明 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=Engineer/QA；输入=tasks-p7.md 中 bugfix skill 要求、现有 task-spec/acceptance-check skill 格式；输出=bugfix skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明 bugfix 只做缺陷定位、最小修复和定向验证 --> <!-- auto: 新增单个 skill 文档 --> <!-- evidence: .claude/skills/bugfix/SKILL.md 已创建并定义最小修复/定向验证；验证=读取 SKILL.md 文本；结果=通过 -->
 - [x] 补充 bugfix skill 执行流程 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=Engineer/QA；输入=缺陷描述、复现路径、预期行为、相关文件；输出=定位→根因→最小修复→验证→验收证据的步骤；依赖关系=依赖 bugfix skill 基础说明；完成标准=执行规则明确禁止超范围重构，并要求输出根因和验证证据 --> <!-- order: 依赖 bugfix 基础说明 -->
 - [x] 补充 bugfix skill 示例与验收 <!-- files: .claude/skills/bugfix/SKILL.md --> <!-- context: 责任角色=QA；输入=bugfix 执行流程；输出=用户调用示例、输出骨架、验收标准；依赖关系=依赖 bugfix 执行流程；完成标准=至少包含 2 个调用示例和 1 个可检查输出骨架 --> <!-- order: 依赖 bugfix 执行流程 -->
 
-- [x] 定义 test-spec skill 基础说明 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=tasks-p7.md 中 test-spec 要求、现有 standards.md 任务/验收字段；输出=test-spec skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明该 skill 把 PRD、bug 或任务描述转成测试点 --> <!-- auto: 新增单个 skill 文档 -->
+- [x] 定义 test-spec skill 基础说明 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA/Engineer；输入=tasks-p7.md 中 test-spec 要求、现有 standards.md 任务/验收字段；输出=test-spec skill 的 name、description、目标、适用场景；依赖关系=无；完成标准=SKILL.md 存在且说明该 skill 把 PRD、bug 或任务描述转成测试点 --> <!-- auto: 新增单个 skill 文档 --> <!-- evidence: .claude/skills/test-spec/SKILL.md 已创建并定义测试点生成规则；验证=读取 SKILL.md 文本；结果=通过 -->
 - [x] 补充 test-spec 测试维度模板 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA；输入=PRD、bug、任务描述、验收标准；输出=正常路径、失败路径、边界条件、回归风险、验证命令模板；依赖关系=依赖 test-spec 基础说明；完成标准=模板覆盖至少 5 类测试维度，且每类都有输出要求 --> <!-- order: 依赖 test-spec 基础说明 -->
 - [x] 补充 test-spec 示例与验收 <!-- files: .claude/skills/test-spec/SKILL.md --> <!-- context: 责任角色=QA；输入=test-spec 测试维度模板；输出=调用示例、输出骨架、验收标准；依赖关系=依赖测试维度模板；完成标准=至少包含从需求生成测试点和从 bug 生成回归测试两类示例 --> <!-- order: 依赖 test-spec 测试维度模板 -->
 
@@ -47,15 +57,15 @@
 
 - [x] 定义 workflow pack 目录结构 <!-- files: docs/workflow-packs/README.md --> <!-- context: 责任角色=Architect/PM；输入=docs/plan/workflow.md 中 Workflow Pack 规范；输出=docs/workflow-packs/ 目录说明；依赖关系=无；完成标准=README 说明 pack 文件命名、字段、适用范围和维护规则 --> <!-- review: 新目录结构确认 -->
 - [x] 定义 workflow pack manifest 字段模板 <!-- files: docs/workflow-packs/manifest-template.md --> <!-- context: 责任角色=Architect；输入=standards.md 中 Manifest 字段；输出=id、kind、owner_roles、inputs、outputs、permissions、acceptance、trace 模板；依赖关系=依赖目录结构；完成标准=模板可被后续 pack 复制使用 --> <!-- order: 依赖 workflow pack 目录结构 -->
-- [x] 新增 bugfix workflow pack 样板 <!-- files: docs/workflow-packs/bugfix.md --> <!-- context: 责任角色=Architect/Engineer/QA；输入=bugfix skill、manifest 模板；输出=bugfix pack 的适用场景、角色边界、权限边界、验收方式；依赖关系=依赖 manifest 模板和 bugfix skill；完成标准=bugfix pack 可说明何时走 runtime workflow，何时只用 skill --> <!-- order: 依赖 manifest 模板和 bugfix skill -->
-- [x] 新增 review workflow pack 样板 <!-- files: docs/workflow-packs/review.md --> <!-- context: 责任角色=QA/Architect；输入=review skill、manifest 模板；输出=review pack 的只读评审边界；依赖关系=依赖 manifest 模板和 review skill；完成标准=review pack 明确默认只读，若需写代码则转 bugfix pack --> <!-- order: 依赖 manifest 模板和 review skill -->
-- [x] 新增 docs-update workflow pack 样板 <!-- files: docs/workflow-packs/docs-update.md --> <!-- context: 责任角色=PM/QA；输入=文档更新场景、manifest 模板；输出=docs-update pack 的输入、输出、权限、验收；依赖关系=依赖 manifest 模板；完成标准=docs-update pack 明确文档链接/索引检查作为验收项 --> <!-- order: 依赖 manifest 模板 -->
+- [x] 新增 bugfix workflow pack 样板 <!-- files: docs/workflow-packs/bugfix.md --> <!-- context: 责任角色=Architect/Engineer/QA；输入=bugfix skill、manifest 模板；输出=bugfix pack 的适用场景、角色边界、权限边界、验收方式；依赖关系=依赖 manifest 模板和 bugfix skill；完成标准=bugfix pack 可说明何时走 runtime workflow，何时只用 skill --> <!-- order: 依赖 manifest 模板和 bugfix skill --> <!-- id: P8-WP-01; depends_on: none; read_before_start: docs/workflow-packs/manifest-template.md, .claude/skills/bugfix/SKILL.md; execution: main; evidence: docs/workflow-packs/bugfix.md 已按 pack 格式说明适用场景/角色边界/权限边界/验收方式; handoff: none -->
+- [x] 新增 review workflow pack 样板 <!-- files: docs/workflow-packs/review.md --> <!-- context: 责任角色=QA/Architect；输入=review skill、manifest 模板；输出=review pack 的只读评审边界；依赖关系=依赖 manifest 模板和 review skill；完成标准=review pack 明确默认只读，若需写代码则转 bugfix pack --> <!-- order: 依赖 manifest 模板和 review skill --> <!-- id: P8-WP-02; depends_on: P8-WP-01; read_before_start: docs/workflow-packs/manifest-template.md, .claude/skills/review/SKILL.md; execution: main; evidence: docs/workflow-packs/review.md 已按 pack 格式说明只读评审边界和转 bugfix pack 条件; handoff: none -->
+- [x] 新增 docs-update workflow pack 样板 <!-- files: docs/workflow-packs/docs-update.md --> <!-- context: 责任角色=PM/QA；输入=文档更新场景、manifest 模板；输出=docs-update pack 的输入、输出、权限、验收；依赖关系=依赖 manifest 模板；完成标准=docs-update pack 明确文档链接/索引检查作为验收项 --> <!-- order: 依赖 manifest 模板 --> <!-- id: P8-WP-03; depends_on: P8-WP-02; read_before_start: docs/workflow-packs/manifest-template.md, docs/claude/standards.md; execution: main; evidence: docs/workflow-packs/docs-update.md 已说明文档链接/索引检查验收项; handoff: none -->
 - [x] 新增 release-check workflow pack 样板 <!-- files: docs/workflow-packs/release-check.md --> <!-- context: 责任角色=Ops/QA；输入=release-check skill、manifest 模板；输出=release-check pack 的发布前检查边界；依赖关系=依赖 manifest 模板和 release-check skill；完成标准=pack 明确不执行真实发布，只输出检查结论和回滚条件 --> <!-- order: 依赖 manifest 模板和 release-check skill -->
 
 ## 5. P1 - 可选角色启用规则
 
-- [x] 梳理可选角色触发词表 <!-- files: src/opc/roles.py, docs/plan/workflow.md --> <!-- context: 责任角色=PM/Architect；输入=OPTIONAL_ROLE_KEYWORDS、ROLE_CLASSIFIER_PROMPT、现有文档；输出=Architect/Ops/Growth 的触发词和语义说明；依赖关系=无；完成标准=文档和代码中的触发语义一致 --> <!-- auto: 文档与代码核对 -->
-- [x] 补充手动角色开关说明 <!-- files: docs/plan/workflow.md, README.md --> <!-- context: 责任角色=PM；输入=CLI --with-architect/--with-ops/--with-growth/--skip-architect/--ceo-review；输出=用户何时手动打开或关闭可选角色的说明；依赖关系=依赖触发词表梳理；完成标准=README 或 workflow 文档能解释自动识别与手动覆盖的关系 --> <!-- order: 依赖触发词表梳理 -->
+- [x] 梳理可选角色触发词表 <!-- files: src/opc/roles.py, docs/plan/workflow.md --> <!-- context: 责任角色=PM/Architect；输入=OPTIONAL_ROLE_KEYWORDS、ROLE_CLASSIFIER_PROMPT、现有文档；输出=Architect/Ops/Growth 的触发词和语义说明；依赖关系=无；完成标准=文档和代码中的触发语义一致 --> <!-- auto: 文档与代码核对 --> <!-- id: P8-ROLE-01; depends_on: none; read_before_start: src/opc/roles.py, docs/plan/workflow.md; execution: main; evidence: src/opc/roles.py 与 docs/plan/workflow.md 已保持可选角色触发语义一致; handoff: none -->
+- [x] 补充手动角色开关说明 <!-- files: docs/plan/workflow.md, README.md --> <!-- context: 责任角色=PM；输入=CLI --with-architect/--with-ops/--with-growth/--skip-architect/--ceo-review；输出=用户何时手动打开或关闭可选角色的说明；依赖关系=依赖触发词表梳理；完成标准=README 或 workflow 文档能解释自动识别与手动覆盖的关系 --> <!-- order: 依赖触发词表梳理 --> <!-- id: P8-ROLE-02; depends_on: P8-ROLE-01; read_before_start: docs/plan/workflow.md, README.md; execution: main; evidence: README.md 与 docs/plan/workflow.md 已说明自动识别与手动覆盖关系; handoff: none -->
 - [x] 增加可选角色分类测试 <!-- files: tests/test_roles.py, src/opc/roles.py --> <!-- context: 责任角色=QA/Engineer；输入=典型 architect/ops/growth/无可选角色任务描述；输出=分类或关键词兜底测试；依赖关系=依赖触发词表梳理；完成标准=测试覆盖 4 类任务描述，避免明显误触或漏触 --> <!-- order: 依赖触发词表梳理 -->
 
 ## 6. P1 - Scripts 目录与入口整理
@@ -119,10 +129,10 @@
 - [x] LT-15 更新 implementation-check 上下文恢复检查 <!-- files: .claude/skills/implementation-check/SKILL.md --> <!-- context: 责任角色=QA；输入=read_before_start、handoff、依赖产物；输出=上下文恢复检查项；依赖关系=依赖 LT-14；完成标准=自检能判断任务是否可在清空聊天上下文后由文件恢复 --> <!-- order: 依赖 implementation-check 字段检查 --> <!-- evidence: .claude/skills/implementation-check/SKILL.md 已新增上下文恢复性检查和不可恢复退回规则；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“上下文恢复性/清空聊天上下文/建议进入 QA/不建议进入 QA”；结果=通过 -->
 - [x] LT-16 更新 acceptance-check 验收字段 <!-- files: .claude/skills/acceptance-check/SKILL.md --> <!-- context: 责任角色=QA；输入=任务 evidence、验收文档字段、任务完成状态；输出=acceptance-check 对 evidence 和 handoff 的验收要求；依赖关系=依赖 LT-05 和 LT-06；完成标准=验收报告会指出缺少验证证据、交接信息或前置读取记录的问题 --> <!-- order: 依赖 evidence 和 handoff 标准 --> <!-- evidence: .claude/skills/acceptance-check/SKILL.md 已新增可恢复性相关验收字段；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“evidence/handoff/前置读取/可恢复性结论”；结果=通过 -->
 - [x] LT-17 更新 acceptance-check 输出示例 <!-- files: .claude/skills/acceptance-check/SKILL.md --> <!-- context: 责任角色=QA；输入=更新后的验收字段；输出=包含任务可恢复性结论的验收示例；依赖关系=依赖 LT-16；完成标准=示例包含“可清空上下文继续”和“不可清空上下文继续”两种结论 --> <!-- order: 依赖 acceptance-check 字段更新 --> <!-- evidence: .claude/skills/acceptance-check/SKILL.md 已补充可清空上下文继续/不可清空上下文继续示例；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“可清空上下文继续/不可清空上下文继续/缺少验证证据/交接信息”；结果=通过 -->
-- [ ] LT-18 在任务文件顶部增加执行游标模板 <!-- files: tasks-p8.md 或新 tasks-pX.md --> <!-- context: 责任角色=PM；输入=LT-06 handoff 字段、当前 P8 执行状态；输出=当前任务、下一任务、阻塞项、最近验证、继续方式模板；依赖关系=依赖 LT-06；完成标准=任务文件顶部能直接判断下次从哪里继续，以及继续前要读哪些文件 --> <!-- order: 依赖 handoff 标准 -->
-- [ ] LT-19 迁移 P8 workflow pack 任务样例 <!-- files: tasks-p8.md --> <!-- context: 责任角色=PM/QA；输入=tasks-p8.md 中 workflow pack 相关任务、新任务字段标准；输出=1 到 3 条 P8 任务迁移为新格式；依赖关系=依赖 LT-07 和 LT-18；完成标准=样例任务包含 id、depends_on、read_before_start、execution、evidence、handoff，且不破坏现有任务结构 --> <!-- order: 依赖 task-spec 更新和执行游标模板 -->
-- [ ] LT-20 迁移 P8 可选角色任务样例 <!-- files: tasks-p8.md --> <!-- context: 责任角色=PM/Architect；输入=tasks-p8.md 可选角色启用规则任务、新任务字段标准；输出=可选角色相关任务迁移样例；依赖关系=依赖 LT-19；完成标准=有依赖链的任务能通过 depends_on 和 read_before_start 表达前置关系 --> <!-- order: 依赖 P8 workflow pack 样例迁移 -->
-- [ ] LT-21 补充 P8 已完成任务 evidence 样例 <!-- files: tasks-p8.md --> <!-- context: 责任角色=QA；输入=P8 已完成 skill 任务、实际产物文件；输出=已完成任务的 evidence 写法样例；依赖关系=依赖 LT-05 和 LT-19；完成标准=至少 2 条已完成任务记录产物路径、检查方式和验收结论 --> <!-- order: 依赖 evidence 标准和 P8 样例迁移 -->
+- [x] LT-18 在任务文件顶部增加执行游标模板 <!-- files: tasks-p8.md 或新 tasks-pX.md --> <!-- context: 责任角色=PM；输入=LT-06 handoff 字段、当前 P8 执行状态；输出=当前任务、下一任务、阻塞项、最近验证、继续方式模板；依赖关系=依赖 LT-06；完成标准=任务文件顶部能直接判断下次从哪里继续，以及继续前要读哪些文件 --> <!-- order: 依赖 handoff 标准 --> <!-- evidence: tasks-p8.md 顶部已增加执行游标；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“执行游标/当前任务/下一任务/继续前必须读取”；结果=通过 -->
+- [x] LT-19 迁移 P8 workflow pack 任务样例 <!-- files: tasks-p8.md --> <!-- context: 责任角色=PM/QA；输入=tasks-p8.md 中 workflow pack 相关任务、新任务字段标准；输出=1 到 3 条 P8 任务迁移为新格式；依赖关系=依赖 LT-07 和 LT-18；完成标准=样例任务包含 id、depends_on、read_before_start、execution、evidence、handoff，且不破坏现有任务结构 --> <!-- order: 依赖 task-spec 更新和执行游标模板 --> <!-- evidence: tasks-p8.md 中 P8-WP-01 到 P8-WP-03 已迁移为长任务字段样例；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“P8-WP/id/depends_on/read_before_start/execution/evidence/handoff”；结果=通过 -->
+- [x] LT-20 迁移 P8 可选角色任务样例 <!-- files: tasks-p8.md --> <!-- context: 责任角色=PM/Architect；输入=tasks-p8.md 可选角色启用规则任务、新任务字段标准；输出=可选角色相关任务迁移样例；依赖关系=依赖 LT-19；完成标准=有依赖链的任务能通过 depends_on 和 read_before_start 表达前置关系 --> <!-- order: 依赖 P8 workflow pack 样例迁移 --> <!-- evidence: tasks-p8.md 中 P8-ROLE-01 与 P8-ROLE-02 已迁移并表达依赖链；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“P8-ROLE/depends_on/read_before_start”；结果=通过 -->
+- [x] LT-21 补充 P8 已完成任务 evidence 样例 <!-- files: tasks-p8.md --> <!-- context: 责任角色=QA；输入=P8 已完成 skill 任务、实际产物文件；输出=已完成任务的 evidence 写法样例；依赖关系=依赖 LT-05 和 LT-19；完成标准=至少 2 条已完成任务记录产物路径、检查方式和验收结论 --> <!-- order: 依赖 evidence 标准和 P8 样例迁移 --> <!-- evidence: tasks-p8.md 中 bugfix skill 与 test-spec skill 基础任务已补充产物路径、检查方式和结果；验证=python -m pytest tests/test_docs_structure.py -q，Grep 文本检查“.claude/skills/bugfix/SKILL.md/.claude/skills/test-spec/SKILL.md/evidence”；结果=通过 -->
 - [ ] LT-22 建立长任务执行检查清单 <!-- files: docs/claude/discipline.md --> <!-- context: 责任角色=QA/PM；输入=长任务执行协议、subagent 边界、handoff 规则；输出=开始任务前、完成任务后、换会话前的检查清单；依赖关系=依赖 LT-11 到 LT-13；完成标准=检查清单能指导 Agent 在长任务中何时读文件、何时写 evidence、何时建议换会话 --> <!-- order: 依赖上下文与 subagent 规则 -->
 - [ ] LT-23 更新角色职责边界 <!-- files: docs/claude/roles.md --> <!-- context: 责任角色=Architect/PM；输入=长任务执行中的 PM、Engineer、QA、Ops 分工；输出=角色职责中补充任务持久化、证据、验收和 handoff 责任；依赖关系=依赖 LT-22；完成标准=PM 负责任务拆解和游标，Engineer 负责实现证据，QA 负责验收证据，Ops 负责发布/运行类 handoff --> <!-- order: 依赖长任务检查清单 -->
 - [ ] LT-24 建立新任务生成验收用例 <!-- files: tests/ 或 docs/claude/standards.md --> <!-- context: 责任角色=QA；输入=task-spec 新输出格式；输出=人工检查用例或轻量文档用例；依赖关系=依赖 LT-10；完成标准=能验证新任务是否包含必须字段、依赖关系、execution 边界和 evidence 占位 --> <!-- order: 依赖 task-spec 输出示例 -->
