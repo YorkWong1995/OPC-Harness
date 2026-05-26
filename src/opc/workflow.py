@@ -55,7 +55,7 @@ class WorkflowState:
     task_description: str = ""
     run_id: str = ""
     rework_attempts: int = 0
-    # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 input_tokens / output_tokens / duration_seconds / tool_calls
+    # 每阶段的执行指标：键为阶段名（如 "已定义"），值包含 model / input_tokens / output_tokens / duration_seconds / tool_calls
     stage_logs: dict[str, dict] = field(default_factory=dict)
     stage_summaries: dict[str, dict] = field(default_factory=dict)
 
@@ -181,11 +181,21 @@ def generate_metrics(state: WorkflowState, artifacts_dir: Path) -> Path:
         "self_repair_successes": state.stage_logs.get("_self_repair_successes", 0),
     }
 
+    stages = {}
+    for key, log in state.stage_logs.items():
+        if key.startswith("_") or not isinstance(log, dict):
+            continue
+        stage_log = dict(log)
+        model = stage_log.get("model")
+        if not isinstance(model, str) or not model:
+            stage_log["model"] = "unknown"
+        stages[key] = stage_log
+
     metrics = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         "task_description": state.task_description,
         "current_stage": state.current_stage,
-        "stages": {k: v for k, v in state.stage_logs.items() if not k.startswith("_")},
+        "stages": stages,
         "totals": totals,
         "quality": quality,
         "artifacts": state.artifact_paths,
@@ -337,11 +347,15 @@ class HarnessWorkflow:
         return result
 
     def _record_stage_metrics(self, agent, stage_name: str, duration: float):
+        model = getattr(agent, "model", None)
+        if not isinstance(model, str) or not model:
+            model = "unknown"
         input_tokens = _metric_int(getattr(agent, "last_input_tokens", 0))
         output_tokens = _metric_int(getattr(agent, "last_output_tokens", 0))
         tool_calls = _metric_int(getattr(agent, "last_tool_calls", 0))
         api_calls = _metric_int(getattr(agent, "last_api_calls", 0))
         self.workflow_state.stage_logs[stage_name] = {
+            "model": model,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "duration_seconds": round(duration, 2),

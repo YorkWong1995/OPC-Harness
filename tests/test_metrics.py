@@ -32,10 +32,12 @@ def test_workflow_stage_metrics_include_duration_and_tokens(tmp_path):
     agent.last_output_tokens = 7
     agent.last_tool_calls = 2
     agent.last_api_calls = 1
+    agent.model = "claude-test-model"
 
     assert asyncio.run(wf._run_stage(agent, "prompt", "已定义")) == "result"
 
     metrics = wf.workflow_state.stage_logs["已定义"]
+    assert metrics["model"] == "claude-test-model"
     assert metrics["input_tokens"] == 3
     assert metrics["output_tokens"] == 7
     assert metrics["tool_calls"] == 2
@@ -55,6 +57,7 @@ def test_generate_metrics_writes_json(tmp_path):
     path = generate_metrics(state, tmp_path)
 
     data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["stages"]["已定义"]["model"] == "unknown"
     assert data["totals"]["input_tokens"] == 15
     assert data["totals"]["output_tokens"] == 5
     assert data["totals"]["duration_seconds"] == 3.5
