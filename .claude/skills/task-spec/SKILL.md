@@ -53,6 +53,9 @@ description: Generate or append a task entry into tasks-pX.md following the task
 6. 禁止把定义、实现、验证、索引、迁移混成同一条任务；若同一需求同时包含这些动作，必须拆成可独立验收的连续任务。
 7. 定义类任务只产出规则或格式；实现类任务只修改代码或配置；验证类任务只产出检查结论；索引类任务只维护入口列表；迁移类任务只迁移既有条目或样例。
 8. 若拆分后的任务之间存在先后关系，必须显式标注依赖与顺序，避免依靠任务标题或自然语言顺序推断。
+9. 生成依赖时必须把前置任务 ID 写入 `depends_on`；多个前置任务用逗号分隔，例如 `depends_on: LT-07, LT-08`。
+10. `order`、`review`、`auto`、`decision` 只是执行或审批标注，不能替代 `depends_on`；有先后关系时两者应同时存在。
+11. 无前置任务必须写 `depends_on: none`，不得写“无依赖”“见上文”或只在 `context` 中描述。
 
 ## 验收
 
