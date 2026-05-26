@@ -51,6 +51,13 @@
 - 任务 ID 一经进入任务清单、验收记录、commit message 或后续任务的 `depends_on`，后续只允许补充说明，不应改名。
 - 跨会话继续、验收文档、commit message 和后续任务引用必须使用任务 ID，而不是只写任务标题。
 
+### `read_before_start` 前置读取规则
+
+- 开始任务前必须先读取当前任务条目，确认 `id`、`depends_on`、`execution` 和完成标准。
+- `depends_on` 不为 `none` 时，必须读取前置任务的产物、`evidence`、验收记录或对应 diff。
+- 继续跨会话任务前必须读取任务声明中的相关文件、当前 pending diff，以及最近一次 `handoff` 或验收结论。
+- 若某个必读文件或记录不存在，应在 `evidence` 或 `handoff` 中说明缺失原因，不得依赖聊天历史补全。
+
 > 参考样例：[tasks-p4.md](../../tasks-p4.md)、[tasks.example.md](../../tasks.example.md)
 
 ## 验收文档应至少包含
