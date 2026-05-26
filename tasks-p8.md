@@ -23,7 +23,7 @@
 
 - [x] 定义 token-report skill 基础说明 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=Ops/QA；输入=run_metrics.json、run_trace.json、run_events.jsonl；输出=token-report skill 的 name、description、目标、适用场景；依赖关系=现有 run metrics；完成标准=SKILL.md 存在且说明只读 artifacts，不重新调用模型 --> <!-- auto: 新增单个 skill 文档 -->
 - [x] 补充 token-report 输出字段模板 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=Ops；输入=单次 run 的 metrics；输出=总 input/output tokens、api_calls、duration、分阶段消耗、最高消耗阶段、异常项、优化建议；依赖关系=依赖 token-report 基础说明；完成标准=输出字段能直接对应 run_metrics.json 的已有或计划字段 --> <!-- order: 依赖 token-report 基础说明 -->
-- [ ] 补充 token-report 示例与验收 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=QA/Ops；输入=token-report 输出字段模板；输出=调用示例、报告骨架、验收标准；依赖关系=依赖输出字段模板；完成标准=示例覆盖 latest run 和指定 artifacts 路径两种用法 --> <!-- order: 依赖 token-report 输出字段模板 -->
+- [x] 补充 token-report 示例与验收 <!-- files: .claude/skills/token-report/SKILL.md --> <!-- context: 责任角色=QA/Ops；输入=token-report 输出字段模板；输出=调用示例、报告骨架、验收标准；依赖关系=依赖输出字段模板；完成标准=示例覆盖 latest run 和指定 artifacts 路径两种用法 --> <!-- order: 依赖 token-report 输出字段模板 -->
 
 ## 2. P0 - Token / Model / Cost 运行指标
 

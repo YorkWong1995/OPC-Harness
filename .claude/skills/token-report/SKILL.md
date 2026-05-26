@@ -59,6 +59,46 @@ description: Read OPC run artifacts and summarize token, API call, duration, and
 4. 成本字段只能按 artifacts 中已有或配置中声明的估算字段说明。
 5. 优化建议必须对应可观察消耗，不提出无证据的大范围重构。
 
+## 示例
+
+- `/token-report latest run`
+- `/token-report artifacts/runs/20260526-120000/run_metrics.json`
+
+## 报告骨架
+
+```
+[分析对象] latest / 指定 artifacts 路径
+[读取 artifacts]
+- run_metrics.json：存在 / 缺失
+- run_trace.json：存在 / 缺失
+- run_events.jsonl：存在 / 缺失
+[总量]
+- input_tokens：...
+- output_tokens：...
+- api_calls：...
+- duration_seconds：...
+- estimated_cost：...
+- currency：...
+- pricing_source：...
+[分阶段消耗]
+- stage：model / input_tokens / output_tokens / api_calls / duration_seconds / estimated_cost
+[最高消耗阶段]
+- token 最高：...
+- cost 最高：...
+[异常项]
+- ...
+[优化建议]
+- ...
+[结论] ...
+```
+
+## 验收标准
+
+- 示例覆盖 latest run 和指定 artifacts 路径两种用法
+- 报告骨架包含读取 artifacts 状态、总量、分阶段消耗、最高消耗阶段、异常项和优化建议
+- 缺失 metrics 字段必须标注为缺失或不适用
+- 不触发模型、工具、workflow 或 artifacts 写入
+
 ## 输出骨架
 
 ```
