@@ -572,7 +572,8 @@ class HarnessWorkflow:
             role=role,
             current_facts=set(facts),
         )
-        return [f"memory.{record.scope}: {record.content}" for record in records], sources
+        facts = [f"memory.{record.scope}[id={record.id}; source={record.source}]: {record.content}" for record in records]
+        return facts, sources
 
     def _build_context_pack(self, role: str, stage: str, recent_detail: str = "") -> ContextPack:
         pm_summary = self.stage_summaries.get("pm")

@@ -24,8 +24,8 @@ def test_context_pack_injects_selected_memory_with_sources(tmp_path):
 
     pack = workflow._build_context_pack("engineer", "实现中")
 
-    assert "memory.user: 优先使用本地 trace" in pack.facts
-    assert "memory.run: 临时 run 状态" not in pack.facts
+    assert f"memory.user[id={selected.id}; source=manual]: 优先使用本地 trace" in pack.facts
+    assert not any("memory.run" in fact for fact in pack.facts)
     memory_sources = [source for source in pack.context_sources if source.get("type") == "memory"]
     assert memory_sources == [
         {
@@ -48,7 +48,7 @@ def test_context_pack_memory_conflict_prefers_current_fact(tmp_path):
 
     pack = workflow._build_context_pack("engineer", "实现中")
 
-    assert "memory.project: pm.goal: 当前事实" not in pack.facts
+    assert not any("memory.project" in fact for fact in pack.facts)
     assert any(
         source.get("type") == "memory" and source.get("status") == "conflict_current_fact"
         for source in pack.context_sources

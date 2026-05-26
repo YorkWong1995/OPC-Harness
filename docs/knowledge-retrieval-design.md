@@ -226,6 +226,7 @@ P6 后，RAG 结果进入 workflow 上下文时必须满足：
 - 回答或角色上下文中的事实应能回溯到 `context_sources` 或当前文件读取结果。
 - RAG 只能补充候选事实，不能覆盖当前 workspace 中直接读取到的文件内容。
 - 当 RAG 与当前文件冲突时，以当前文件事实为准，并在 trace 中记录冲突来源。
+- memory 注入 Context Pack 时必须在 fact 中携带 memory id 和 source，并在 `context_sources` 中记录 scope、source、status、reason；当 memory 与当前 stage summary 冲突时，不注入 fact，只记录 `conflict_current_fact` 来源。
 - memory 与 RAG 分层使用：RAG 解决项目知识定位，memory 记录用户偏好/项目决策；二者都不能存放凭证或临时调试内容。
 
 ### 数据边界
