@@ -27,6 +27,12 @@
 - 长任务规则入口：`standards.md` 定义任务字段与恢复字段，`discipline.md` 定义上下文恢复、subagent 边界和换会话清单
 - 任务生成 / 自检 / 验收：`.claude/skills/task-spec/SKILL.md`、`.claude/skills/implementation-check/SKILL.md`、`.claude/skills/acceptance-check/SKILL.md`
 
+### 协作资产索引
+- `.claude/skills/*/SKILL.md` - 可调用 skill：task-spec、implementation-check、acceptance-check、bugfix、test-spec、review、release-check、token-report 等
+- `docs/workflow-packs/README.md` - workflow pack 索引，覆盖 bugfix、review、docs-update、release-check
+- `scripts/README.md` - 脚本入口索引，说明 run/check/review/cost/upload 分类与风险边界
+- `.claude/agents/README.md` - agent 资产索引，说明 PM、Engineer、QA 样板及其与 runtime agent / skill 的区别
+
 ### 分享文档 (docs/share/)
 - `internal_technical_share.md` - 公司内部技术分享文档，介绍项目能力、技术栈、模块优化与后续计划
 
