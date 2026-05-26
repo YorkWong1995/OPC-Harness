@@ -118,6 +118,9 @@ opc runs list
 opc trace summary --artifacts-dir workspace/demo-login/artifacts
 opc trace show --artifacts-dir workspace/demo-login/artifacts --limit 20
 
+# 只读查看最近 run 的 token / cost / duration 趋势
+opc runs cost --limit 10
+
 # P6/P7 规划中的只读诊断视图：不重跑、不调用模型或工具
 opc trace inspect --artifacts-dir workspace/demo-login/artifacts
 ```
