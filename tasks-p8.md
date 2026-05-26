@@ -49,7 +49,7 @@
 - [x] 定义 workflow pack manifest 字段模板 <!-- files: docs/workflow-packs/manifest-template.md --> <!-- context: 责任角色=Architect；输入=standards.md 中 Manifest 字段；输出=id、kind、owner_roles、inputs、outputs、permissions、acceptance、trace 模板；依赖关系=依赖目录结构；完成标准=模板可被后续 pack 复制使用 --> <!-- order: 依赖 workflow pack 目录结构 -->
 - [x] 新增 bugfix workflow pack 样板 <!-- files: docs/workflow-packs/bugfix.md --> <!-- context: 责任角色=Architect/Engineer/QA；输入=bugfix skill、manifest 模板；输出=bugfix pack 的适用场景、角色边界、权限边界、验收方式；依赖关系=依赖 manifest 模板和 bugfix skill；完成标准=bugfix pack 可说明何时走 runtime workflow，何时只用 skill --> <!-- order: 依赖 manifest 模板和 bugfix skill -->
 - [x] 新增 review workflow pack 样板 <!-- files: docs/workflow-packs/review.md --> <!-- context: 责任角色=QA/Architect；输入=review skill、manifest 模板；输出=review pack 的只读评审边界；依赖关系=依赖 manifest 模板和 review skill；完成标准=review pack 明确默认只读，若需写代码则转 bugfix pack --> <!-- order: 依赖 manifest 模板和 review skill -->
-- [ ] 新增 docs-update workflow pack 样板 <!-- files: docs/workflow-packs/docs-update.md --> <!-- context: 责任角色=PM/QA；输入=文档更新场景、manifest 模板；输出=docs-update pack 的输入、输出、权限、验收；依赖关系=依赖 manifest 模板；完成标准=docs-update pack 明确文档链接/索引检查作为验收项 --> <!-- order: 依赖 manifest 模板 -->
+- [x] 新增 docs-update workflow pack 样板 <!-- files: docs/workflow-packs/docs-update.md --> <!-- context: 责任角色=PM/QA；输入=文档更新场景、manifest 模板；输出=docs-update pack 的输入、输出、权限、验收；依赖关系=依赖 manifest 模板；完成标准=docs-update pack 明确文档链接/索引检查作为验收项 --> <!-- order: 依赖 manifest 模板 -->
 - [ ] 新增 release-check workflow pack 样板 <!-- files: docs/workflow-packs/release-check.md --> <!-- context: 责任角色=Ops/QA；输入=release-check skill、manifest 模板；输出=release-check pack 的发布前检查边界；依赖关系=依赖 manifest 模板和 release-check skill；完成标准=pack 明确不执行真实发布，只输出检查结论和回滚条件 --> <!-- order: 依赖 manifest 模板和 release-check skill -->
 
 ## 5. P1 - 可选角色启用规则
