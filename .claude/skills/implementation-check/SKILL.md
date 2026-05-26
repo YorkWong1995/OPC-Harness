@@ -16,6 +16,7 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 - 确认实现是否匹配 task-spec、PRD 或架构约束
 - 检查变更文件是否落在声明范围内
 - 汇总定向验证证据和未覆盖项
+- 检查长任务字段完整性和上下文恢复性
 - 给出“建议进入 QA / 不建议进入 QA”的明确结论
 
 ## 适用场景
@@ -39,17 +40,21 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 1. **范围一致性**：实现是否只覆盖任务定义、PRD 或架构约束声明的范围；偏离范围时列出文件和原因。
 2. **文件变更**：列出新增、修改、删除文件，说明每个文件与任务输出的关系。
 3. **测试证据**：记录已运行的定向命令、文档检查或人工检查路径，以及关键结果。
-4. **已知限制**：说明未覆盖场景、外部依赖、无法验证项或需要人工复查的内容。
-5. **风险项**：评估兼容性、数据、权限、性能、安全和发布风险；无风险时写“未发现”。
-6. **QA 进入结论**：只能输出 `建议进入 QA` 或 `不建议进入 QA`，并给出一句理由。
+4. **任务字段完整性**：检查任务 ID、`depends_on`、`read_before_start`、`execution`、`evidence`、`handoff` 是否存在；缺失时必须说明原因和影响。
+5. **上下文恢复性**：判断新会话是否能只依赖任务文件、依赖产物、pending diff、`evidence` 和 `handoff` 恢复任务状态。
+6. **已知限制**：说明未覆盖场景、外部依赖、无法验证项或需要人工复查的内容。
+7. **风险项**：评估兼容性、数据、权限、性能、安全和发布风险；无风险时写“未发现”。
+8. **QA 进入结论**：只能输出 `建议进入 QA` 或 `不建议进入 QA`，并给出一句理由。
 
 ## 执行规则
 
 1. 先定位任务定义、验收标准、架构约束和 pending diff 来源。
 2. 每个检查项必须给出证据：文件路径、命令或 diff 范围。
 3. 若实现偏离任务范围，结论必须是“不建议进入 QA”。
-4. 若关键验证缺失或失败，不得给出“建议进入 QA”。
-5. 发现问题时输出退回 Engineer 的具体修正项。
+4. 若长任务字段缺失且没有说明原因，不得给出“建议进入 QA”。
+5. 若关键验证缺失或失败，不得给出“建议进入 QA”。
+6. 若任务无法在清空聊天上下文后由文件和产物恢复，不得给出“建议进入 QA”。
+7. 发现问题时输出退回 Engineer 的具体修正项。
 
 ## 示例
 
@@ -64,8 +69,12 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 [范围一致性] 通过（证据：...）
 [文件变更检查]
 - path: 与任务输出的关系 / 是否在范围内
+[任务字段完整性]
+- 任务 ID / depends_on / read_before_start / execution / evidence / handoff: 完整 / 缺失原因
 [验证证据]
 - 命令或检查：结果 / 关键证据
+[上下文恢复性]
+- 可恢复 / 不可恢复（证据：任务文件、依赖产物、evidence、handoff）
 [已知限制]
 - ...
 [风险项]
@@ -80,6 +89,10 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 - path: 与任务无关 / 需要移出本次提交
 [验证证据]
 - 缺失或失败：...
+[任务字段完整性]
+- 缺失字段或缺失原因：...
+[上下文恢复性]
+- 不可恢复（原因：缺少 read_before_start / evidence / handoff / 依赖产物）
 [结论] 不建议进入 QA
 [退回项]
 - 移除无关变更或拆分任务
@@ -89,13 +102,13 @@ description: Run a pre-QA implementation self-check against task scope, acceptan
 ## 验收标准
 
 - 示例覆盖“实现符合任务”和“实现偏离任务”两种结果
-- 输出骨架包含范围一致性、文件变更、测试证据、已知限制和风险项
+- 输出骨架包含范围一致性、文件变更、测试证据、任务字段完整性、上下文恢复性、已知限制和风险项
 - 结论只能是 `建议进入 QA` 或 `不建议进入 QA`
-- 偏离任务或验证失败时必须输出退回项
+- 偏离任务、验证失败、关键字段缺失或清空聊天上下文后不可恢复时必须输出退回项
 
 ## 验收
 
 - 明确该 skill 是 QA 前实现自检，不替代 QA 验收
 - 输入覆盖 task-spec、PRD、架构约束和 pending diff
 - 输出能给出“建议进入 QA / 不建议进入 QA”的明确结论
-- 结论必须由检查项和验证证据支撑
+- 结论必须由检查项、验证证据、任务字段完整性和上下文恢复性支撑
