@@ -204,8 +204,13 @@ def test_memory_commands_smoke(tmp_path: Path):
     store.append("stage_started", stage="pm")
     store.append("approval_required", stage="pm", mode="auto_confirm")
     store.write_trace(final_status="done", metrics={"totals": {"duration_seconds": 1}})
+    (artifacts / "run_metrics.json").write_text(
+        '{"totals":{"input_tokens":1,"output_tokens":2,"duration_seconds":1,"estimated_cost":0.01},"stages":{"pm":{"input_tokens":1,"output_tokens":2,"duration_seconds":1,"estimated_cost":0.01}}}',
+        encoding="utf-8",
+    )
 
     _call_main_with_args(["runs", "list", "--root", str(tmp_path)])
+    _call_main_with_args(["runs", "cost", "--root", str(tmp_path), "--limit", "5"])
     _call_main_with_args(["trace", "summary", "--artifacts-dir", str(artifacts)])
     _call_main_with_args(["trace", "show", "--artifacts-dir", str(artifacts), "--limit", "1"])
     _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--focus", "decisions"])

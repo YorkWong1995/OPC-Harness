@@ -92,7 +92,7 @@
 
 - [x] 设计 cost trend 命令输出格式 <!-- files: docs/plan/workflow.md, README.md --> <!-- context: 责任角色=Ops/PM；输入=多次 run 的 run_metrics.json、token-report 输出；输出=最近 N 次 run 的 cost trend 输出字段和示例；依赖关系=依赖 cost 指标记录；完成标准=格式包含按 run、阶段、角色聚合的 token/cost/duration --> <!-- order: 依赖 cost 指标记录 --> <!-- evidence: docs/plan/workflow.md 已定义 opc runs cost 的只读边界、按 run 字段、按阶段/角色聚合字段和旧 metrics 兼容说明；README.md 已补充命令示例；验证=python -m pytest tests/test_docs_structure.py -q；结果=1 passed -->
 - [x] 实现读取多次 run metrics 的聚合函数 <!-- files: src/opc/run_store.py, tests/ --> <!-- context: 责任角色=Engineer/QA；输入=artifacts 下多个 run_metrics.json；输出=按 run_id 聚合 token/cost/duration 的函数；依赖关系=依赖 cost trend 输出格式；完成标准=测试覆盖缺失 metrics、旧 metrics、多个 run 三种情况 --> <!-- order: 依赖 cost trend 输出格式 --> <!-- evidence: src/opc/run_store.py 新增 aggregate_run_cost_trend，只读聚合 runs/stages/totals/compatibility；tests/test_run_store_append.py 覆盖缺失 metrics、旧 metrics、多个 run；验证=python -m pytest tests/test_run_store_append.py -q；结果=13 passed -->
-- [ ] 增加 cost trend CLI 入口 <!-- files: src/opc/cli.py, tests/ --> <!-- context: 责任角色=Engineer/Ops；输入=聚合函数、CLI runs/trace 现有命令；输出=opc runs cost 或等价只读命令；依赖关系=依赖 metrics 聚合函数；完成标准=用户可查看最近 N 次 run 的 token/cost 趋势，不调用模型或工具 --> <!-- order: 依赖 metrics 聚合函数 -->
+- [x] 增加 cost trend CLI 入口 <!-- files: src/opc/cli.py, tests/ --> <!-- context: 责任角色=Engineer/Ops；输入=聚合函数、CLI runs/trace 现有命令；输出=opc runs cost 或等价只读命令；依赖关系=依赖 metrics 聚合函数；完成标准=用户可查看最近 N 次 run 的 token/cost 趋势，不调用模型或工具 --> <!-- order: 依赖 metrics 聚合函数 --> <!-- evidence: src/opc/cli.py 新增 opc runs cost --limit 入口，展示 run 明细、阶段聚合和兼容性提示；tests/test_cli_smoke.py 覆盖命令 smoke；验证=python -m pytest tests/test_cli_smoke.py::test_memory_commands_smoke tests/test_run_store_append.py -q；结果=14 passed -->
 
 ## 10. P2 - 质量门禁与索引
 

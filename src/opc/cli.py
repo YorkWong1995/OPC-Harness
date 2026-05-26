@@ -15,7 +15,7 @@ from rich.table import Table
 
 from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
-from .run_store import find_run_artifacts, summarize_run, trace_inspect, trace_summary
+from .run_store import aggregate_run_cost_trend, find_run_artifacts, summarize_run, trace_inspect, trace_summary
 from .config import (
     ALL_OPTIONAL_ROLES,
     load_workflow_config,
@@ -196,6 +196,10 @@ def main():
     runs_list_parser = runs_subparsers.add_parser("list", help="列出 run 记录")
     runs_list_parser.add_argument("--root", default=None, help="搜索根目录（默认 workspace）")
     runs_list_parser.add_argument("--project-dir", default=None, help="仅查看指定项目目录")
+    runs_cost_parser = runs_subparsers.add_parser("cost", help="查看 run 成本趋势")
+    runs_cost_parser.add_argument("--root", default=None, help="搜索根目录（默认 workspace）")
+    runs_cost_parser.add_argument("--project-dir", default=None, help="仅查看指定项目目录")
+    runs_cost_parser.add_argument("--limit", type=int, default=10, help="最近 N 次 run")
 
     # ---- opc trace show / summary ----
     trace_parser = subparsers.add_parser("trace", help="查看 run trace")
@@ -743,8 +747,55 @@ def _run_index_delete(args):
 
 
 def _run_runs(args):
+    if args.runs_command == "cost":
+        root = Path(args.project_dir) / "artifacts" if args.project_dir else Path(args.root) if args.root else _get_workspace_root()
+        trend = aggregate_run_cost_trend(root, limit=args.limit)
+        runs_table = Table(title="Run 成本趋势")
+        runs_table.add_column("Run ID")
+        runs_table.add_column("状态")
+        runs_table.add_column("Input", justify="right")
+        runs_table.add_column("Output", justify="right")
+        runs_table.add_column("Cost", justify="right")
+        runs_table.add_column("耗时(s)", justify="right")
+        runs_table.add_column("Artifacts")
+        for row in trend["runs"]:
+            cost = "unknown" if row["estimated_cost"] is None else f"{row['estimated_cost']:.6f} {row.get('currency') or ''}".strip()
+            runs_table.add_row(
+                row["run_id"],
+                row["status"],
+                str(row["input_tokens"]),
+                str(row["output_tokens"]),
+                cost,
+                str(row["duration_seconds"]),
+                row["artifacts_dir"],
+            )
+        console.print(runs_table)
+
+        stages_table = Table(title="阶段聚合")
+        stages_table.add_column("Stage")
+        stages_table.add_column("Runs", justify="right")
+        stages_table.add_column("Input", justify="right")
+        stages_table.add_column("Output", justify="right")
+        stages_table.add_column("Cost", justify="right")
+        stages_table.add_column("耗时(s)", justify="right")
+        for row in trend["stages"]:
+            stages_table.add_row(
+                row["stage"],
+                str(row["runs"]),
+                str(row["input_tokens"]),
+                str(row["output_tokens"]),
+                f"{row['estimated_cost']:.6f}",
+                str(row["duration_seconds"]),
+            )
+        console.print(stages_table)
+        if trend["compatibility"]:
+            console.print("[yellow]兼容性提示:[/yellow]")
+            for item in trend["compatibility"]:
+                console.print(f"- {item}")
+        return
+
     if args.runs_command != "list":
-        console.print("[yellow]请使用 opc runs list[/yellow]")
+        console.print("[yellow]请使用 opc runs list 或 opc runs cost[/yellow]")
         return
 
     root = Path(args.project_dir) / "artifacts" if args.project_dir else Path(args.root) if args.root else _get_workspace_root()
