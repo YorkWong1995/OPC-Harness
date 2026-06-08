@@ -293,6 +293,39 @@ def test_generate_qt_writes_rendered_files(tmp_path: Path, capsys):
     assert "{{" not in (target_dir / "src" / "MainWindow.cpp").read_text(encoding="utf-8")
 
 
+def test_generate_qt_requires_enabled_plugin_without_writing(tmp_path: Path, capsys):
+    target_dir = tmp_path / "generated"
+
+    with pytest.raises(SystemExit) as exc:
+        _call_main_with_args([
+            "generate", "qt",
+            "--project-dir", str(tmp_path),
+            "--name", "DemoQtApp",
+            "--target-dir", str(target_dir),
+        ])
+
+    assert exc.value.code == 1
+    assert "未启用" in capsys.readouterr().out
+    assert not target_dir.exists()
+
+
+def test_generate_qt_uses_repository_plugin_manifest_when_enabled(tmp_path: Path, capsys, monkeypatch):
+    monkeypatch.setenv("OPC_PLUGINS_ENABLED", "qt")
+    target_dir = tmp_path / "generated"
+
+    _call_main_with_args([
+        "generate", "qt",
+        "--project-dir", str(Path.cwd()),
+        "--name", "RepoManifestQtApp",
+        "--target-dir", str(target_dir),
+    ])
+
+    output = capsys.readouterr().out
+    assert "Qt 项目已生成" in output
+    assert (target_dir / "CMakeLists.txt").exists()
+    assert "RepoManifestQtApp" in (target_dir / "src" / "MainWindow.cpp").read_text(encoding="utf-8")
+
+
 def _write_project_types_opc_toml(tmp_path: Path, enabled_plugins: list[str]) -> None:
     enabled = ", ".join(f'"{plugin}"' for plugin in enabled_plugins)
     (tmp_path / "opc.toml").write_text(
