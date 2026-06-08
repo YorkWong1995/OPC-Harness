@@ -82,6 +82,43 @@ opc run "帮我设计一个用户登录功能" --project demo-login
 opc run "补充登录功能验收标准" --project-dir . --skip-architect
 ```
 
+### Qt 项目生成（可选插件）
+
+Qt 生成能力默认关闭；不需要 Qt 的用户无需安装 Qt SDK、CMake 或编译器，也不需要启用插件。只有在 `opc.toml` 中启用 Qt 插件后，OPC 才会加载 Qt 项目类型并执行 Qt 5.14.2 / CMake / 编译器环境诊断。
+
+```toml
+[plugins]
+enabled = ["qt"]
+
+[plugins.qt]
+enabled = true
+manifest_path = "plugins/qt/opc-plugin.toml"
+templates = ["widgets-cmake"]
+qt_version = "5.14.2"
+qt_dir = ""
+cmake_prefix_path = ""
+```
+
+```bash
+# 查看已启用项目类型，并读取 Qt 环境诊断
+opc project-types list
+
+# 先 dry-run 查看将写入的文件清单，不创建目标目录
+opc generate qt --name DemoQtApp --target-dir workspace/DemoQtApp --dry-run
+
+# 生成最小 Qt Widgets + CMake 项目
+opc generate qt --name DemoQtApp --target-dir workspace/DemoQtApp
+
+# 在生成目录执行 CMake 配置与构建；缺少 Qt SDK、CMake 或编译器时先按诊断提示配置 Qt5_DIR/CMAKE_PREFIX_PATH/PATH
+cmake -S workspace/DemoQtApp -B workspace/DemoQtApp/build
+cmake --build workspace/DemoQtApp/build
+
+# 查看生成过程 artifact；dry-run 和实际生成都会记录 planned/generated files 与环境诊断
+opc trace inspect --artifacts-dir artifacts
+```
+
+`opc generate qt` 生成 Qt Widgets + CMake 模板文件，并在项目级 `artifacts/qt_generation.json`、`run_events.jsonl`、`run_trace.json` 和 `.opc_state.json` 中记录生成清单、模板 id、环境诊断和 trace 可见 artifact。若不想继续使用 Qt，移除 `plugins.enabled` 中的 `"qt"` 或将 `[plugins.qt].enabled` 设为 `false` 即可让核心 OPC 回到不检查 Qt 环境的状态。
+
 ### 可选角色开关
 
 OPC 默认使用 PM → Engineer → QA 主链路，并根据任务描述自动识别是否需要 Architect、Ops 或 Growth。自动识别会优先使用角色分类器；分类器不可用或返回无效结果时，使用关键词兜底。
