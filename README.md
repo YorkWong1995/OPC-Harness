@@ -69,6 +69,7 @@ opc doctor
 opc config validate
 
 # 只读查看已启用的项目类型；Qt 插件默认禁用，启用后才检查 Qt 5.14.2/CMake
+# 若 Qt SDK、CMake 或编译器缺失，会提示缺失项、检查命令、配置路径和关闭插件方式
 opc project-types list
 
 # 在当前目录运行最小 harness 工作流

@@ -26,6 +26,7 @@ from .config import (
 from .knowledge.index_paths import get_index_root, get_workspace_root
 from .generation.templates import TemplateRenderError, build_project_template_variables, render_template_directory
 from .project_types import ProjectTypeDefinition, load_project_type_registry
+from .tools.qt_tools import QtEnvironmentCheckResult, check_qt_environment, format_qt_environment_report
 
 console = Console()
 
@@ -554,6 +555,7 @@ def _run_generate_qt(args):
     if definition is None:
         console.print("[yellow]Qt project type 未启用。请在 opc.toml 中设置 plugins.enabled = [\"qt\"]。[/yellow]")
         raise SystemExit(1)
+    _print_qt_environment_diagnostics(_collect_qt_environment_diagnostics((definition,)))
     if definition.template_provider.template_id != args.template:
         console.print(f"[red]Qt 模板不可用:[/red] {args.template}")
         raise SystemExit(1)
@@ -604,6 +606,31 @@ def _print_generate_file_plan(files: tuple[Path, ...], *, dry_run: bool, base_di
     console.print(table)
 
 
+def _collect_qt_environment_diagnostics(
+    definitions: tuple[ProjectTypeDefinition, ...],
+) -> dict[str, tuple[QtEnvironmentCheckResult, ...]]:
+    if not any(definition.id == "qt" for definition in definitions):
+        return {}
+    return {"qt": check_qt_environment()}
+
+
+def _environment_diagnostics_to_dict(
+    diagnostics: dict[str, tuple[QtEnvironmentCheckResult, ...]],
+) -> dict[str, list[dict[str, object]]]:
+    return {project_type_id: [result.as_dict() for result in results] for project_type_id, results in diagnostics.items()}
+
+
+def _print_qt_environment_diagnostics(diagnostics: dict[str, tuple[QtEnvironmentCheckResult, ...]]) -> None:
+    results = diagnostics.get("qt")
+    if not results:
+        return
+    actionable = [result for result in results if result.status in {"missing", "warning"}]
+    if not actionable:
+        return
+    console.print("[yellow]Qt 环境诊断：缺失项不会影响模板文件生成，但真实构建前需要处理。[/yellow]")
+    console.print(format_qt_environment_report(actionable))
+
+
 # ---- opc project-types ----
 
 
@@ -621,12 +648,14 @@ def _run_project_types(args):
         definitions = registry.list()
     except ValueError as exc:
         diagnostics.append(str(exc))
+    environment_diagnostics = _collect_qt_environment_diagnostics(definitions)
 
     payload = {
         "project_dir": str(project_dir),
         "enabled_plugins": list(config.plugins.enabled),
         "project_types": [_project_type_to_dict(definition) for definition in definitions],
         "diagnostics": diagnostics,
+        "environment_diagnostics": _environment_diagnostics_to_dict(environment_diagnostics),
         "enablement_hint": "Enable Qt with plugins.enabled = [\"qt\"] in opc.toml; Qt checks run only after the plugin is enabled.",
     }
     if args.json:
@@ -656,6 +685,7 @@ def _run_project_types(args):
 
     if not config.plugins.enabled:
         console.print("[dim]Qt 插件默认禁用；在 opc.toml 中设置 plugins.enabled = [\"qt\"] 后才会加载 Qt 5.14.2/CMake 能力。[/dim]")
+    _print_qt_environment_diagnostics(environment_diagnostics)
     for diagnostic in diagnostics:
         console.print(f"[red]项目类型诊断:[/red] {diagnostic}")
 

@@ -254,6 +254,62 @@ def test_project_types_list_reports_missing_manifest_without_generating_files(tm
     assert not (tmp_path / "templates").exists()
 
 
+def test_project_types_list_reports_qt_environment_diagnostics(tmp_path: Path, capsys):
+    from opc.tools.qt_tools import QtEnvironmentCheckResult
+
+    _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
+    _write_qt_project_type_manifest(tmp_path)
+    missing = QtEnvironmentCheckResult(
+        id="qt5",
+        status="missing",
+        required=True,
+        detected_path=None,
+        check_command="check Qt5_DIR or CMAKE_PREFIX_PATH for Qt5Config.cmake",
+        message="未定位 Qt 5.14.2 / Qt5 SDK。",
+        next_steps=("配置 Qt5_DIR=<Qt>/lib/cmake/Qt5。", "从 plugins.enabled 移除 qt；核心 OPC 能力不受影响。"),
+    )
+
+    with patch("opc.cli.check_qt_environment", return_value=(missing,)):
+        _call_main_with_args(["project-types", "list", "--project-dir", str(tmp_path), "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    diagnostic = payload["environment_diagnostics"]["qt"][0]
+    assert diagnostic["id"] == "qt5"
+    assert diagnostic["status"] == "missing"
+    assert "Qt5_DIR" in diagnostic["next_steps"][0]
+
+
+def test_generate_qt_prints_dependency_diagnostics_without_blocking(tmp_path: Path, capsys):
+    from opc.tools.qt_tools import QtEnvironmentCheckResult
+
+    _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
+    _write_qt_project_type_manifest(tmp_path, template_path=Path.cwd() / "templates" / "qt" / "widgets-cmake")
+    target_dir = tmp_path / "generated"
+    missing = QtEnvironmentCheckResult(
+        id="cmake",
+        status="missing",
+        required=True,
+        detected_path=None,
+        check_command="cmake --version",
+        message="CMake 未在 PATH 中找到。",
+        next_steps=("安装 CMake 并确认 cmake 在 PATH 中。", "从 plugins.enabled 移除 qt；核心 OPC 能力不受影响。"),
+    )
+
+    with patch("opc.cli.check_qt_environment", return_value=(missing,)):
+        _call_main_with_args([
+            "generate", "qt",
+            "--project-dir", str(tmp_path),
+            "--name", "DemoQtApp",
+            "--target-dir", str(target_dir),
+            "--dry-run",
+        ])
+
+    output = capsys.readouterr().out
+    assert "Qt 环境诊断" in output
+    assert "cmake --version" in output
+    assert "dry-run" in output
+    assert not target_dir.exists()
+
 def test_generate_qt_dry_run_lists_files_without_writing(tmp_path: Path, capsys):
     _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
     _write_qt_project_type_manifest(tmp_path, template_path=Path.cwd() / "templates" / "qt" / "widgets-cmake")

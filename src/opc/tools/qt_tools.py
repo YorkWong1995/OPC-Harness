@@ -67,6 +67,7 @@ def format_qt_environment_report(results: Sequence[QtEnvironmentCheckResult]) ->
         required = "required" if result.required else "optional"
         path = f" path={result.detected_path}" if result.detected_path else ""
         lines.append(f"[{result.status}] {result.id} ({required}){path}: {result.message}")
+        lines.append(f"  check: {result.check_command}")
         for step in result.next_steps:
             lines.append(f"  - {step}")
     return "\n".join(lines)
