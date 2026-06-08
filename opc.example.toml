@@ -15,6 +15,23 @@ estimate_enabled = false
 currency = "USD"
 pricing_source = "user-configured"
 
+[plugins]
+# Optional project plugins are disabled by default.
+# Core OPC commands do not require Qt, CMake, or compiler checks unless a plugin is enabled.
+enabled = []
+
+[plugins.qt]
+# Enable with: enabled = ["qt"]
+# Qt generation targets Qt 5.14.2 Widgets + CMake in P9.
+enabled = false
+manifest_path = "plugins/qt/opc-plugin.toml"
+templates = ["widgets-cmake"]
+permissions = ["read", "write", "execute"]
+qt_version = "5.14.2"
+# Optional local hints used only when the Qt plugin is enabled.
+qt_dir = ""
+cmake_prefix_path = ""
+
 # 成本估算默认关闭；如需启用，请自行维护模型价格，单位为每百万 token。
 # [cost.model_prices."claude-sonnet-4-6"]
 # input_per_million = 0.0

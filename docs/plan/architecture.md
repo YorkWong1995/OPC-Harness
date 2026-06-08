@@ -153,6 +153,19 @@ Qt 第一版作为 `qt` project type 进入可选 plugin pack，模板限定为 
 
 同一机制应能复用到后续项目类型：Python project type 可声明虚拟环境与测试命令，Node project type 可声明 package manager 与 build script，Rust project type 可声明 cargo 检查，Embedded project type 可声明工具链与烧录前检查。差异应体现在 manifest、template pack 和 tool provider 中，而不是扩散到核心 workflow 控制流。
 
+### 7.2 可选插件启用策略
+
+插件启用采用“默认禁用、显式启用、延迟检查”的策略。核心 OPC 启动、`opc run`、`opc query`、`opc doctor` 和配置校验不因可选 project plugin 缺失而失败；只有 project type discovery、显式生成命令或启用插件后的环境检查阶段才读取对应 manifest 与 tool provider。
+
+| 配置/状态 | 行为 | 用户提示 |
+| --- | --- | --- |
+| `plugins.enabled = []` 或未配置 | 只加载核心 runtime 与内置能力，不扫描 Qt 模板，不检查 Qt/CMake | project type 列表显示 Qt 未启用及启用方式 |
+| `plugins.enabled` 包含 `qt` | 加载 Qt plugin manifest，注册 `qt` project type 和 `widgets-cmake` template | 若缺 Qt 5.14.2、CMake 或编译器，显示缺失项与建议检查命令 |
+| plugin manifest 缺失或无效 | 不注册该 project type，并返回只读诊断 | 提示 manifest 路径、必需字段和关闭插件方式 |
+| 权限声明不满足 profile | 保留插件禁用或 capability unavailable 状态 | 提示需要的 permissions 与当前 permission profile |
+
+Qt plugin 的依赖检查必须延迟到 Qt plugin 已启用且用户执行 `project-types list`、`generate qt` 或 Qt workflow pack 阶段时运行。缺依赖诊断应包含：缺失项、建议命令、可配置路径（如 `Qt5_DIR`、`CMAKE_PREFIX_PATH`、Qt 安装目录）、关闭插件方式，以及“不影响其他 project type / 普通 OPC run”的说明。
+
 ## 8. OPC Harness L1-L6 能力矩阵
 
 | 层级 | OPC 当前能力 | P6 处理结论 |
