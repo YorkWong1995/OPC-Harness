@@ -90,6 +90,12 @@ class MemoryConfig:
 
 
 @dataclass
+class PluginConfig:
+    enabled: tuple[str, ...] = ()
+    settings: dict[str, dict[str, object]] = field(default_factory=dict)
+
+
+@dataclass
 class OPCConfig:
     workflow: WorkflowConfig = field(default_factory=WorkflowConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
@@ -97,6 +103,7 @@ class OPCConfig:
     cost: CostConfig = field(default_factory=CostConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
+    plugins: PluginConfig = field(default_factory=PluginConfig)
 
 
 def validate_project_config(project_dir: Path, profile: str | None = None) -> list[ConfigIssue]:
@@ -162,6 +169,7 @@ def load_project_config(
         model = data.get("model", {})
         security = data.get("security", {})
         memory = data.get("memory", {})
+        plugins = data.get("plugins", {})
         config = OPCConfig(
             workflow=workflow_config,
             model=ModelConfig(
@@ -201,6 +209,7 @@ def load_project_config(
                 strict_ingestion=bool(memory.get("strict_ingestion", True)),
                 embedding_model=str(memory.get("embedding_model", "minilm")),
             ),
+            plugins=_normalize_plugin_config(plugins),
         )
 
     _apply_env_overrides(config)
@@ -222,6 +231,24 @@ def _normalize_model_prices(raw_prices: object) -> dict[str, dict[str, float]]:
             "output_per_million": float(prices.get("output_per_million", 0.0)),
         }
     return model_prices
+
+
+def _normalize_plugin_config(raw_plugins: object) -> PluginConfig:
+    if not isinstance(raw_plugins, dict):
+        raise TypeError("plugins 必须是 TOML 表")
+    enabled = tuple(str(plugin).strip() for plugin in raw_plugins.get("enabled", []) if str(plugin).strip())
+    settings: dict[str, dict[str, object]] = {}
+    for plugin_id, plugin_data in raw_plugins.items():
+        if plugin_id == "enabled":
+            continue
+        if not isinstance(plugin_data, dict):
+            raise TypeError(f"plugins.{plugin_id} 必须是 TOML 表")
+        settings[str(plugin_id)] = dict(plugin_data)
+    return PluginConfig(enabled=enabled, settings=settings)
+
+
+def _parse_plugin_list(raw_value: str) -> tuple[str, ...]:
+    return tuple(plugin.strip() for plugin in raw_value.split(",") if plugin.strip())
 
 
 def _apply_env_overrides(config: OPCConfig) -> None:
@@ -261,6 +288,8 @@ def _apply_env_overrides(config: OPCConfig) -> None:
         config.security.permission_profile = val
     if val := os.environ.get("OPC_DANGEROUS_COMMAND_POLICY"):
         config.security.dangerous_command_policy = val
+    if val := os.environ.get("OPC_PLUGINS_ENABLED"):
+        config.plugins.enabled = _parse_plugin_list(val)
 
 
 def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
@@ -304,6 +333,8 @@ def _apply_dict_overrides(config: OPCConfig, overrides: dict | None) -> None:
         config.security.permission_profile = str(overrides["permission_profile"])
     if "dangerous_command_policy" in overrides:
         config.security.dangerous_command_policy = str(overrides["dangerous_command_policy"])
+    if "plugins_enabled" in overrides:
+        config.plugins.enabled = tuple(str(plugin).strip() for plugin in overrides["plugins_enabled"] if str(plugin).strip())
 
 
 def load_workflow_config(project_dir: Path, profile: str | None = None) -> WorkflowConfig:
