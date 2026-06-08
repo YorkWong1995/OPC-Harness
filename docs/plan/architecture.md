@@ -138,6 +138,21 @@ permissions = ["read"]
 
 MCP 接入暂不在 P6 内直接实现。后续接入时必须复用同一安全契约：服务 manifest、权限声明、默认禁用、审计信息可见、外部出域动作默认 approval。
 
+### 7.1 Project Type / Plugin Pack 架构边界
+
+P9 起，项目生成能力按 project type 组织，核心 runtime 只负责发现、校验、路由和 trace，不直接内置 Qt、Python、Node、Rust 或 Embedded 的具体生成逻辑。
+
+| 对象 | 职责边界 | 不应承担的职责 |
+| --- | --- | --- |
+| Project type | 声明项目类型 id、展示名、模板入口、环境检查、构建命令、验收检查和权限需求 | 不直接执行模板渲染、shell 命令或外部安装 |
+| Plugin pack | 通过 manifest 注册一个或多个 project type、tool provider 或 workflow pack，默认禁用并按配置启用 | 不绕过 permission profile、危险命令策略或 manifest 权限声明 |
+| Template pack | 提供版本化模板目录、模板变量 schema、文件清单和安全渲染规则 | 不在渲染阶段调用模型生成关键构建文件 |
+| Tool provider | 提供环境检测、构建检测或诊断工具，例如 CMake/Qt 检查 | 不在未启用对应 plugin pack 时主动运行 |
+
+Qt 第一版作为 `qt` project type 进入可选 plugin pack，模板限定为 Qt 5.14.2 Widgets + CMake。核心 runtime 不依赖 Qt SDK、CMake 或 Qt 模板目录；只有用户启用 Qt plugin pack 或显式调用 Qt 生成/检查命令时，才加载 Qt manifest、模板 pack 和 Qt tool provider。
+
+同一机制应能复用到后续项目类型：Python project type 可声明虚拟环境与测试命令，Node project type 可声明 package manager 与 build script，Rust project type 可声明 cargo 检查，Embedded project type 可声明工具链与烧录前检查。差异应体现在 manifest、template pack 和 tool provider 中，而不是扩散到核心 workflow 控制流。
+
 ## 8. OPC Harness L1-L6 能力矩阵
 
 | 层级 | OPC 当前能力 | P6 处理结论 |

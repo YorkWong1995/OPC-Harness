@@ -209,6 +209,19 @@ Workflow pack 是可复用的工作流说明单元，用来把一类任务的输
 - review pack 第一版推荐作为 Claude 协作 skill 执行；如果评审需要写入代码或触发回归，则转为 bugfix 或 docs-update runtime workflow。
 - 每个 pack 都必须声明权限边界，未声明写入或命令执行权限时默认只读。
 
+### 9.4 Project Type / Plugin Pack 工作流边界
+
+P9 的 project type 发现与模板生成属于 runtime 可调用的确定性能力，不应默认触发模型调用。工作流只消费已启用 project type 的声明结果：模板 id、文件清单、环境检查、构建命令、验收检查和权限需求。
+
+| 阶段 | 输入 | 输出 | 边界 |
+| --- | --- | --- | --- |
+| Project type discovery | `opc.toml` 插件配置、内置 registry、已启用 plugin manifest | 可用 project type 列表、禁用/缺依赖提示 | 只读，不生成文件，不调用模型 |
+| Template generation | project type、template id、项目名、目标目录 | dry-run 文件清单或实际生成文件清单 | 必须做路径安全与冲突检查，默认不覆盖 |
+| Tool provider checks | 已启用 project type 的环境检查声明 | 依赖状态、诊断提示、建议命令 | 未启用插件时不运行对应检查 |
+| Acceptance workflow | PRD、生成文件清单、构建/检查结果 | implementation-check、acceptance-check 或 run artifact | 只验收声明范围，不扩大到未启用 project type |
+
+Qt generation workflow pack 后续应引用同一边界：PM/Architect 定义 Qt 5.14.2 Widgets + CMake 范围，Engineer 使用 Qt plugin pack 生成模板并记录文件清单，Ops 只在 Qt plugin 启用时执行环境检测，QA 使用结构 smoke validation 和可选真实 Qt 构建结果验收。
+
 ## 10. Thread / Session / Run / Artifact / Checkpoint 边界
 
 | 概念 | OPC 语义 | 用户可见入口 | 是否长期保存 |
