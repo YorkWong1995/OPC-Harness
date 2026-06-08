@@ -7,6 +7,9 @@ SAMPLE_PLUGIN_SETTINGS = {
     "sample_project_type": {
         "manifest_path": "examples/opc_plugins/sample_project_type/opc-plugin.toml",
     },
+    "qt": {
+        "manifest_path": "plugins/qt/opc-plugin.toml",
+    },
 }
 
 
@@ -14,6 +17,13 @@ def test_sample_project_type_plugin_is_disabled_until_enabled() -> None:
     registry = load_project_type_registry(Path.cwd(), (), SAMPLE_PLUGIN_SETTINGS)
 
     assert registry.list() == ()
+
+
+def test_enabled_sample_project_type_loads_only_declared_capability() -> None:
+    registry = load_project_type_registry(Path.cwd(), ("sample_project_type",), SAMPLE_PLUGIN_SETTINGS)
+
+    assert [definition.id for definition in registry.list()] == ["static-site"]
+    assert registry.get("qt") is None
 
 
 def test_sample_project_type_plugin_registers_non_qt_static_site() -> None:

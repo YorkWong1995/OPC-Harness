@@ -219,13 +219,17 @@ def test_memory_commands_smoke(tmp_path: Path):
 
 
 def test_project_types_list_without_plugins_is_read_only(tmp_path: Path, capsys):
-    _call_main_with_args(["project-types", "list", "--project-dir", str(tmp_path), "--json"])
+    with patch("opc.cli.check_qt_environment") as check_qt_environment:
+        _call_main_with_args(["project-types", "list", "--project-dir", str(tmp_path), "--json"])
 
     payload = json.loads(capsys.readouterr().out)
+    check_qt_environment.assert_not_called()
     assert payload["enabled_plugins"] == []
     assert payload["project_types"] == []
+    assert payload["environment_diagnostics"] == {}
     assert "plugins.enabled = [\"qt\"]" in payload["enablement_hint"]
     assert not (tmp_path / "artifacts").exists()
+    assert not (tmp_path / "templates").exists()
 
 
 def test_project_types_list_loads_enabled_manifest(tmp_path: Path, capsys):
