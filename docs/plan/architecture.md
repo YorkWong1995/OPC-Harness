@@ -199,6 +199,20 @@ templates/qt/
 
 QML、`.ui`、资源文件和 qmake 仅保留扩展点，不进入 `widgets-cmake` 第一版清单。后续如新增 QML 或资源模板，应新增独立 template id（例如 `qml-cmake` 或 `widgets-cmake-resources`），而不是让 `widgets-cmake` 隐式生成超出 Qt Widgets + CMake 最小项目范围的文件。
 
+### 7.5 Qt 环境检测规则
+
+Qt tool provider 的环境检测必须保持延迟执行：只有 `qt` plugin 已启用，且用户执行 project type discovery、`generate qt`、Qt workflow pack 或显式 Qt 环境检查时才运行。普通 `opc run`、`opc query`、`opc doctor` 和未启用 Qt plugin 的项目类型不读取 Qt SDK 路径、不调用 CMake、不探测编译器。
+
+| 检查 | 等级 | 成功条件 | 失败诊断 |
+| --- | --- | --- | --- |
+| `cmake` | 必需 | `cmake --version` 可执行，版本满足模板最低要求 | 提示安装 CMake、确认 PATH、重跑 `cmake --version` |
+| Qt5 / Qt 5.14.2 | 必需 | 能定位 `Qt5Config.cmake`，优先级为 `Qt5_DIR` → `CMAKE_PREFIX_PATH` → 常见 Windows Qt 目录 | 提示配置 `Qt5_DIR`、`CMAKE_PREFIX_PATH` 或 Qt 安装目录，并标明 P9 目标为 Qt 5.14.2 |
+| C++ 编译器 | 必需 | 能找到 MSVC `cl` 或 MinGW `g++`，并与 Qt kit 家族匹配 | MSVC 提示使用 Developer Command Prompt；MinGW 提示检查 Qt kit 的 `bin` 与编译器 PATH |
+| CMake generator | 建议 | 能推断 Visual Studio、Ninja 或 MinGW Makefiles 等 generator | 不阻断结构生成，提示可通过 `-G` 或环境配置修正真实构建 |
+| Qt/CMake 路径一致性 | 建议 | Qt kit、编译器和 generator 不明显冲突 | 提示切换 kit 或更新 `CMAKE_PREFIX_PATH`，但不影响非 Qt project type |
+
+检测结果应输出结构化摘要：`id`、`status`（ok/missing/warning/skipped）、`required`、`detected_path`、`check_command`、`message` 和 `next_steps`。缺失项提示必须同时给出关闭插件方式（从 `plugins.enabled` 移除 `qt`）和说明“核心 OPC 能力不受影响”。
+
 ## 8. OPC Harness L1-L6 能力矩阵
 
 | 层级 | OPC 当前能力 | P6 处理结论 |

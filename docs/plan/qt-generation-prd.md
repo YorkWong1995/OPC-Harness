@@ -88,6 +88,20 @@ Qt 生成能力的第一版需要解决两个问题：
 - `opc generate qt --name <project-name> --target-dir <dir> --template widgets-cmake`：生成 Qt 项目。
 - 或 `opc run --project-type qt` 的最小入口；若采用该入口，必须保证不调用模型也能完成模板生成的基础路径。
 
+### 4.4 环境检测规则
+
+Qt 环境检测只在 Qt 插件已启用且用户执行 `opc project-types list`、`opc generate qt`、Qt workflow pack 或显式环境检查时运行；未启用 Qt 插件时不检查 Qt/CMake/编译器。
+
+| 检查项 | 等级 | 检测方式 | Windows 本机提示 |
+| --- | --- | --- | --- |
+| CMake | 必需 | `cmake --version`，版本需满足模板 `cmake_minimum_required` | 未找到时提示安装 CMake 并确认 `cmake` 在 PATH 中 |
+| Qt 5.14.2 / Qt5 SDK | 必需 | 查找 `Qt5Config.cmake`，优先读取 `Qt5_DIR`，其次读取 `CMAKE_PREFIX_PATH`，再检查常见 Qt 安装目录 | 提示配置 `Qt5_DIR=<Qt>/lib/cmake/Qt5` 或 `CMAKE_PREFIX_PATH=<Qt>`，例如 `C:/Qt/5.14.2/msvc2017_64` 或 `C:/Qt/5.14.2/mingw73_64` |
+| C++ 编译器 | 必需 | 检查 MSVC `cl` 或 MinGW `g++` 是否可用 | MSVC 提示从 Developer Command Prompt 启动；MinGW 提示确认 Qt kit 对应的 `bin` 在 PATH 中 |
+| CMake generator | 建议 | 根据编译器识别 Visual Studio、Ninja、MinGW Makefiles 等可用 generator | 缺 generator 不阻断结构生成，但真实构建需提示可尝试 `-G` 参数 |
+| Qt 路径一致性 | 建议 | 检查 Qt kit 路径是否与编译器族一致，例如 MSVC Qt kit 对 MSVC、MinGW Qt kit 对 MinGW | 不一致时提示切换 Qt kit、编译器或 `CMAKE_PREFIX_PATH` |
+
+缺依赖诊断必须包含：缺失项、建议检查命令、可配置路径、关闭 Qt 插件方式，以及“不影响普通 OPC run / 其他 project type”的说明。环境检测不自动安装 Qt SDK、CMake、MSVC 或 MinGW。
+
 ## 5. 非目标
 
 1. 不实现完整 Qt Designer、`.ui` 文件、资源系统和国际化流程。
