@@ -327,6 +327,17 @@ def test_generate_qt_dry_run_lists_files_without_writing(tmp_path: Path, capsys)
     assert "CMakeLists.txt" in output
     assert "dry-run" in output
     assert not target_dir.exists()
+    summary = json.loads((tmp_path / "artifacts" / "qt_generation.json").read_text(encoding="utf-8"))
+    assert summary["dry_run"] is True
+    assert summary["project_type"] == "qt"
+    assert summary["template_id"] == "widgets-cmake"
+    assert "CMakeLists.txt" in summary["planned_files"]
+    assert summary["generated_files"] == []
+    state = json.loads((tmp_path / "artifacts" / ".opc_state.json").read_text(encoding="utf-8"))
+    assert state["artifact_paths"]["qt_generation"].endswith("qt_generation.json")
+    from opc.run_store import trace_inspect
+    inspect = trace_inspect(tmp_path / "artifacts")
+    assert inspect["artifacts"]["qt_generation"].endswith("qt_generation.json")
 
 
 def test_generate_qt_writes_rendered_files(tmp_path: Path, capsys):
@@ -347,6 +358,11 @@ def test_generate_qt_writes_rendered_files(tmp_path: Path, capsys):
     assert "project(DemoQtApp" in cmake
     assert "find_package(Qt5 5.14 REQUIRED COMPONENTS Widgets)" in cmake
     assert "{{" not in (target_dir / "src" / "MainWindow.cpp").read_text(encoding="utf-8")
+    summary = json.loads((tmp_path / "artifacts" / "qt_generation.json").read_text(encoding="utf-8"))
+    assert summary["dry_run"] is False
+    assert summary["project_type"] == "qt"
+    assert "CMakeLists.txt" in summary["generated_files"]
+    assert summary["build_validation"]["status"] == "not_run"
 
 
 def test_generate_qt_requires_enabled_plugin_without_writing(tmp_path: Path, capsys):
@@ -369,12 +385,13 @@ def test_generate_qt_uses_repository_plugin_manifest_when_enabled(tmp_path: Path
     monkeypatch.setenv("OPC_PLUGINS_ENABLED", "qt")
     target_dir = tmp_path / "generated"
 
-    _call_main_with_args([
-        "generate", "qt",
-        "--project-dir", str(Path.cwd()),
-        "--name", "RepoManifestQtApp",
-        "--target-dir", str(target_dir),
-    ])
+    with patch("opc.cli._write_qt_generation_artifacts"):
+        _call_main_with_args([
+            "generate", "qt",
+            "--project-dir", str(Path.cwd()),
+            "--name", "RepoManifestQtApp",
+            "--target-dir", str(target_dir),
+        ])
 
     output = capsys.readouterr().out
     assert "Qt 项目已生成" in output

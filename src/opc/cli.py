@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,7 +16,7 @@ from rich.table import Table
 
 from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
-from .run_store import aggregate_run_cost_trend, find_run_artifacts, summarize_run, trace_inspect, trace_summary
+from .run_store import RunStore, aggregate_run_cost_trend, find_run_artifacts, summarize_run, trace_inspect, trace_summary
 from .config import (
     ALL_OPTIONAL_ROLES,
     load_project_config,
@@ -555,7 +556,8 @@ def _run_generate_qt(args):
     if definition is None:
         console.print("[yellow]Qt project type 未启用。请在 opc.toml 中设置 plugins.enabled = [\"qt\"]。[/yellow]")
         raise SystemExit(1)
-    _print_qt_environment_diagnostics(_collect_qt_environment_diagnostics((definition,)))
+    environment_diagnostics = _collect_qt_environment_diagnostics((definition,))
+    _print_qt_environment_diagnostics(environment_diagnostics)
     if definition.template_provider.template_id != args.template:
         console.print(f"[red]Qt 模板不可用:[/red] {args.template}")
         raise SystemExit(1)
@@ -570,6 +572,15 @@ def _run_generate_qt(args):
         plan = render_template_directory(template_root, target_dir, variables, file_patterns=file_patterns, dry_run=True)
         _print_generate_file_plan(plan.planned_files, dry_run=True, base_dir=target_dir.resolve())
         if args.dry_run:
+            _write_qt_generation_artifacts(
+                project_dir=project_dir,
+                definition=definition,
+                target_dir=target_dir.resolve(),
+                environment_diagnostics=environment_diagnostics,
+                planned_files=plan.planned_files,
+                written_files=(),
+                dry_run=True,
+            )
             console.print("[green]dry-run 完成，未写入文件。[/green]")
             return
         result = render_template_directory(template_root, target_dir, variables, file_patterns=file_patterns)
@@ -577,8 +588,104 @@ def _run_generate_qt(args):
         console.print(f"[red]Qt 项目生成失败:[/red] {exc}")
         raise SystemExit(1)
 
+    _write_qt_generation_artifacts(
+        project_dir=project_dir,
+        definition=definition,
+        target_dir=target_dir.resolve(),
+        environment_diagnostics=environment_diagnostics,
+        planned_files=plan.planned_files,
+        written_files=result.written_files,
+        dry_run=False,
+    )
     console.print(f"[green]Qt 项目已生成:[/green] {target_dir.resolve()}")
     _print_generate_file_plan(result.written_files, dry_run=False, base_dir=target_dir.resolve())
+
+
+def _write_qt_generation_artifacts(
+    *,
+    project_dir: Path,
+    definition: ProjectTypeDefinition,
+    target_dir: Path,
+    environment_diagnostics: dict[str, tuple[QtEnvironmentCheckResult, ...]],
+    planned_files: tuple[Path, ...],
+    written_files: tuple[Path, ...],
+    dry_run: bool,
+) -> None:
+    artifacts_dir = project_dir / "artifacts"
+    has_trace = (artifacts_dir / "run_events.jsonl").exists() or (artifacts_dir / "run_trace.json").exists()
+    store = RunStore.load(artifacts_dir) if has_trace else RunStore(artifacts_dir)
+    previous_trace = store.read_trace()
+    status = "qt_generation_dry_run" if dry_run else "qt_generation_generated"
+    planned = _relative_file_paths(planned_files, target_dir)
+    written = _relative_file_paths(written_files, target_dir)
+    environment_payload = _environment_diagnostics_to_dict(environment_diagnostics)
+    build_validation = {
+        "status": "not_run",
+        "reason": "opc generate qt records generation artifacts; run tests/test_qt_generation.py or CMake build validation separately.",
+    }
+    summary = {
+        "run_id": store.run_id,
+        "status": status,
+        "project_type": definition.id,
+        "plugin_id": definition.plugin_id,
+        "template_id": definition.template_provider.template_id,
+        "target_dir": str(target_dir),
+        "dry_run": dry_run,
+        "planned_files": planned,
+        "generated_files": written,
+        "environment_diagnostics": environment_payload,
+        "build_validation": build_validation,
+    }
+    summary_path = artifacts_dir / "qt_generation.json"
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    store.append(
+        "project_type_selected",
+        project_type=definition.id,
+        plugin_id=definition.plugin_id,
+        template_id=definition.template_provider.template_id,
+        target_dir=str(target_dir),
+        dry_run=dry_run,
+    )
+    store.append("environment_checked", project_type=definition.id, diagnostics=environment_payload)
+    store.append("files_planned", project_type=definition.id, files=planned)
+    if dry_run:
+        store.append("qt_generation_dry_run", project_type=definition.id, summary_path=str(summary_path))
+    else:
+        store.append("files_generated", project_type=definition.id, files=written, summary_path=str(summary_path))
+    store.append("build_validated", project_type=definition.id, **build_validation)
+
+    _update_qt_generation_state(artifacts_dir, store.run_id, status, summary_path)
+    metrics = previous_trace.get("metrics") if isinstance(previous_trace.get("metrics"), dict) else {}
+    final_status = previous_trace.get("final_status") if store.trace_path.exists() else status
+    store.write_trace(final_status=final_status, metrics=metrics)
+
+
+def _relative_file_paths(files: tuple[Path, ...], base_dir: Path) -> list[str]:
+    paths: list[str] = []
+    for path in files:
+        resolved = path.resolve()
+        try:
+            paths.append(resolved.relative_to(base_dir).as_posix())
+        except ValueError:
+            paths.append(str(resolved))
+    return paths
+
+
+def _update_qt_generation_state(artifacts_dir: Path, run_id: str, status: str, summary_path: Path) -> None:
+    state_path = artifacts_dir / ".opc_state.json"
+    if state_path.exists():
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    else:
+        state = asdict(WorkflowState(current_stage=status, completed_stages=[status], task_description="generate qt", run_id=run_id))
+    artifact_paths = state.get("artifact_paths")
+    if not isinstance(artifact_paths, dict):
+        artifact_paths = {}
+    artifact_paths["qt_generation"] = str(summary_path)
+    state["artifact_paths"] = artifact_paths
+    if not state.get("run_id"):
+        state["run_id"] = run_id
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _resolve_template_root(project_dir: Path, definition: ProjectTypeDefinition) -> Path:
