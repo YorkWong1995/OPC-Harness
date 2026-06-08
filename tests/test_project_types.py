@@ -190,6 +190,25 @@ display_name = "Qt Widgets"
         load_project_type_registry(tmp_path, config.plugins.enabled, config.plugins.settings)
 
 
+def test_repository_qt_plugin_manifest_loads_enabled_project_type() -> None:
+    registry = load_project_type_registry(
+        Path.cwd(),
+        ("qt",),
+        {"qt": {"manifest_path": "plugins/qt/opc-plugin.toml"}},
+    )
+    qt = registry.get("qt")
+
+    assert qt is not None
+    assert qt.id == "qt"
+    assert qt.source == "plugin"
+    assert qt.plugin_id == "qt"
+    assert qt.template_provider.template_id == "widgets-cmake"
+    assert qt.template_provider.path == "templates/qt/widgets-cmake"
+    assert [check.id for check in qt.env_checks] == ["cmake", "qt5", "compiler", "cmake-generator", "qt-path-consistency"]
+    assert [command.id for command in qt.build_commands] == ["cmake-configure", "cmake-build"]
+    assert qt.permissions == ("read", "write", "execute")
+
+
 def _write_opc_toml(tmp_path: Path, enabled_plugins: list[str]) -> None:
     enabled = ", ".join(f'"{plugin}"' for plugin in enabled_plugins)
     (tmp_path / "opc.toml").write_text(

@@ -1,0 +1,56 @@
+[[project_type]]
+id = "qt"
+display_name = "Qt Widgets"
+permissions = ["read", "write", "execute"]
+enabled_by_default = false
+
+[project_type.template_provider]
+template_id = "widgets-cmake"
+kind = "filesystem"
+path = "templates/qt/widgets-cmake"
+variables = ["project_name", "executable_name", "class_name", "qt_major_version"]
+file_patterns = ["CMakeLists.txt", "src/*.cpp", "src/*.h"]
+
+[[project_type.env_checks]]
+id = "cmake"
+description = "CMake is available for configuring and building the generated project"
+command = "cmake --version"
+required = true
+
+[[project_type.env_checks]]
+id = "qt5"
+description = "Qt 5.14.2 SDK is available through Qt5_DIR or CMAKE_PREFIX_PATH"
+required = true
+
+[[project_type.env_checks]]
+id = "compiler"
+description = "MSVC cl or MinGW g++ compiler is available and matches the Qt kit"
+required = true
+
+[[project_type.env_checks]]
+id = "cmake-generator"
+description = "A compatible CMake generator such as Visual Studio, Ninja, or MinGW Makefiles can be selected"
+required = false
+
+[[project_type.env_checks]]
+id = "qt-path-consistency"
+description = "Qt kit path is consistent with the detected compiler family"
+required = false
+
+[[project_type.build_commands]]
+id = "cmake-configure"
+command = ["cmake", "-S", ".", "-B", "build"]
+description = "Configure the generated Qt Widgets CMake project"
+required = true
+
+[[project_type.build_commands]]
+id = "cmake-build"
+command = ["cmake", "--build", "build"]
+description = "Build the generated Qt Widgets CMake project"
+required = true
+
+[[project_type.acceptance_checks]]
+id = "qt-generation-structure"
+command = ["python", "-m", "pytest", "tests/test_qt_generation.py"]
+description = "Validate generated Qt project structure and optional real build smoke"
+required = true
