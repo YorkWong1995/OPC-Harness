@@ -24,6 +24,7 @@ from .config import (
     validate_project_config,
 )
 from .knowledge.index_paths import get_index_root, get_workspace_root
+from .generation.templates import TemplateRenderError, build_project_template_variables, render_template_directory
 from .project_types import ProjectTypeDefinition, load_project_type_registry
 
 console = Console()
@@ -144,6 +145,17 @@ def main():
     query_parser.add_argument("--no-llm", action="store_true", help="不调用 LLM 生成答案，仅显示检索结果")
     query_parser.add_argument("--model", default=None, help="覆盖 LLM 模型")
 
+    # ---- opc generate qt ----
+    generate_parser = subparsers.add_parser("generate", help="生成项目模板")
+    generate_subparsers = generate_parser.add_subparsers(dest="generate_command")
+    generate_qt_parser = generate_subparsers.add_parser("qt", help="生成 Qt Widgets CMake 项目")
+    generate_qt_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    generate_qt_parser.add_argument("--name", required=True, help="项目名称")
+    generate_qt_parser.add_argument("--target-dir", required=True, help="目标目录")
+    generate_qt_parser.add_argument("--template", default="widgets-cmake", help="模板 id（默认 widgets-cmake）")
+    generate_qt_parser.add_argument("--class-name", default="MainWindow", help="主窗口类名")
+    generate_qt_parser.add_argument("--dry-run", action="store_true", help="只显示将写入文件，不创建文件")
+
     # ---- opc project-types list ----
     project_types_parser = subparsers.add_parser("project-types", help="查看可用项目类型")
     project_types_subparsers = project_types_parser.add_subparsers(dest="project_types_command")
@@ -260,6 +272,8 @@ def main():
         _run_index(args)
     elif args.command == "query":
         _run_query(args)
+    elif args.command == "generate":
+        _run_generate(args)
     elif args.command == "project-types":
         _run_project_types(args)
     elif args.command == "task":
@@ -515,6 +529,79 @@ def _run_query(args):
             console.print(r.chunk.content[:500])
             if len(r.chunk.content) > 500:
                 console.print("[dim]... (截断)[/dim]")
+
+
+# ---- opc generate ----
+
+
+def _run_generate(args):
+    if args.generate_command == "qt":
+        _run_generate_qt(args)
+        return
+    console.print("[yellow]请使用 opc generate qt[/yellow]")
+
+
+def _run_generate_qt(args):
+    project_dir = Path(args.project_dir).resolve()
+    config = load_project_config(project_dir)
+    try:
+        registry = load_project_type_registry(project_dir, config.plugins.enabled, config.plugins.settings)
+    except ValueError as exc:
+        console.print(f"[red]项目类型加载失败:[/red] {exc}")
+        raise SystemExit(1)
+
+    definition = registry.get("qt")
+    if definition is None:
+        console.print("[yellow]Qt project type 未启用。请在 opc.toml 中设置 plugins.enabled = [\"qt\"]。[/yellow]")
+        raise SystemExit(1)
+    if definition.template_provider.template_id != args.template:
+        console.print(f"[red]Qt 模板不可用:[/red] {args.template}")
+        raise SystemExit(1)
+
+    target_dir = Path(args.target_dir)
+    if not target_dir.is_absolute():
+        target_dir = project_dir / target_dir
+    try:
+        variables = build_project_template_variables(args.name, class_name=args.class_name, qt_major_version="5")
+        template_root = _resolve_template_root(project_dir, definition)
+        file_patterns = definition.template_provider.file_patterns or None
+        plan = render_template_directory(template_root, target_dir, variables, file_patterns=file_patterns, dry_run=True)
+        _print_generate_file_plan(plan.planned_files, dry_run=True, base_dir=target_dir.resolve())
+        if args.dry_run:
+            console.print("[green]dry-run 完成，未写入文件。[/green]")
+            return
+        result = render_template_directory(template_root, target_dir, variables, file_patterns=file_patterns)
+    except TemplateRenderError as exc:
+        console.print(f"[red]Qt 项目生成失败:[/red] {exc}")
+        raise SystemExit(1)
+
+    console.print(f"[green]Qt 项目已生成:[/green] {target_dir.resolve()}")
+    _print_generate_file_plan(result.written_files, dry_run=False, base_dir=target_dir.resolve())
+
+
+def _resolve_template_root(project_dir: Path, definition: ProjectTypeDefinition) -> Path:
+    if definition.template_provider.kind != "filesystem":
+        raise TemplateRenderError(f"unsupported template provider: {definition.template_provider.kind}")
+    template_path = Path(definition.template_provider.path)
+    if not template_path.is_absolute():
+        template_path = project_dir / template_path
+    return template_path.resolve()
+
+
+def _print_generate_file_plan(files: tuple[Path, ...], *, dry_run: bool, base_dir: Path | None = None) -> None:
+    table = Table(title="Qt 生成文件清单")
+    table.add_column("状态")
+    table.add_column("文件")
+    status = "planned" if dry_run else "written"
+    for path in files:
+        display_path = path
+        if base_dir is not None:
+            try:
+                display_path = path.relative_to(base_dir)
+            except ValueError:
+                display_path = path
+        table.add_row(status, str(display_path))
+    console.print(table)
 
 
 # ---- opc project-types ----

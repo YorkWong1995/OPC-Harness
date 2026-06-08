@@ -254,6 +254,45 @@ def test_project_types_list_reports_missing_manifest_without_generating_files(tm
     assert not (tmp_path / "templates").exists()
 
 
+def test_generate_qt_dry_run_lists_files_without_writing(tmp_path: Path, capsys):
+    _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
+    _write_qt_project_type_manifest(tmp_path, template_path=Path.cwd() / "templates" / "qt" / "widgets-cmake")
+    target_dir = tmp_path / "generated"
+
+    _call_main_with_args([
+        "generate", "qt",
+        "--project-dir", str(tmp_path),
+        "--name", "DemoQtApp",
+        "--target-dir", str(target_dir),
+        "--dry-run",
+    ])
+
+    output = capsys.readouterr().out
+    assert "CMakeLists.txt" in output
+    assert "dry-run" in output
+    assert not target_dir.exists()
+
+
+def test_generate_qt_writes_rendered_files(tmp_path: Path, capsys):
+    _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
+    _write_qt_project_type_manifest(tmp_path, template_path=Path.cwd() / "templates" / "qt" / "widgets-cmake")
+    target_dir = tmp_path / "generated"
+
+    _call_main_with_args([
+        "generate", "qt",
+        "--project-dir", str(tmp_path),
+        "--name", "DemoQtApp",
+        "--target-dir", str(target_dir),
+    ])
+
+    output = capsys.readouterr().out
+    assert "Qt 项目已生成" in output
+    cmake = (target_dir / "CMakeLists.txt").read_text(encoding="utf-8")
+    assert "project(DemoQtApp" in cmake
+    assert "find_package(Qt5 5.14 REQUIRED COMPONENTS Widgets)" in cmake
+    assert "{{" not in (target_dir / "src" / "MainWindow.cpp").read_text(encoding="utf-8")
+
+
 def _write_project_types_opc_toml(tmp_path: Path, enabled_plugins: list[str]) -> None:
     enabled = ", ".join(f'"{plugin}"' for plugin in enabled_plugins)
     (tmp_path / "opc.toml").write_text(
@@ -268,11 +307,12 @@ manifest_path = "plugins/qt/opc-plugin.toml"
     )
 
 
-def _write_qt_project_type_manifest(tmp_path: Path) -> None:
+def _write_qt_project_type_manifest(tmp_path: Path, template_path: Path | None = None) -> None:
+    template = (template_path or Path("templates/qt/widgets-cmake")).as_posix()
     manifest = tmp_path / "plugins" / "qt" / "opc-plugin.toml"
     manifest.parent.mkdir(parents=True)
     manifest.write_text(
-        """
+        f"""
 [[project_type]]
 id = "qt"
 display_name = "Qt Widgets"
@@ -281,7 +321,7 @@ permissions = ["read", "write", "execute"]
 [project_type.template_provider]
 template_id = "widgets-cmake"
 kind = "filesystem"
-path = "templates/qt/widgets-cmake"
+path = "{template}"
 variables = ["project_name"]
 file_patterns = ["CMakeLists.txt", "src/*.cpp", "src/*.h"]
 
