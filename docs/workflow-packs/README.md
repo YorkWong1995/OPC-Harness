@@ -45,4 +45,5 @@ Workflow pack 是项目级可复用工作流说明单元，用来固定一类任
 | `bugfix` | `opc_runtime_workflow` | 计划中 | 缺陷定位、最小修复、定向验证和 QA 验收 |
 | `review` | `claude_skill` | 计划中 | PR、pending diff 或任务结果的只读评审 |
 | `docs-update` | `opc_runtime_workflow` | 计划中 | 文档漂移修复、规范补充和索引检查 |
+| `qt-generation` | `opc_runtime_workflow` | 计划中 | Qt Widgets + CMake 生成、环境诊断、构建验证和 QA 验收 |
 | `release-check` | `claude_skill` | 计划中 | 发布前只读检查、风险判断和回滚条件确认 |
