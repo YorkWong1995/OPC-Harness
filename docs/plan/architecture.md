@@ -166,6 +166,12 @@ Qt 第一版作为 `qt` project type 进入可选 plugin pack，模板限定为 
 
 Qt plugin 的依赖检查必须延迟到 Qt plugin 已启用且用户执行 `project-types list`、`generate qt` 或 Qt workflow pack 阶段时运行。缺依赖诊断应包含：缺失项、建议命令、可配置路径（如 `Qt5_DIR`、`CMAKE_PREFIX_PATH`、Qt 安装目录）、关闭插件方式，以及“不影响其他 project type / 普通 OPC run”的说明。
 
+### 7.3 Project Type Registry 数据结构
+
+Project type registry 的最小定义由 `ProjectTypeDefinition` 表达，字段保持项目类型中立：`id`、`display_name`、`template_provider`、`env_checks`、`build_commands`、`acceptance_checks`、`permissions`、`source` 和可选 `plugin_id`。其中 `template_provider` 描述模板来源与文件模式，`env_checks` 描述依赖检查，`build_commands` 与 `acceptance_checks` 描述可复现命令，`permissions` 与现有 tool permission profile 对齐。
+
+Qt Widgets + CMake 只是一个 registry 条目：`id=qt`、`template_provider=widgets-cmake`、`env_checks=[qt5, cmake, compiler]`、`build_commands=[cmake configure/build]`。Python、Node、Rust、Embedded 等后续类型应使用相同字段替换模板、依赖检查和命令，不应新增 Qt 专用字段或让核心 runtime 分支判断具体语言。
+
 ## 8. OPC Harness L1-L6 能力矩阵
 
 | 层级 | OPC 当前能力 | P6 处理结论 |
