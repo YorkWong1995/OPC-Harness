@@ -14,7 +14,7 @@ class BuildToolsMixin:
         return self._run_project_tool(self._detect_typecheck_command(target), timeout, "typecheck")
 
     def _tool_run_build(self, timeout: int = 300) -> str:
-        return self._run_project_tool(self._detect_build_command(), timeout, "build")
+        return self._run_project_tools(self._detect_build_commands(), timeout, "build")
 
     def _detect_lint_command(self, target: str | None = None) -> list[str] | None:
         if not self.project_dir:
@@ -37,15 +37,34 @@ class BuildToolsMixin:
         return None
 
     def _detect_build_command(self) -> list[str] | None:
+        commands = self._detect_build_commands()
+        if not commands:
+            return None
+        return commands[0]
+
+    def _detect_build_commands(self) -> list[list[str]] | None:
         if not self.project_dir:
             return None
         if (self.project_dir / "pyproject.toml").exists() or (self.project_dir / "setup.py").exists():
-            return [sys.executable, "-m", "pip", "install", "-e", ".", "--quiet"]
+            return [[sys.executable, "-m", "pip", "install", "-e", ".", "--quiet"]]
         if (self.project_dir / "package.json").exists():
-            return ["npm", "run", "build"]
+            return [["npm", "run", "build"]]
         if (self.project_dir / "Cargo.toml").exists():
-            return ["cargo", "build"]
+            return [["cargo", "build"]]
+        if (self.project_dir / "CMakeLists.txt").exists():
+            return [["cmake", "-S", ".", "-B", "build"], ["cmake", "--build", "build"]]
         return None
+
+    def _run_project_tools(self, commands: list[list[str]] | None, timeout: int, label: str) -> str:
+        if commands is None:
+            return f"错误：未检测到可用的 {label} 命令，请确认项目配置"
+        outputs: list[str] = []
+        for command in commands:
+            output = self._run_project_tool(command, timeout, label)
+            outputs.append(f"$ {' '.join(command)}\n{output}")
+            if output.startswith("错误：") or "[exit code:" in output:
+                break
+        return "\n\n".join(outputs)
 
     def _run_project_tool(self, command: list[str] | None, timeout: int, label: str) -> str:
         if command is None:
