@@ -172,6 +172,33 @@ Project type registry 的最小定义由 `ProjectTypeDefinition` 表达，字段
 
 Qt Widgets + CMake 只是一个 registry 条目：`id=qt`、`template_provider=widgets-cmake`、`env_checks=[qt5, cmake, compiler]`、`build_commands=[cmake configure/build]`。Python、Node、Rust、Embedded 等后续类型应使用相同字段替换模板、依赖检查和命令，不应新增 Qt 专用字段或让核心 runtime 分支判断具体语言。
 
+### 7.4 Qt Template Pack 目录结构
+
+P9 第一版 Qt template pack 采用 `templates/qt/widgets-cmake/` 作为稳定模板根目录，只承载 Qt 5.14.2 Widgets + CMake 最小项目。实际模板文件在 P9-QT-05 落地；P9-QT-04 只定义结构与渲染契约。
+
+```text
+templates/qt/
+└── widgets-cmake/
+    ├── CMakeLists.txt
+    └── src/
+        ├── main.cpp
+        ├── MainWindow.h
+        └── MainWindow.cpp
+```
+
+模板变量使用项目类型中立命名，后续语言或项目类型复用同一渲染接口：
+
+| 变量 | 用途 | 约束 |
+| --- | --- | --- |
+| `project_name` | CMake project 名称与用户可见项目名 | 必须来自合法项目名，不能包含路径分隔符 |
+| `executable_name` | 生成的可执行目标名 | 由 `project_name` 规范化得到，适合 CMake target |
+| `class_name` | 主窗口类名，第一版默认 `MainWindow` | 必须是 C++ 标识符 |
+| `qt_major_version` | Qt 查找基线，第一版固定为 `5` | P9 不把 Qt6 作为验收前提 |
+
+文件清单必须由 template provider manifest 或等价 registry 字段声明，第一版最小清单为 `CMakeLists.txt`、`src/main.cpp`、`src/MainWindow.h`、`src/MainWindow.cpp`。渲染阶段只能写入清单内相对路径，拒绝绝对路径、`..` 路径穿越和目标目录外写入；目标文件已存在时默认拒绝覆盖，后续生成命令必须先展示将写入文件清单。
+
+QML、`.ui`、资源文件和 qmake 仅保留扩展点，不进入 `widgets-cmake` 第一版清单。后续如新增 QML 或资源模板，应新增独立 template id（例如 `qml-cmake` 或 `widgets-cmake-resources`），而不是让 `widgets-cmake` 隐式生成超出 Qt Widgets + CMake 最小项目范围的文件。
+
 ## 8. OPC Harness L1-L6 能力矩阵
 
 | 层级 | OPC 当前能力 | P6 处理结论 |
