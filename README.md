@@ -68,6 +68,9 @@ opc doctor
 # 校验 opc.toml 中的 role/profile 等配置
 opc config validate
 
+# 只读查看已启用的项目类型；Qt 插件默认禁用，启用后才检查 Qt 5.14.2/CMake
+opc project-types list
+
 # 在当前目录运行最小 harness 工作流
 opc run "帮我设计一个用户登录功能"
 

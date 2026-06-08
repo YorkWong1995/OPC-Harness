@@ -18,11 +18,13 @@ from .workflow import HarnessWorkflow, WorkflowState
 from .run_store import aggregate_run_cost_trend, find_run_artifacts, summarize_run, trace_inspect, trace_summary
 from .config import (
     ALL_OPTIONAL_ROLES,
+    load_project_config,
     load_workflow_config,
     normalize_roles,
     validate_project_config,
 )
 from .knowledge.index_paths import get_index_root, get_workspace_root
+from .project_types import ProjectTypeDefinition, load_project_type_registry
 
 console = Console()
 
@@ -142,6 +144,13 @@ def main():
     query_parser.add_argument("--no-llm", action="store_true", help="不调用 LLM 生成答案，仅显示检索结果")
     query_parser.add_argument("--model", default=None, help="覆盖 LLM 模型")
 
+    # ---- opc project-types list ----
+    project_types_parser = subparsers.add_parser("project-types", help="查看可用项目类型")
+    project_types_subparsers = project_types_parser.add_subparsers(dest="project_types_command")
+    project_types_list_parser = project_types_subparsers.add_parser("list", help="列出已启用项目类型")
+    project_types_list_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    project_types_list_parser.add_argument("--json", action="store_true", help="输出 JSON")
+
     # ---- opc task ----
     task_parser = subparsers.add_parser("task", help="查看 markdown 任务清单")
     task_subparsers = task_parser.add_subparsers(dest="task_command")
@@ -251,6 +260,8 @@ def main():
         _run_index(args)
     elif args.command == "query":
         _run_query(args)
+    elif args.command == "project-types":
+        _run_project_types(args)
     elif args.command == "task":
         _run_task(args)
     elif args.command == "memory":
@@ -504,6 +515,105 @@ def _run_query(args):
             console.print(r.chunk.content[:500])
             if len(r.chunk.content) > 500:
                 console.print("[dim]... (截断)[/dim]")
+
+
+# ---- opc project-types ----
+
+
+def _run_project_types(args):
+    if args.project_types_command != "list":
+        console.print("[yellow]请使用 opc project-types list[/yellow]")
+        return
+
+    project_dir = Path(args.project_dir).resolve()
+    config = load_project_config(project_dir)
+    diagnostics: list[str] = []
+    definitions: tuple[ProjectTypeDefinition, ...] = ()
+    try:
+        registry = load_project_type_registry(project_dir, config.plugins.enabled, config.plugins.settings)
+        definitions = registry.list()
+    except ValueError as exc:
+        diagnostics.append(str(exc))
+
+    payload = {
+        "project_dir": str(project_dir),
+        "enabled_plugins": list(config.plugins.enabled),
+        "project_types": [_project_type_to_dict(definition) for definition in definitions],
+        "diagnostics": diagnostics,
+        "enablement_hint": "Enable Qt with plugins.enabled = [\"qt\"] in opc.toml; Qt checks run only after the plugin is enabled.",
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
+    if definitions:
+        table = Table(title="已启用项目类型")
+        table.add_column("ID", style="bold")
+        table.add_column("名称")
+        table.add_column("插件")
+        table.add_column("模板")
+        table.add_column("权限")
+        table.add_column("环境检查")
+        for definition in definitions:
+            table.add_row(
+                definition.id,
+                definition.display_name,
+                definition.plugin_id or definition.source,
+                definition.template_provider.template_id,
+                ", ".join(definition.permissions),
+                "\n".join(_format_env_check(check) for check in definition.env_checks) or "-",
+            )
+        console.print(table)
+    else:
+        console.print("[yellow]当前没有已启用的项目类型。[/yellow]")
+
+    if not config.plugins.enabled:
+        console.print("[dim]Qt 插件默认禁用；在 opc.toml 中设置 plugins.enabled = [\"qt\"] 后才会加载 Qt 5.14.2/CMake 能力。[/dim]")
+    for diagnostic in diagnostics:
+        console.print(f"[red]项目类型诊断:[/red] {diagnostic}")
+
+
+def _project_type_to_dict(definition: ProjectTypeDefinition) -> dict:
+    return {
+        "id": definition.id,
+        "display_name": definition.display_name,
+        "source": definition.source,
+        "plugin_id": definition.plugin_id,
+        "template_provider": {
+            "template_id": definition.template_provider.template_id,
+            "kind": definition.template_provider.kind,
+            "path": definition.template_provider.path,
+            "variables": list(definition.template_provider.variables),
+            "file_patterns": list(definition.template_provider.file_patterns),
+        },
+        "permissions": list(definition.permissions),
+        "env_checks": [
+            {
+                "id": check.id,
+                "description": check.description,
+                "command": check.command,
+                "required": check.required,
+            }
+            for check in definition.env_checks
+        ],
+        "build_commands": [_project_command_to_dict(command) for command in definition.build_commands],
+        "acceptance_checks": [_project_command_to_dict(command) for command in definition.acceptance_checks],
+    }
+
+
+def _project_command_to_dict(command) -> dict:
+    return {
+        "id": command.id,
+        "command": list(command.command),
+        "description": command.description,
+        "required": command.required,
+    }
+
+
+def _format_env_check(check) -> str:
+    required = "required" if check.required else "optional"
+    command = f"; check: {check.command}" if check.command else ""
+    return f"{check.id} ({required}): {check.description}{command}"
 
 
 # ---- opc task ----

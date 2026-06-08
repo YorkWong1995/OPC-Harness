@@ -1,5 +1,6 @@
 """CLI 冒烟测试：验证 opc 命令行参数解析与索引构建"""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -215,6 +216,85 @@ def test_memory_commands_smoke(tmp_path: Path):
     _call_main_with_args(["trace", "show", "--artifacts-dir", str(artifacts), "--limit", "1"])
     _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--focus", "decisions"])
     _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--json"])
+
+
+def test_project_types_list_without_plugins_is_read_only(tmp_path: Path, capsys):
+    _call_main_with_args(["project-types", "list", "--project-dir", str(tmp_path), "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["enabled_plugins"] == []
+    assert payload["project_types"] == []
+    assert "plugins.enabled = [\"qt\"]" in payload["enablement_hint"]
+    assert not (tmp_path / "artifacts").exists()
+
+
+def test_project_types_list_loads_enabled_manifest(tmp_path: Path, capsys):
+    _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
+    _write_qt_project_type_manifest(tmp_path)
+
+    _call_main_with_args(["project-types", "list", "--project-dir", str(tmp_path), "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["enabled_plugins"] == ["qt"]
+    assert payload["diagnostics"] == []
+    assert payload["project_types"][0]["id"] == "qt"
+    assert payload["project_types"][0]["template_provider"]["template_id"] == "widgets-cmake"
+    assert [check["id"] for check in payload["project_types"][0]["env_checks"]] == ["qt5", "cmake"]
+
+
+def test_project_types_list_reports_missing_manifest_without_generating_files(tmp_path: Path, capsys):
+    _write_project_types_opc_toml(tmp_path, enabled_plugins=["qt"])
+
+    _call_main_with_args(["project-types", "list", "--project-dir", str(tmp_path), "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["project_types"] == []
+    assert "project type manifest not found" in payload["diagnostics"][0]
+    assert not (tmp_path / "artifacts").exists()
+    assert not (tmp_path / "templates").exists()
+
+
+def _write_project_types_opc_toml(tmp_path: Path, enabled_plugins: list[str]) -> None:
+    enabled = ", ".join(f'"{plugin}"' for plugin in enabled_plugins)
+    (tmp_path / "opc.toml").write_text(
+        f"""
+[plugins]
+enabled = [{enabled}]
+
+[plugins.qt]
+manifest_path = "plugins/qt/opc-plugin.toml"
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+def _write_qt_project_type_manifest(tmp_path: Path) -> None:
+    manifest = tmp_path / "plugins" / "qt" / "opc-plugin.toml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        """
+[[project_type]]
+id = "qt"
+display_name = "Qt Widgets"
+permissions = ["read", "write", "execute"]
+
+[project_type.template_provider]
+template_id = "widgets-cmake"
+kind = "filesystem"
+path = "templates/qt/widgets-cmake"
+variables = ["project_name"]
+file_patterns = ["CMakeLists.txt", "src/*.cpp", "src/*.h"]
+
+[[project_type.env_checks]]
+id = "qt5"
+description = "Qt 5.14.2 SDK is available"
+
+[[project_type.env_checks]]
+id = "cmake"
+description = "CMake is available"
+""".strip(),
+        encoding="utf-8",
+    )
 
 
 # ---------------------------------------------------------------------------
