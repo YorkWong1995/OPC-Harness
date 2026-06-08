@@ -19,6 +19,7 @@
 - `execution.md` - 执行计划
 - `success.md` - 成功标准
 - `ai_app_audit_next_steps.md` - AI 应用开发视角拷问总结与后续优先级
+- `qt-generation-prd.md` - Qt 5.14.2 Widgets + CMake 生成能力 PRD，说明插件启用边界、模板范围、环境检测和验收要求
 
 ### Claude 协作文档 (docs/claude/)
 - `roles.md` - 角色职责
@@ -29,7 +30,8 @@
 
 ### 协作资产索引
 - `.claude/skills/*/SKILL.md` - 可调用 skill：task-spec、implementation-check、acceptance-check、bugfix、test-spec、review、release-check、token-report 等
-- `docs/workflow-packs/README.md` - workflow pack 索引，覆盖 bugfix、review、docs-update、release-check
+- `docs/workflow-packs/README.md` - workflow pack 索引，覆盖 bugfix、review、docs-update、release-check、qt-generation
+- `docs/workflow-packs/qt-generation.md` - Qt 生成 workflow pack，说明 Qt 插件启用、生成、环境诊断、构建验证、QA 验收与 trace/artifact 要求
 - `scripts/README.md` - 脚本入口索引，说明 run/check/review/cost/upload 分类与风险边界
 - `.claude/agents/README.md` - agent 资产索引，说明 PM、Engineer、QA 样板及其与 runtime agent / skill 的区别
 
