@@ -1,0 +1,18 @@
+[[project_type]]
+id = "static-site"
+display_name = "Static Site"
+permissions = ["read", "write"]
+enabled_by_default = false
+
+[project_type.template_provider]
+template_id = "static-html"
+kind = "filesystem"
+path = "examples/opc_plugins/sample_project_type/templates/static-html"
+variables = ["project_name"]
+file_patterns = ["index.html", "README.md"]
+
+[[project_type.acceptance_checks]]
+id = "static-site-files"
+command = ["python", "-m", "pytest", "tests/test_project_type_plugins.py"]
+description = "Validate the sample static-site project type manifest"
+required = false
