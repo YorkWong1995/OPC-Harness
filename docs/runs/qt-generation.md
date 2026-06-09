@@ -98,6 +98,28 @@ cmake --build workspace/DemoQtApp/build
 
 如果本机缺少 Qt 5.14.2、CMake 或编译器，真实构建可以跳过，但必须记录原因。P9 验收允许在缺环境时以 skip 证据替代真实构建成功，前提是结构 smoke、CMake 项目识别和诊断输出通过。
 
+### 5.1 P10 真实 Qt 构建补验记录格式
+
+P10-ENV-03 不要求在无 Qt 机器上强行安装 Qt；它要求补验证据路径清晰。推荐记录到 `docs/runs/p10_qt_real_build_validation.md` 或同目录按日期命名的补验报告，并至少包含：
+
+| 字段 | 说明 |
+| --- | --- |
+| `environment` | OS、Python、CMake、编译器、Qt 5.14.2/Qt5_DIR 或 CMAKE_PREFIX_PATH |
+| `generation_command` | `opc generate qt --name DemoQtApp --target-dir workspace/DemoQtApp` |
+| `artifact_paths` | `artifacts/qt_generation.json`、`artifacts/run_trace.json`、`workspace/DemoQtApp/build` 或实际目标目录 |
+| `configure_command` / `configure_result` | `cmake -S ... -B ...` 的 return code 和关键 stdout/stderr |
+| `build_command` / `build_result` | `cmake --build ...` 的 return code 和关键 stdout/stderr |
+| `status` | `passed`、`failed` 或 `skipped` |
+| `skip_reason` | 仅 `skipped` 时填写，必须说明缺 Qt、缺 CMake、缺编译器或 kit 不匹配 |
+
+无 Qt 环境下的最低可复现检查命令：
+
+```bash
+python -m pytest tests/test_qt_generation.py::test_qt_generation_real_build_when_environment_is_available -q
+```
+
+预期：环境完整时执行真实 configure/build；环境缺失时 pytest 以 skip 形式输出可读原因。完整 Qt 生成回归可继续运行第 9 节的 P9-QT-15 定向 QA 命令。
+
 ## 6. 查看 trace artifact
 
 ```bash
