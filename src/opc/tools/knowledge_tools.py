@@ -8,13 +8,14 @@ class KnowledgeToolsMixin:
         if not self.project_dir:
             return "错误：未设置项目目录"
 
+        from ..cli import _get_index_root
         from ..knowledge.bm25_index import BM25Index
         from ..knowledge.indexer import Indexer
         from ..knowledge.retriever import Retriever
         from ..knowledge.vector_store import VectorStore
 
         name = index_name or self.project_dir.name
-        index_root = self.project_dir / "index"
+        index_root = _get_index_root(name)
         meta = Indexer.load_meta(index_root)
         if meta is None:
             return f"错误：知识索引不存在，请先运行 opc index --name {name} --dirs {self.project_dir}"

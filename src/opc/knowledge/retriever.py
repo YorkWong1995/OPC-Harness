@@ -2,9 +2,48 @@
 
 from __future__ import annotations
 
-from .models import Chunk, FusedResult, RetrievalResult
+import re
+
+from .models import Chunk, FusedResult, RetrievalResult, CODE_LANGUAGES, DOC_LANGUAGES
 from .bm25_index import BM25Index
 from .vector_store import VectorStore
+
+
+_CODE_QUERY_HINTS: dict[str, list[str]] = {
+    "数据模型": ["models.py", "dataclass", "chunk_id", "file_path", "start_line", "end_line", "content", "language", "source_name"],
+    "分块": ["chunker.py", "chunk_file", "CodeChunker", "DocChunker"],
+    "索引": ["indexer.py", "BM25Index", "VectorStore", "Retriever"],
+    "检索": ["retriever.py", "BM25Index", "VectorStore", "RRF"],
+    "工具": ["knowledge_tools.py", "search_knowledge"],
+    "配置": ["config.py", "opc.toml", "WorkflowConfig"],
+    "工作流": ["workflow.py", "HarnessWorkflow", "WorkflowState"],
+    "角色": ["roles.py", "Engineer", "QA", "PM", "Architect"],
+    "CLI": ["cli.py", "index", "query"],
+}
+
+_CODE_QUERY_MARKERS = {
+    "函数",
+    "类",
+    "方法",
+    "字段",
+    "结构",
+    "数据模型",
+    "实现",
+    "源码",
+    "代码",
+    "分块",
+    "配置",
+    "工具",
+    "入口",
+    "参数",
+    "返回值",
+    "定义",
+    "调用",
+    "解析",
+    "检测",
+}
+
+_IDENTIFIER_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b")
 
 
 class Retriever:
@@ -22,14 +61,84 @@ class Retriever:
 
     def retrieve(self, query: str, top_k: int = 10, rrf_k: int = 60) -> list[FusedResult]:
         """执行多路检索并融合结果"""
+        query_profile = self._build_query_profile(query)
+        search_query = self._rewrite_query(query, query_profile)
+
         # 每路多取一些，保证融合后有足够结果
         fetch_k = top_k * 3
 
-        vector_results = self.vector_store.query(query, top_k=fetch_k)
-        bm25_results = self.bm25_index.query(query, top_k=fetch_k)
+        vector_results = self.vector_store.query(search_query, top_k=fetch_k)
+        bm25_results = self.bm25_index.query(search_query, top_k=fetch_k)
 
         fused = self.rrf_fuse(vector_results, bm25_results, top_k, rrf_k)
+        fused = self._apply_query_bias(fused, query_profile)
         return self.expand_context(fused, top_k=top_k)
+
+    def _build_query_profile(self, query: str) -> dict[str, object]:
+        identifiers = _IDENTIFIER_RE.findall(query)
+        code_hints: list[str] = []
+        for marker, hints in _CODE_QUERY_HINTS.items():
+            if marker in query:
+                code_hints.extend(hints)
+        code_intent = bool(identifiers or code_hints or any(marker in query for marker in _CODE_QUERY_MARKERS))
+        hints = list(dict.fromkeys([*identifiers, *code_hints]))
+        return {
+            "code_intent": code_intent,
+            "identifiers": identifiers,
+            "hints": hints,
+        }
+
+    def _rewrite_query(self, query: str, query_profile: dict[str, object]) -> str:
+        if not query_profile.get("code_intent"):
+            return query
+
+        hints = query_profile.get("hints", [])
+        if not isinstance(hints, list) or not hints:
+            return query
+
+        expanded = " ".join(str(hint) for hint in hints[:12])
+        return f"{query}\n\n代码关键词: {expanded}"
+
+    def _apply_query_bias(self, results: list[FusedResult], query_profile: dict[str, object]) -> list[FusedResult]:
+        if not results or not query_profile.get("code_intent"):
+            return results
+
+        identifiers = [str(item) for item in query_profile.get("identifiers", [])]
+        boosted: list[FusedResult] = []
+        for result in results:
+            bonus = self._code_priority_bonus(result.chunk, identifiers)
+            boosted.append(
+                FusedResult(
+                    chunk=result.chunk,
+                    rrf_score=result.rrf_score + bonus,
+                    vector_rank=result.vector_rank,
+                    bm25_rank=result.bm25_rank,
+                    expansion_reason=result.expansion_reason,
+                )
+            )
+
+        boosted.sort(key=lambda item: item.rrf_score, reverse=True)
+        return boosted
+
+    def _code_priority_bonus(self, chunk: Chunk, identifiers: list[str]) -> float:
+        bonus = 0.0
+        if chunk.language in CODE_LANGUAGES:
+            bonus += 0.02
+        elif chunk.language in DOC_LANGUAGES:
+            bonus -= 0.004
+
+        if chunk.file_path.startswith("src/"):
+            bonus += 0.01
+        elif chunk.file_path.startswith("tests/"):
+            bonus += 0.004
+
+        haystack = f"{chunk.file_path}\n{chunk.content}".lower()
+        for identifier in identifiers:
+            token = identifier.lower()
+            if token in haystack:
+                bonus += 0.01
+
+        return min(bonus, 0.06)
 
     def rrf_fuse(
         self,

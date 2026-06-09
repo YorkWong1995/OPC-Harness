@@ -61,10 +61,25 @@ def test_retrieve_expands_related_file_chunks():
     assert results[1].expansion_reason == "related:config.py"
 
 
-def test_rrf_fuse_preserves_original_ranks():
-    app = chunk("app::1", "app.py", 1, 10)
-    retriever = Retriever(DummyVectorStore([]), DummyBM25Index([app], []))
+def test_retrieve_applies_code_priority_for_code_queries():
+    models = chunk("models::1", "src/opc/knowledge/models.py", 1, 20, "dataclass Chunk")
+    roles = chunk("roles::1", "docs/claude/roles.md", 1, 20, "角色说明")
+    bm25_results = [
+        RetrievalResult(chunk=roles, score=1.0, source="bm25", rank=1),
+        RetrievalResult(chunk=models, score=0.9, source="bm25", rank=2),
+    ]
+    retriever = Retriever(DummyVectorStore([]), DummyBM25Index([models, roles], bm25_results))
 
-    results = retriever.rrf_fuse([], [RetrievalResult(chunk=app, score=1.0, source="bm25", rank=3)], top_k=1)
+    results = retriever.retrieve("Chunk 数据模型包含哪些字段？", top_k=2)
 
-    assert results == [FusedResult(chunk=app, rrf_score=1.0 / 63, bm25_rank=3)]
+    assert results[0].chunk.file_path == "src/opc/knowledge/models.py"
+    assert results[0].rrf_score >= results[1].rrf_score
+
+
+def test_rewrite_query_includes_code_hints():
+    retriever = Retriever(DummyVectorStore([]), DummyBM25Index([], []))
+    profile = retriever._build_query_profile("Chunk 数据模型包含哪些字段？")
+    rewritten = retriever._rewrite_query("Chunk 数据模型包含哪些字段？", profile)
+
+    assert "代码关键词" in rewritten
+    assert "models.py" in rewritten
