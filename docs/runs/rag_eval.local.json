@@ -1,0 +1,711 @@
+{
+  "top_k": 3,
+  "dataset": "D:\\Program_2025\\OPC\\tests\\fixtures\\rag_eval_dataset.json",
+  "queries": 24,
+  "corpus_chunks": 327,
+  "hit_rate": 0.7083333333333334,
+  "mrr": 0.5069444444444444,
+  "ndcg": 0.7436697988114399,
+  "hits": 17,
+  "misses": 7,
+  "details": [
+    {
+      "question": "RRF 融合算法的公式是什么？",
+      "expected": [
+        "src/opc/knowledge/retriever.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 54.78745608229245,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 36.18514315404944,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 31.489789589682506,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "CodeChunker 如何检测 Python 代码的切分点？",
+      "expected": [
+        "src/opc/knowledge/chunker.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 69.78602877934964,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 45.100544963962854,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/chunker.py",
+          "score": 43.32349402439726,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "Chunk 数据模型包含哪些字段？",
+      "expected": [
+        "src/opc/knowledge/models.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/knowledge/retriever.py",
+          "score": 24.823562137588123,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 22.529445753633194,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/models.py",
+          "score": 20.29093208873052,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "向量检索和 BM25 检索结果是如何融合的？",
+      "expected": [
+        "src/opc/knowledge/retriever.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 48.13954923093851,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 44.274875452268056,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 41.53537189714255,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "索引构建的完整流程包括哪些步骤？",
+      "expected": [
+        "src/opc/knowledge/indexer.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 20.19294745069205,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 16.1549484274296,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 15.384465878299284,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "SimpleRAG 的关键词提取逻辑是怎样的？",
+      "expected": [
+        "src/opc/rag.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 2,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/rag_bm25.py",
+          "score": 42.1099595288875,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/rag.py",
+          "score": 40.918281434809344,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/rag.py",
+          "score": 36.60399118262265,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "哪些目录在索引时会被跳过？",
+      "expected": [
+        "src/opc/knowledge/models.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 16.97178134451875,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 16.770804243297395,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 10.660637435948717,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "为什么选择 ChromaDB 作为向量数据库？",
+      "expected": [
+        "docs/knowledge-retrieval-design.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 50.384253597070696,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 33.20766411096529,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/embedder.py",
+          "score": 33.078296016325936,
+          "matched": false
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "知识检索模块的 Chunk 策略对代码和文档分别使用什么参数？",
+      "expected": [
+        "docs/knowledge-retrieval-design.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 33.29349445427941,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 30.80156200964453,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 28.978141981018055,
+          "matched": false
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "混合检索后是否需要 Rerank？当前方案是什么？",
+      "expected": [
+        "docs/knowledge-retrieval-design.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 48.94183952362333,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 46.41783112171624,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 41.30331668152143,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "opc.toml 中 profile 配置的作用是什么？",
+      "expected": [
+        "opc.example.toml",
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 2,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/cli.py",
+          "score": 65.6275966735003,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/config.py",
+          "score": 62.54655978949798,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "score": 61.22073569583736,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "WorkflowConfig 支持哪些配置项？",
+      "expected": [
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/config.py",
+          "score": 33.45902989792748,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/config.py",
+          "score": 31.294054536416354,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "score": 31.189648076066284,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "load_workflow_config 如何确定使用哪个 profile？",
+      "expected": [
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/config.py",
+          "score": 69.52673926581215,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/cli.py",
+          "score": 65.1120814322089,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "score": 64.03306497863458,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "OPC 允许的角色有哪些？",
+      "expected": [
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 21.925802179801604,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 21.47870354965557,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "score": 20.74147979364677,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "WorkflowState 的持久化结构包含哪些字段？",
+      "expected": [
+        "src/opc/workflow.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/workflow.py",
+          "score": 44.651658409572406,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 36.76531727845085,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/workflow.py",
+          "score": 33.68624516060706,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "DocChunker 如何处理 Markdown 文件的分块？",
+      "expected": [
+        "src/opc/knowledge/chunker.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "score": 78.65928089069092,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 40.1369020312052,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/chunker.py",
+          "score": 39.25066779188358,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "EXTENSION_MAP 支持哪些配置文件格式？",
+      "expected": [
+        "src/opc/knowledge/models.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/knowledge/chunker.py",
+          "score": 44.31478633715949,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/knowledge/indexer.py",
+          "score": 40.601048138295745,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/rag_eval.py",
+          "score": 39.97779166802441,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "Indexer 如何处理文件发现时的目录过滤？",
+      "expected": [
+        "src/opc/knowledge/indexer.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 2,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/cli.py",
+          "score": 35.13664508440563,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/knowledge/indexer.py",
+          "score": 34.53147432279113,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/cli.py",
+          "score": 31.373969972799404,
+          "matched": false
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "Claude 协作规范的总体工作原则有哪些？",
+      "expected": [
+        "CLAUDE.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "CLAUDE.md",
+          "score": 31.821711195817276,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "CLAUDE.md",
+          "score": 30.795942354858294,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "docs/claude/standards.md",
+          "score": 30.223757255306246,
+          "matched": false
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "Engineer 角色必须产出哪些内容？",
+      "expected": [
+        "docs/claude/roles.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "CLAUDE.md",
+          "score": 32.00759503698911,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "CLAUDE.md",
+          "score": 28.194064629161872,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/claude/roles.md",
+          "score": 26.888273207425108,
+          "matched": true
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "执行纪律中的默认协作结论是什么？",
+      "expected": [
+        "docs/claude/discipline.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/claude/discipline.md",
+          "score": 18.906043655873944,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 15.803331440421823,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "CLAUDE.md",
+          "score": 15.00374834024763,
+          "matched": false
+        }
+      ],
+      "failure_reason": ""
+    },
+    {
+      "question": "验收文档应至少包含哪些字段？",
+      "expected": [
+        "docs/claude/standards.md"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/claude/roles.md",
+          "score": 29.89258556706924,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/claude/roles.md",
+          "score": 26.23597508204454,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/claude/roles.md",
+          "score": 25.979013512346967,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "search_knowledge 工具如何加载知识索引？",
+      "expected": [
+        "src/opc/tools/knowledge_tools.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 34.21987622169825,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 31.80115225618832,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "score": 24.553152624227074,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k"
+    },
+    {
+      "question": "OPC 知识索引根目录如何解析 OPC_INDEX_ROOT？",
+      "expected": [
+        "src/opc/knowledge/index_paths.py",
+        "src/opc/cli.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/cli.py",
+          "score": 57.29902704696766,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/knowledge/index_paths.py",
+          "score": 56.24372514420058,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/tools/knowledge_tools.py",
+          "score": 45.69745327388136,
+          "matched": false
+        }
+      ],
+      "failure_reason": ""
+    }
+  ]
+}

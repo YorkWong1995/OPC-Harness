@@ -25,6 +25,25 @@
 - 替代 QA 验收或修复发布前发现的缺陷。
 - 缺少发布对象、环境或 QA 证据时强行判断可发布。
 
+## P10 Release Gate
+
+| Gate | 本地/CI 入口 | 通过 | Skip / 补验 | 阻塞 |
+| --- | --- | --- | --- | --- |
+| CI | `.github/workflows/ci.yml` | CI green | 本地无 CI 时记录待补验 | CI fail |
+| 覆盖率/定向测试 | `python -m pytest ...` 或 CI coverage | 达到当前门槛或有定向证据 | 未配置 coverage 时记录趋势项 | must-pass 测试失败 |
+| CLI smoke | `tests/test_cli_smoke.py` | CLI 入口可解析、只读命令可运行 | 无 | smoke fail |
+| Docker build/smoke | docker workflow / 目标环境 | build 与 smoke 通过 | 缺 Docker 时记录 skip 原因 | 有 Docker 环境下失败 |
+| Artifact 兼容 | `opc artifacts doctor` | trace/events/metrics/state 可读取 | 旧 run 缺字段可 warning | JSON/schema 损坏 |
+| RAG eval | `scripts/run-rag-eval.py` | hit-rate/MRR/NDCG 不低于当前基线 | 大索引/向量 eval 可补验 | golden eval 失败 |
+| 安全扫描 | plugin/security tests、敏感文件名 doctor | 无权限越界、路径越界、明显 secret 文件名 | 外部 SAST 可补验 | trust policy 违规 |
+| 文档索引 | README、DOCS_STRUCTURE、scripts/README | 新入口可发现 | 链接检查可补验 | 入口缺失 |
+
+`python scripts/check-release.py` 可生成本地 release report。脚本默认不发布、不部署、不上传、不 push、不删除文件；只做轻量文件/入口检查并记录需要 CI 或目标环境补验的项。
+
+## Release Report Artifact
+
+最小字段：`schema`、`version`、`commit`、`created_at`、`checks`、`blocking_items`、`supplemental_validation`、`recommendation`、`notes`。每个 `checks[]` 至少包含 `name`、`status`、`command`、`blocking`、`skip_reason`。结论使用 `ready`、`needs-env` 或 `not-ready`。
+
 ## Skill 与 Runtime Workflow 边界
 
 - 默认使用 `/release-check` skill 输出只读发布建议。

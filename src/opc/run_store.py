@@ -30,6 +30,13 @@ class RunSummary:
     updated_at: float
 
 
+@dataclass
+class ArtifactDoctorCheck:
+    name: str
+    status: str
+    detail: str
+
+
 class RunStore:
     def __init__(self, artifacts_dir: Path, run_id: str | None = None):
         self.artifacts_dir = artifacts_dir
@@ -114,6 +121,49 @@ def find_run_artifacts(root: Path) -> list[Path]:
     candidates = [path for path in root.rglob("artifacts") if path.is_dir()]
     candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
     return candidates
+
+
+def inspect_artifacts_dir(artifacts_dir: Path) -> dict[str, Any]:
+    required_files = ["run_trace.json", "run_events.jsonl", "run_metrics.json", ".opc_state.json"]
+    checks: list[ArtifactDoctorCheck] = []
+    if not artifacts_dir.exists():
+        checks.append(ArtifactDoctorCheck("artifacts_dir", "missing", str(artifacts_dir)))
+        return {"artifacts_dir": str(artifacts_dir), "status": "failed", "checks": [asdict(check) for check in checks]}
+    if not artifacts_dir.is_dir():
+        checks.append(ArtifactDoctorCheck("artifacts_dir", "failed", "path is not a directory"))
+        return {"artifacts_dir": str(artifacts_dir), "status": "failed", "checks": [asdict(check) for check in checks]}
+
+    for file_name in required_files:
+        path = artifacts_dir / file_name
+        checks.append(ArtifactDoctorCheck(file_name, "ok" if path.exists() else "missing", str(path)))
+
+    trace_path = artifacts_dir / "run_trace.json"
+    if trace_path.exists():
+        try:
+            trace = json.loads(trace_path.read_text(encoding="utf-8"))
+            version = trace.get("trace_schema_version")
+            status = "ok" if version == TRACE_SCHEMA_VERSION else "warning"
+            checks.append(ArtifactDoctorCheck("trace_schema", status, f"version={version}; supported={TRACE_SCHEMA_VERSION}"))
+        except json.JSONDecodeError as exc:
+            checks.append(ArtifactDoctorCheck("trace_schema", "failed", f"invalid JSON: {exc}"))
+
+    metrics_path = artifacts_dir / "run_metrics.json"
+    if metrics_path.exists():
+        try:
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            checks.append(ArtifactDoctorCheck("run_metrics_schema", "ok" if isinstance(metrics.get("totals"), dict) else "warning", "totals present" if isinstance(metrics.get("totals"), dict) else "totals missing"))
+        except json.JSONDecodeError as exc:
+            checks.append(ArtifactDoctorCheck("run_metrics_schema", "failed", f"invalid JSON: {exc}"))
+
+    sensitive_names = []
+    markers = (".env", "secret", "token", "password", "passwd", "private", "credential", "key")
+    for path in artifacts_dir.rglob("*"):
+        if path.is_file() and any(marker in path.name.lower() for marker in markers):
+            sensitive_names.append(str(path.relative_to(artifacts_dir)))
+    checks.append(ArtifactDoctorCheck("sensitive_filenames", "warning" if sensitive_names else "ok", ", ".join(sorted(sensitive_names)) if sensitive_names else "no obvious sensitive filenames"))
+
+    status = "failed" if any(check.status == "failed" for check in checks) else "warning" if any(check.status in {"missing", "warning"} for check in checks) else "ok"
+    return {"artifacts_dir": str(artifacts_dir), "status": status, "checks": [asdict(check) for check in checks]}
 
 
 def summarize_run(artifacts_dir: Path) -> RunSummary:

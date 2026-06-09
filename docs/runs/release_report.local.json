@@ -1,0 +1,61 @@
+{
+  "schema": "opc.release_report.v1",
+  "version": "p10-local",
+  "commit": "1d9d977",
+  "created_at": "2026-06-09T03:26:22.792615+00:00",
+  "checks": [
+    {
+      "name": "D:/Program_2025/OPC/.github/workflows/ci.yml",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": true,
+      "skip_reason": ""
+    },
+    {
+      "name": "D:/Program_2025/OPC/.github/workflows/docker-publish.yml",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": false,
+      "skip_reason": ""
+    },
+    {
+      "name": "D:/Program_2025/OPC/tests/test_cli_smoke.py",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": true,
+      "skip_reason": ""
+    },
+    {
+      "name": "D:/Program_2025/OPC/tests/test_project_kb_quality.py",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": true,
+      "skip_reason": ""
+    },
+    {
+      "name": "D:/Program_2025/OPC/scripts/run-rag-eval.py",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": true,
+      "skip_reason": ""
+    },
+    {
+      "name": "D:/Program_2025/OPC/docs/DOCS_STRUCTURE.md",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": true,
+      "skip_reason": ""
+    },
+    {
+      "name": "D:/Program_2025/OPC/docs/workflow-packs/release-check.md",
+      "status": "pass",
+      "command": "path exists",
+      "blocking": true,
+      "skip_reason": ""
+    }
+  ],
+  "blocking_items": [],
+  "supplemental_validation": [],
+  "recommendation": "ready",
+  "notes": "Local script is read-only except optional report output; CI, Docker, real Qt, security scanning, and full coverage evidence may require target environment."
+}

@@ -1,11 +1,12 @@
 """测试 P1.2：HarnessWorkflow 使用 WorkflowSpec 决定主链路状态流转。"""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from opc.workflow import HarnessWorkflow
-from opc.workflow_spec import DEFAULT_WORKFLOW_SPEC, load_workflow_spec
+from opc.workflow_spec import DEFAULT_WORKFLOW_SPEC, discover_workflow_pack_manifests, load_workflow_spec, workflow_pack_manifest_from_dict
 
 
 @pytest.fixture
@@ -118,3 +119,45 @@ def test_spec_does_not_skip_runtime_inserted_ops_after_qa(workflow):
 )
 def test_stage_to_state_mapping(stage, expected_state):
     assert HarnessWorkflow._stage_to_state_name(stage) == expected_state
+
+
+def test_workflow_pack_manifest_rejects_unknown_permission():
+    manifest = workflow_pack_manifest_from_dict({
+        "id": "demo",
+        "kind": "opc_runtime_workflow",
+        "owner_roles": ["Engineer"],
+        "inputs": ["task"],
+        "outputs": ["artifact"],
+        "permissions": ["read", "network-admin"],
+        "acceptance": ["passes"],
+        "trace": ["run_id"],
+    })
+
+    assert "unknown permission: network-admin" in manifest.validation_errors
+    assert not manifest.runtime_executable
+
+
+def test_workflow_pack_manifest_rejects_illegal_transition():
+    manifest = workflow_pack_manifest_from_dict({
+        "id": "demo",
+        "kind": "opc_runtime_workflow",
+        "owner_roles": ["Engineer"],
+        "inputs": ["task"],
+        "outputs": ["artifact"],
+        "permissions": ["read"],
+        "acceptance": ["passes"],
+        "trace": ["run_id"],
+        "stages": [{"name": "pm", "state": "A"}],
+        "transitions": [{"from_state": "A", "condition": "pass", "to_state": "B"}],
+    })
+
+    assert "illegal transition: A->B" in manifest.validation_errors
+
+
+def test_discovers_documented_workflow_packs():
+    root = Path(__file__).resolve().parent.parent
+    manifests = {manifest.id: manifest for manifest in discover_workflow_pack_manifests(root)}
+
+    assert "docs-update" in manifests
+    assert "release-check" in manifests
+    assert manifests["docs-update"].kind in {"claude_skill", "opc_runtime_workflow"}

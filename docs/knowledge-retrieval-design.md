@@ -65,7 +65,20 @@
 第三阶段：按问题类型动态决定是否 rerank
 ```
 
-理想流程：
+RAG 实际由两条独立流程组成：**索引时**完成切分入库，**查询时**完成检索与回答。Chunk 属于索引时流程，所以不会出现在查询链路里。
+
+索引时流程（一次性 / 增量，零 LLM 调用）：
+
+```
+源目录（代码 + 文档 + 配置）
+  → 语言检测 detect_language
+  → Chunk 切分（CodeChunker / DocChunker / ConfigChunker，详见 §4）
+  → Embedding 写入向量库（ChromaDB）
+     + BM25 索引构建（rank-bm25 + jieba）
+     + file_dependencies 元数据写入 meta.json
+```
+
+查询时理想流程：
 
 ```
 用户问题
@@ -73,6 +86,7 @@
   → 向量检索 + BM25 + 精确符号搜索
   → RRF 融合 top 30-50
   → rerank 精排 top 5-10
+  → context expansion（邻近 / 文件依赖 / 同章节）
   → LLM 生成答案 + 文件位置
 ```
 
@@ -80,35 +94,72 @@
 
 ## 4. Chunk 策略设计
 
-### 4.1 当前方案
+### 4.1 当前实现（src/opc/knowledge/chunker.py）
 
-| 文件类型 | 目标大小 | Overlap | 切分方式 |
-|---------|---------|---------|---------|
-| 代码 | 100 行 | 10 行 | 函数/类边界优先，兜底固定窗口 |
-| 文档 | 200 行 | 50 行 | 标题边界优先，超长段再窗口切 |
+实际落地为三类 chunker，自动按语言分发（`detect_language` + `chunk_file`）：
 
-### 4.2 当前方案的不足
+| Chunker | 适用语言 | 目标大小 | Overlap | 切分策略 |
+|---------|---------|---------|---------|---------|
+| CodeChunker | python / cpp / c / java / csharp / go / rust / javascript / typescript ... | 100 行 | 10 行 | 按语言识别边界 + 兜底窗口 |
+| DocChunker | markdown / rst / 其他文本 | 200 行 | 50 行 | 标题边界优先，超长段再窗口切 |
+| ConfigChunker | json / yaml | — | — | 按顶层 key 切分；无命中则降级为 DocChunker |
 
-当前是**结构启发式 chunk**，不是真正的语义边界 chunk：
+CodeChunker 的边界识别按语言分支：
 
-- 不能判断一段内容是否在讲同一个概念
-- 参数说明、表格、示例代码可能被切散
-- 同一个业务流程的多个函数可能分到不同 chunk
+- **Python**：在顶层 `def` / `class` / `async def` 之后的首个空行处切分。
+- **C/C++/Java/C#/Go/Rust/JavaScript/TypeScript**：在列 0 的 `}` 之后的空行处切分（brace_splits）。
+- **其他代码**：在空行处切分。
+- **兜底**：无切分点时按固定窗口；区块超过 `target_lines * 2` 时继续窗口切分；过小相邻区块由 `_merge_small` 合并。
 
-### 4.3 更好的方向：多层 chunk
+DocChunker 的 Markdown 处理有两种模式：
+
+- **默认模式 `_markdown_chunks`**：按所有 `#~######` 标题切分，超长段（>1.5×target_lines）再窗口切。
+- **H2 模式 `_markdown_h2_chunks`（heading_level=2）**：仅按 `##` 切分，并自动在每个 chunk 头部注入最近的 H1 + 当前 H2 作为标题上下文前缀；对超长段窗口切分时，子块也会沿用同一前缀。这样保证窗口块在嵌入和检索时不丢失章节归属。
+
+RST 通过识别上/下划线标题切分；其他纯文本走 `_window_chunks` 固定窗口。
+
+### 4.2 已落地的检索时上下文扩展（retriever.py）
+
+设计文档原本归在"4.3 更好的方向"里的几项已实现，由 `Retriever.retrieve` 串联：
+
+- **查询改写 `_rewrite_query`**：识别到代码意图（含标识符、`_CODE_QUERY_HINTS` 关键词或代码意图标记词）时，在 query 末尾追加"代码关键词:"扩展词。
+- **代码偏置 `_apply_query_bias`**：对 RRF 融合结果按 chunk 语言、路径前缀（`src/`、`tests/`）和标识符命中给定 bonus，使代码 chunk 在代码意图问题中靠前。
+- **Context expansion `expand_context`**：召回的每个 chunk 自动加入相邻 chunk 和文件依赖（`file_dependencies`）首块，作为"邻近扩展 / 同模块扩展"，并在结果里标注 `expansion_reason`。
+
+### 4.3 P10 Golden Eval 标准
+
+轻量 RAG eval 使用 `tests/fixtures/rag_eval_dataset.json` 作为 golden query 数据集。每条 query 至少包含：
+
+| 字段 | 含义 |
+| --- | --- |
+| `question` | 用户问题，覆盖中文自然语言、英文代码符号、文档章节、Qt/插件问题和误召回样例 |
+| `relevant_files` | 期望召回文件路径 |
+| `relevant_chunks` | 期望行号或 chunk 定位，格式如 `path::Lx-Ly` |
+
+默认本地入口为 `python scripts/run-rag-eval.py --top-k 3`，使用小语料内存 BM25 计算 hit-rate、MRR、NDCG、命中/未命中明细和失败原因。不调用 LLM，不重建大型向量索引。Release gate 以当前 golden eval 基线作为阻塞门槛，向量索引、bge/faiss 或真实项目大索引可作为补验项记录。
+
+### 4.4 当前方案仍存在的不足
+
+当前仍是**结构启发式 chunk**，不是真正的语义边界 chunk：
+
+- 不能判断一段内容是否在讲同一个概念。
+- 参数说明、表格、示例代码可能被切散。
+- 同一个业务流程的多个函数可能分到不同 chunk。
+
+### 4.5 待落地的改进方向
 
 ```
 L1 原子 chunk：函数、标题段落、表格、代码块
 L2 语义 chunk：围绕一个主题，把相关原子 chunk 合并
-L3 上下文包：查询时动态把相邻/相关 chunk 拼成回答上下文
+L3 上下文包：查询时动态把相邻/相关 chunk 拼成回答上下文（已部分落地：邻近+依赖扩展）
 ```
 
-关键改进点：
+仍未实现的改进点：
 
-- 给 Chunk 增加 metadata：heading_path、block_type、symbol_name、parent_id、prev_id、next_id
-- 文档解析改成 block parser（heading、paragraph、table、code_block、list）
-- 代码解析增加符号识别（function、class、enum、macro、typedef）
-- 查询后做 context expansion（同章节扩展、邻近扩展、同 symbol 扩展）
+- 给 Chunk 增加结构化 metadata：heading_path、block_type、symbol_name、parent_id、prev_id、next_id。
+- 文档解析改成 block parser（heading、paragraph、table、code_block、list）；表格按表头+行+摘要单独索引。
+- 代码解析升级为 AST/tree-sitter 级符号识别（function、class、enum、macro、typedef），替代当前的正则启发式。
+- 同 symbol / 同章节扩展（当前只做邻近 + 文件依赖扩展）。
 
 ---
 

@@ -16,7 +16,8 @@ from rich.table import Table
 
 from . import __version__
 from .workflow import HarnessWorkflow, WorkflowState
-from .run_store import RunStore, aggregate_run_cost_trend, find_run_artifacts, summarize_run, trace_inspect, trace_summary
+from .workflow_spec import discover_workflow_pack_manifests
+from .run_store import RunStore, aggregate_run_cost_trend, find_run_artifacts, inspect_artifacts_dir, summarize_run, trace_inspect, trace_summary
 from .config import (
     ALL_OPTIONAL_ROLES,
     load_project_config,
@@ -24,7 +25,7 @@ from .config import (
     normalize_roles,
     validate_project_config,
 )
-from .knowledge.index_paths import get_index_root, get_workspace_root
+from .knowledge.index_paths import get_index_root, get_workspace_root, inspect_indexes
 from .generation.templates import TemplateRenderError, build_project_template_variables, render_template_directory
 from .project_types import ProjectTypeDefinition, load_project_type_registry
 from .tools.qt_tools import QtEnvironmentCheckResult, check_qt_environment, format_qt_environment_report
@@ -165,6 +166,35 @@ def main():
     project_types_list_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
     project_types_list_parser.add_argument("--json", action="store_true", help="输出 JSON")
 
+    # ---- opc workflow-packs ----
+    workflow_packs_parser = subparsers.add_parser("workflow-packs", help="查看 workflow pack manifest")
+    workflow_packs_subparsers = workflow_packs_parser.add_subparsers(dest="workflow_packs_command")
+    workflow_packs_list_parser = workflow_packs_subparsers.add_parser("list", help="列出内置 workflow pack")
+    workflow_packs_list_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    workflow_packs_list_parser.add_argument("--json", action="store_true", help="输出 JSON")
+    workflow_packs_smoke_parser = workflow_packs_subparsers.add_parser("smoke", help="执行低风险 workflow pack runtime smoke")
+    workflow_packs_smoke_parser.add_argument("--id", default="docs-update", help="pack id（默认 docs-update）")
+    workflow_packs_smoke_parser.add_argument("--project-dir", default=".", help="项目目录（默认当前目录）")
+    workflow_packs_smoke_parser.add_argument("--json", action="store_true", help="输出 JSON")
+
+    # ---- opc artifacts ----
+    artifacts_parser = subparsers.add_parser("artifacts", help="只读检查 artifacts")
+    artifacts_subparsers = artifacts_parser.add_subparsers(dest="artifacts_command")
+    artifacts_doctor_parser = artifacts_subparsers.add_parser("doctor", help="只读体检 artifacts 目录")
+    artifacts_doctor_parser.add_argument("--artifacts-dir", required=True, help="artifacts 目录")
+    artifacts_doctor_parser.add_argument("--json", action="store_true", help="输出 JSON")
+
+    # ---- opc index-doctor ----
+    index_doctor_parser = subparsers.add_parser("index-doctor", help="只读体检知识索引")
+    index_doctor_parser.add_argument("--name", default=None, help="仅检查指定索引")
+    index_doctor_parser.add_argument("--json", action="store_true", help="输出 JSON")
+
+    # ---- opc cleanup ----
+    cleanup_parser = subparsers.add_parser("cleanup", help="本地数据清理 dry-run")
+    cleanup_parser.add_argument("--root", default=".", help="扫描根目录（默认当前目录）")
+    cleanup_parser.add_argument("--include", choices=["artifacts", "index", "all"], default="all", help="扫描类型")
+    cleanup_parser.add_argument("--json", action="store_true", help="输出 JSON")
+
     # ---- opc task ----
     task_parser = subparsers.add_parser("task", help="查看 markdown 任务清单")
     task_subparsers = task_parser.add_subparsers(dest="task_command")
@@ -278,6 +308,14 @@ def main():
         _run_generate(args)
     elif args.command == "project-types":
         _run_project_types(args)
+    elif args.command == "workflow-packs":
+        _run_workflow_packs(args)
+    elif args.command == "artifacts":
+        _run_artifacts(args)
+    elif args.command == "index-doctor":
+        _run_index_doctor(args)
+    elif args.command == "cleanup":
+        _run_cleanup(args)
     elif args.command == "task":
         _run_task(args)
     elif args.command == "memory":
@@ -838,6 +876,127 @@ def _format_env_check(check) -> str:
     required = "required" if check.required else "optional"
     command = f"; check: {check.command}" if check.command else ""
     return f"{check.id} ({required}): {check.description}{command}"
+
+
+# ---- opc workflow-packs / artifacts / index-doctor / cleanup ----
+
+
+def _run_workflow_packs(args):
+    project_dir = Path(args.project_dir).resolve()
+    project_root = Path(__file__).resolve().parent.parent.parent
+    manifests = discover_workflow_pack_manifests(project_root)
+    if args.workflow_packs_command == "list":
+        payload = {"workflow_packs": [manifest.as_dict() for manifest in manifests]}
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return
+        table = Table(title="Workflow Packs")
+        table.add_column("ID", style="bold")
+        table.add_column("Kind")
+        table.add_column("Permissions")
+        table.add_column("Runtime")
+        table.add_column("Disabled reason")
+        for manifest in manifests:
+            table.add_row(
+                manifest.id,
+                manifest.kind,
+                ", ".join(manifest.permissions),
+                "yes" if manifest.runtime_executable else "no",
+                manifest.disabled_reason or "-",
+            )
+        console.print(table)
+        return
+
+    if args.workflow_packs_command == "smoke":
+        manifest = next((item for item in manifests if item.id == args.id), None)
+        if manifest is None:
+            console.print(f"[red]workflow pack 不存在:[/red] {args.id}")
+            raise SystemExit(1)
+        if manifest.kind != "opc_runtime_workflow":
+            console.print(f"[yellow]workflow pack 不是 runtime 类型:[/yellow] {manifest.kind}")
+            raise SystemExit(1)
+        artifacts_dir = project_dir / "artifacts"
+        store = RunStore(artifacts_dir)
+        smoke = {
+            "run_id": store.run_id,
+            "pack_id": manifest.id,
+            "kind": manifest.kind,
+            "status": "smoke_passed",
+            "permissions": list(manifest.permissions),
+            "source_path": manifest.source_path,
+        }
+        smoke_path = artifacts_dir / "workflow_pack_smoke.json"
+        smoke_path.write_text(json.dumps(smoke, ensure_ascii=False, indent=2), encoding="utf-8")
+        store.append("workflow_pack_discovered", pack_id=manifest.id, kind=manifest.kind, permissions=list(manifest.permissions))
+        store.append("workflow_pack_smoke_completed", pack_id=manifest.id, artifact_path=str(smoke_path))
+        store.write_trace(final_status="workflow_pack_smoke_passed", metrics={"totals": {"duration_seconds": 0}})
+        if args.json:
+            print(json.dumps(smoke, ensure_ascii=False, indent=2))
+            return
+        console.print(Panel(f"pack: {manifest.id}\nrun_id: {store.run_id}\nartifact: {smoke_path}", title="Workflow Pack Smoke"))
+        return
+
+    console.print("[yellow]请使用 opc workflow-packs list 或 opc workflow-packs smoke[/yellow]")
+
+
+def _run_artifacts(args):
+    if args.artifacts_command != "doctor":
+        console.print("[yellow]请使用 opc artifacts doctor[/yellow]")
+        return
+    data = inspect_artifacts_dir(Path(args.artifacts_dir))
+    if args.json:
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        return
+    table = Table(title=f"Artifacts Doctor: {data['status']}")
+    table.add_column("检查项")
+    table.add_column("状态")
+    table.add_column("详情")
+    for check in data["checks"]:
+        table.add_row(check["name"], check["status"], check["detail"])
+    console.print(table)
+
+
+def _run_index_doctor(args):
+    data = inspect_indexes(args.name)
+    if args.json:
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+        return
+    table = Table(title=f"Index Doctor: {data['index_parent_root']}")
+    table.add_column("索引")
+    table.add_column("状态")
+    table.add_column("大小(bytes)", justify="right")
+    table.add_column("检查")
+    for item in data["indexes"]:
+        details = "; ".join(f"{check['name']}={check['status']}" for check in item["checks"])
+        table.add_row(item["name"], item["status"], str(item["size_bytes"]), details)
+    console.print(table)
+    if not data["indexes"]:
+        console.print("[yellow]未发现索引；不会创建、删除或重建索引。[/yellow]")
+
+
+def _run_cleanup(args):
+    root = Path(args.root).resolve()
+    candidates = []
+    if args.include in {"artifacts", "all"}:
+        for artifacts_dir in find_run_artifacts(root):
+            candidates.append({"path": str(artifacts_dir), "type": "artifacts", "reason": "run artifact directory", "risk": "keep if needed for resume, acceptance evidence, or audit"})
+    if args.include in {"index", "all"}:
+        for item in inspect_indexes().get("indexes", []):
+            if Path(item["index_root"]).exists():
+                candidates.append({"path": item["index_root"], "type": "index", "reason": "knowledge index cache", "risk": "can be rebuilt, but deletion loses local search cache"})
+    payload = {"mode": "dry-run", "root": str(root), "candidates": candidates, "confirmation": "This command never deletes files; remove candidates manually after review."}
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+    table = Table(title="Cleanup Dry-run")
+    table.add_column("类型")
+    table.add_column("路径")
+    table.add_column("原因")
+    table.add_column("风险")
+    for candidate in candidates:
+        table.add_row(candidate["type"], candidate["path"], candidate["reason"], candidate["risk"])
+    console.print(table)
+    console.print("[yellow]dry-run only: 未删除任何文件。[/yellow]")
 
 
 # ---- opc task ----

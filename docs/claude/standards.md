@@ -124,6 +124,18 @@
 - 回滚条件
 - 发布结论
 
+Release report artifact 应至少包含：
+
+| 字段 | 含义 |
+| --- | --- |
+| `schema` | 报告 schema 版本，例如 `opc.release_report.v1` |
+| `version` / `commit` | 发布版本与 git commit |
+| `checks[]` | 检查项、命令、结果、是否阻塞、skip 原因 |
+| `blocking_items[]` | 当前阻塞发布的问题 |
+| `supplemental_validation[]` | 需要 CI、Docker、真实 Qt 或目标环境补验的项 |
+| `recommendation` | `ready`、`needs-env` 或 `not-ready` |
+| `notes` | 发布边界、风险和人工确认说明 |
+
 > 参考样例：[docs/runs/harness_interactive_mode.md](../runs/harness_interactive_mode.md)
 
 ## 研究建议应至少包含

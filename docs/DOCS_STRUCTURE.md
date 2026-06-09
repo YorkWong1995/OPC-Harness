@@ -3,6 +3,7 @@
 ## 公开文档
 
 - `README.md` - 项目介绍、安装方式、CLI 使用入口
+- `docs/harness-guide.md` - OPC 完整 Harness 手册，系统说明 workflow、skills、agent、memory、RAG、tool use 和使用流程
 - `CLAUDE.md` - Claude 协作规范入口
 - `LICENSE` - 开源许可证
 
@@ -32,7 +33,7 @@
 - `.claude/skills/*/SKILL.md` - 可调用 skill：task-spec、implementation-check、acceptance-check、bugfix、test-spec、review、release-check、token-report 等
 - `docs/workflow-packs/README.md` - workflow pack 索引，覆盖 bugfix、review、docs-update、release-check、qt-generation
 - `docs/workflow-packs/qt-generation.md` - Qt 生成 workflow pack，说明 Qt 插件启用、生成、环境诊断、构建验证、QA 验收与 trace/artifact 要求
-- `scripts/README.md` - 脚本入口索引，说明 run/check/review/cost/upload 分类与风险边界
+- `scripts/README.md` - 脚本入口索引，说明 run/check/review/cost/upload 分类与风险边界；P10 新增 `check-release.py`、`run-rag-eval.py`、`cleanup-dry-run.py`
 - `.claude/agents/README.md` - agent 资产索引，说明 PM、Engineer、QA 样板及其与 runtime agent / skill 的区别
 
 ### 分享文档 (docs/share/)
@@ -48,6 +49,8 @@
 | `upload_to_github.sh` | upload | 暂不自动迁移 | 未跟踪且含 `git add .`、commit、remote、push 等高风险动作，后续如纳入需保留人工确认 |
 
 ### 开发记录文档 (docs/)
+- `docs/runs/release_report.local.json` - P10 本地 release-check 报告默认输出（脚本生成，可被覆盖）
+- `docs/runs/rag_eval.local.json` - P10 轻量 RAG eval 报告建议输出
 - `*_summary.md` - 各类总结文档
 - `*_issues.md` - 问题记录
 - `*_comparison.md` - 对比分析

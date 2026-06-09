@@ -22,7 +22,7 @@
   {
     "question": "索引构建的完整流程包括哪些步骤？",
     "relevant_files": ["src/opc/knowledge/indexer.py"],
-    "relevant_chunks": ["src/opc/knowledge/indexer.py::L36-L127"]
+    "relevant_chunks": ["src/opc/knowledge/indexer.py::L42-L146"]
   },
   {
     "question": "SimpleRAG 的关键词提取逻辑是怎样的？",
@@ -32,7 +32,7 @@
   {
     "question": "哪些目录在索引时会被跳过？",
     "relevant_files": ["src/opc/knowledge/models.py"],
-    "relevant_chunks": ["src/opc/knowledge/models.py::L84-L91"]
+    "relevant_chunks": ["src/opc/knowledge/models.py::L87-L93"]
   },
   {
     "question": "为什么选择 ChromaDB 作为向量数据库？",
@@ -77,16 +77,46 @@
   {
     "question": "DocChunker 如何处理 Markdown 文件的分块？",
     "relevant_files": ["src/opc/knowledge/chunker.py"],
-    "relevant_chunks": ["src/opc/knowledge/chunker.py::L183-L221"]
+    "relevant_chunks": ["src/opc/knowledge/chunker.py::L222-L270"]
   },
   {
     "question": "EXTENSION_MAP 支持哪些配置文件格式？",
     "relevant_files": ["src/opc/knowledge/models.py"],
-    "relevant_chunks": ["src/opc/knowledge/models.py::L47-L73"]
+    "relevant_chunks": ["src/opc/knowledge/models.py::L67-L71"]
   },
   {
     "question": "Indexer 如何处理文件发现时的目录过滤？",
     "relevant_files": ["src/opc/knowledge/indexer.py"],
-    "relevant_chunks": ["src/opc/knowledge/indexer.py::L129-L149"]
+    "relevant_chunks": ["src/opc/knowledge/indexer.py::L266-L286"]
+  },
+  {
+    "question": "Claude 协作规范的总体工作原则有哪些？",
+    "relevant_files": ["CLAUDE.md"],
+    "relevant_chunks": ["CLAUDE.md::L21-L28"]
+  },
+  {
+    "question": "Engineer 角色必须产出哪些内容？",
+    "relevant_files": ["docs/claude/roles.md"],
+    "relevant_chunks": ["docs/claude/roles.md::L53-L61"]
+  },
+  {
+    "question": "执行纪律中的默认协作结论是什么？",
+    "relevant_files": ["docs/claude/discipline.md"],
+    "relevant_chunks": ["docs/claude/discipline.md::L56-L64"]
+  },
+  {
+    "question": "验收文档应至少包含哪些字段？",
+    "relevant_files": ["docs/claude/standards.md"],
+    "relevant_chunks": ["docs/claude/standards.md::L38-L46"]
+  },
+  {
+    "question": "search_knowledge 工具如何加载知识索引？",
+    "relevant_files": ["src/opc/tools/knowledge_tools.py"],
+    "relevant_chunks": ["src/opc/tools/knowledge_tools.py::L11-L27"]
+  },
+  {
+    "question": "OPC 知识索引根目录如何解析 OPC_INDEX_ROOT？",
+    "relevant_files": ["src/opc/knowledge/index_paths.py", "src/opc/cli.py"],
+    "relevant_chunks": ["src/opc/knowledge/index_paths.py::L10-L17", "src/opc/cli.py::L240-L251"]
   }
 ]

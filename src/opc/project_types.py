@@ -19,6 +19,19 @@ TemplateProviderKind = Literal["filesystem", "package", "plugin"]
 
 _PROJECT_TYPE_ID_RE = re.compile(r"^[a-z][a-z0-9_-]*$")
 _DEFAULT_PLUGIN_MANIFEST = "plugins/{plugin_id}/opc-plugin.toml"
+_MANIFEST_ROOT_FIELDS = {"project_type"}
+_PROJECT_TYPE_FIELDS = {
+    "id",
+    "display_name",
+    "template_provider",
+    "env_checks",
+    "build_commands",
+    "acceptance_checks",
+    "permissions",
+    "enabled_by_default",
+}
+_TEMPLATE_PROVIDER_FIELDS = {"template_id", "kind", "path", "variables", "file_patterns"}
+_COMMAND_FIELDS = {"id", "command", "description", "required"}
 
 
 @dataclass(frozen=True)
@@ -137,13 +150,20 @@ def _resolve_manifest_path(project_dir: Path, plugin_id: str, settings: Mapping[
     path = Path(raw_path)
     if not path.is_absolute():
         path = project_dir / path
-    return path.resolve()
+    resolved = path.resolve()
+    project_root = project_dir.resolve()
+    try:
+        resolved.relative_to(project_root)
+    except ValueError as exc:
+        raise ValueError(f"plugin manifest path escapes project root: {resolved}") from exc
+    return resolved
 
 
 def _load_project_type_manifest(plugin_id: str, manifest_path: Path) -> tuple[ProjectTypeDefinition, ...]:
     if not manifest_path.exists():
         raise ValueError(f"project type manifest not found: {manifest_path}")
     data = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+    _reject_unknown_fields(data, _MANIFEST_ROOT_FIELDS, f"project type manifest {manifest_path}")
     items = data.get("project_type", [])
     if not isinstance(items, list) or not items:
         raise ValueError(f"project type manifest has no project_type entries: {manifest_path}")
@@ -157,6 +177,7 @@ def _definition_from_manifest_item(
 ) -> ProjectTypeDefinition:
     if not isinstance(item, Mapping):
         raise ValueError(f"invalid project_type entry in {manifest_path}")
+    _reject_unknown_fields(item, _PROJECT_TYPE_FIELDS, f"project_type entry in {manifest_path}")
     template_provider = item.get("template_provider")
     if not isinstance(template_provider, Mapping):
         raise ValueError(f"project_type.template_provider is required in {manifest_path}")
@@ -175,6 +196,7 @@ def _definition_from_manifest_item(
 
 
 def _template_provider_from_manifest(raw: Mapping[str, object]) -> TemplateProviderDefinition:
+    _reject_unknown_fields(raw, _TEMPLATE_PROVIDER_FIELDS, "project_type.template_provider")
     return TemplateProviderDefinition(
         template_id=str(raw.get("template_id", "")).strip(),
         kind=str(raw.get("kind", "filesystem")).strip(),
@@ -185,6 +207,7 @@ def _template_provider_from_manifest(raw: Mapping[str, object]) -> TemplateProvi
 
 
 def _env_check_from_manifest(raw: Mapping[str, object]) -> EnvironmentCheckDefinition:
+    _reject_unknown_fields(raw, _COMMAND_FIELDS, "project_type.env_checks")
     return EnvironmentCheckDefinition(
         id=str(raw.get("id", "")).strip(),
         description=str(raw.get("description", "")).strip(),
@@ -194,6 +217,7 @@ def _env_check_from_manifest(raw: Mapping[str, object]) -> EnvironmentCheckDefin
 
 
 def _command_from_manifest(raw: Mapping[str, object]) -> ProjectCommandDefinition:
+    _reject_unknown_fields(raw, _COMMAND_FIELDS, "project_type command")
     command = raw.get("command", [])
     if isinstance(command, str):
         command_parts = (command,)
@@ -214,6 +238,12 @@ def _manifest_list(item: Mapping[str, object], key: str, manifest_path: Path) ->
     if not all(isinstance(value, Mapping) for value in values):
         raise ValueError(f"project_type.{key} entries must be tables in {manifest_path}")
     return tuple(values)
+
+
+def _reject_unknown_fields(raw: Mapping[str, object], allowed: set[str], context: str) -> None:
+    unknown = sorted(set(raw) - allowed)
+    if unknown:
+        raise ValueError(f"unknown field in {context}: {', '.join(unknown)}")
 
 
 def _validate_identifier(value: str, field_name: str) -> None:

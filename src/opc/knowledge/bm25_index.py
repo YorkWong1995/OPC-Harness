@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict
 from pathlib import Path
 
@@ -15,11 +16,15 @@ from .models import Chunk, RetrievalResult
 def tokenize(text: str) -> list[str]:
     """混合分词：jieba 中文 + 空格英文，去停用词"""
     tokens = []
-    # jieba 处理中文段，同时保留英文词
     for word in jieba.cut(text):
         w = word.strip()
         if w and len(w) > 0:
             tokens.append(w.lower())
+    for word in re.findall(r"[A-Za-z][A-Za-z0-9_]*", text):
+        lowered = word.lower()
+        tokens.append(lowered)
+        tokens.extend(part for part in re.split(r"[_\W]+", lowered) if part)
+        tokens.extend(part.lower() for part in re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)|\d+", word) if part)
     return tokens
 
 
@@ -38,7 +43,7 @@ class BM25Index:
     def build(self, chunks: list[Chunk]):
         """从 chunks 构建 BM25 索引"""
         self.chunks = chunks
-        self._tokenized_corpus = [tokenize(c.content) for c in chunks]
+        self._tokenized_corpus = [tokenize(f"{c.file_path}\n{c.content}") for c in chunks]
         self.bm25 = BM25Okapi(self._tokenized_corpus)
 
     def query(self, query_text: str, top_k: int = 20) -> list[RetrievalResult]:

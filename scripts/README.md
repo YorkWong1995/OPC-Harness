@@ -27,6 +27,9 @@
 | `run-opc.py` | `../run_opc.py` | run | 兼容启动 OPC CLI，不移动根入口 |
 | `run-tasks.py` | `../run_tasks.py` | run/review | 兼容启动自动任务执行器，使用前确认任务范围和提交策略 |
 | `check-pre-upload.sh` | `../pre_upload_check.sh` | check | 上传前检查 wrapper，只做本地检查 |
+| `check-release.py` | local release gate | check | 生成本地 release report；不发布、不 push、不上传、不删除 |
+| `run-rag-eval.py` | `opc.knowledge.rag_eval` | check | 轻量 RAG golden eval，不调用 LLM，不重建大型索引 |
+| `cleanup-dry-run.py` | artifacts/index scanner | check | 只列出清理候选、原因和风险，不删除文件 |
 | `upload-to-github.sh` | `../upload_to_github.sh` | upload | 高风险上传 wrapper，执行前必须输入 `upload` 确认 |
 
 ## 当前策略

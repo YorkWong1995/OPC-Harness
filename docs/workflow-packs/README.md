@@ -5,7 +5,8 @@ Workflow pack 是项目级可复用工作流说明单元，用来固定一类任
 ## 适用范围
 
 - 适合沉淀重复出现的任务类型，例如 bugfix、review、docs-update、release-check。
-- 第一版只作为文档样板和人工协作约束，不自动接入 runtime 编排。
+- P10 起提供 `opc workflow-packs list` 只读发现入口，用于列出 pack manifest、kind、权限、runtime 可执行性和禁用原因。
+- `opc workflow-packs smoke --id docs-update` 只执行低风险 runtime smoke，生成 run_id、trace 和 `workflow_pack_smoke.json`，不触发模型或真实发布。
 - 若 pack 声明为 `claude_skill`，默认由 `.claude/skills/` 中的协作 skill 执行。
 - 若 pack 声明为 `opc_runtime_workflow`，默认由 `opc run` / `opc resume` 产出 run artifacts、trace 和 QA 记录。
 
@@ -42,8 +43,8 @@ Workflow pack 是项目级可复用工作流说明单元，用来固定一类任
 
 | Pack | kind | 状态 | 说明 |
 | --- | --- | --- | --- |
-| `bugfix` | `opc_runtime_workflow` | 计划中 | 缺陷定位、最小修复、定向验证和 QA 验收 |
-| `review` | `claude_skill` | 计划中 | PR、pending diff 或任务结果的只读评审 |
-| `docs-update` | `opc_runtime_workflow` | 计划中 | 文档漂移修复、规范补充和索引检查 |
-| `qt-generation` | `opc_runtime_workflow` | 计划中 | Qt Widgets + CMake 生成、环境诊断、构建验证和 QA 验收 |
-| `release-check` | `claude_skill` | 计划中 | 发布前只读检查、风险判断和回滚条件确认 |
+| `bugfix` | `opc_runtime_workflow` | runtime 候选 | 缺陷定位、最小修复、定向验证和 QA 验收 |
+| `review` | `claude_skill` | skill | PR、pending diff 或任务结果的只读评审 |
+| `docs-update` | `opc_runtime_workflow` | runtime smoke | 文档漂移修复、规范补充和索引检查；P10 用作低风险 smoke |
+| `qt-generation` | `opc_runtime_workflow` | 可选插件 runtime | Qt Widgets + CMake 生成、环境诊断、构建验证和 QA 验收 |
+| `release-check` | `claude_skill` | skill + script | 发布前只读检查、风险判断、release report 和回滚条件确认 |

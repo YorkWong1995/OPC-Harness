@@ -216,6 +216,30 @@ def test_memory_commands_smoke(tmp_path: Path):
     _call_main_with_args(["trace", "show", "--artifacts-dir", str(artifacts), "--limit", "1"])
     _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--focus", "decisions"])
     _call_main_with_args(["trace", "inspect", "--artifacts-dir", str(artifacts), "--json"])
+    _call_main_with_args(["artifacts", "doctor", "--artifacts-dir", str(artifacts), "--json"])
+
+
+def test_index_doctor_and_cleanup_are_read_only(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("OPC_INDEX_ROOT", str(tmp_path / "indexes"))
+    index_root = tmp_path / "indexes" / "demo" / "index"
+    index_root.mkdir(parents=True)
+    (index_root / "meta.json").write_text('{"index_name":"demo"}', encoding="utf-8")
+    (index_root / "bm25").mkdir()
+    (index_root / "vector").mkdir()
+
+    _call_main_with_args(["index-doctor", "--name", "demo", "--json"])
+    _call_main_with_args(["cleanup", "--root", str(tmp_path), "--include", "all", "--json"])
+
+    assert index_root.exists()
+
+
+def test_workflow_packs_list_and_smoke(tmp_path: Path):
+    _call_main_with_args(["workflow-packs", "list", "--json"])
+    _call_main_with_args(["workflow-packs", "smoke", "--id", "docs-update", "--project-dir", str(tmp_path), "--json"])
+
+    artifacts = tmp_path / "artifacts"
+    assert (artifacts / "workflow_pack_smoke.json").exists()
+    assert (artifacts / "run_trace.json").exists()
 
 
 def test_project_types_list_without_plugins_is_read_only(tmp_path: Path, capsys):

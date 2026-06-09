@@ -94,6 +94,13 @@
 - 任何自动化能力都应说明边界和失败处理方式。
 - 尽量避免难以维护的复杂编排，先保证链路清晰。
 
+## Secret 与敏感上下文扫描边界
+
+- doctor、release-check 和 cleanup dry-run 只做本地只读扫描，不上传文件内容，不默认删除文件。
+- 明显敏感文件名包括 `.env`、`secret`、`token`、`password`、`passwd`、`private`、`credential`、`key`；命中时应作为 warning 或 release 阻塞项记录。
+- API key、token、password、private key、临时调试内容、run trace 片段和未经确认的用户上下文禁止写入长期 memory。
+- 误报处理应记录路径、原因和人工判断，不应通过删除证据或绕过扫描解决。
+
 ## 对项目文档的要求
 
 - 文档应服务于执行，而不是仅用于展示。

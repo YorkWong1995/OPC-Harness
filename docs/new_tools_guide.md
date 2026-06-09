@@ -1,4 +1,4 @@
-# 新工具使用指南
+docs\new_tools_guide.md
 
 本文档说明 OPC 新增的三个工具及其使用方法。
 
@@ -241,7 +241,21 @@ grep(pattern="UserNotFoundError", file_glob="**/*.py")
 
 ---
 
-## 常见���题
+## P10 开发者扩展要求
+
+新增工具、插件、workflow pack 或数据诊断入口时，需要同步声明：
+
+| 扩展类型 | 必填说明 | 验证 |
+| --- | --- | --- |
+| CLI / script | 是否只读、是否写 report、是否调用模型、是否触发 git/上传/删除 | `tests/test_cli_smoke.py` 或脚本定向运行 |
+| Project type plugin | manifest 路径、权限、模板 provider、环境检查、build/acceptance 命令 | `tests/test_plugin_security.py`、`tests/test_project_type_plugins.py` |
+| Workflow pack | `id/kind/owner_roles/inputs/outputs/permissions/acceptance/trace`，以及 runtime/skill 边界 | `opc workflow-packs list`、manifest schema 测试 |
+| Data doctor / cleanup | 扫描范围、敏感文件名规则、dry-run 默认、不会删除的保证 | `opc artifacts doctor`、`opc index-doctor`、`opc cleanup --json` |
+| RAG eval | 数据集、top-k、指标、失败记录、不调用 LLM 的边界 | `scripts/run-rag-eval.py`、`tests/test_project_kb_quality.py` |
+
+任何新增入口都要评估 release gate 影响：是否必须纳入 `scripts/check-release.py`，是否需要 README、DOCS_STRUCTURE、scripts/README 或 workflow pack README 建立索引。未知权限、路径越界、外部发布/上传/删除行为不得静默通过。
+
+## 常见问题
 
 ### Q1: edit_file 报错 "old_string 不存在"
 **原因**：`old_string` 必须完全匹配文件中的内容（包括空格、缩进）。
