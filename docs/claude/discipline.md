@@ -37,14 +37,18 @@
 - 读取当前任务条目和 `depends_on`。
 - 读取 `read_before_start` 列出的文件、相关产物和 pending diff。
 - 确认当前执行主体是 main、explore、skill、manual_review 还是 qa_acceptance。
+- 若用户要求通过 OPC 执行，先确定参与角色，并为每个参与角色创建或更新 Role I/O artifact。
+- Role I/O artifact 必须先记录输入、约束、验收标准和上游产物，再开始该角色工作。
 - 识别本次只做一个最小闭环，不把定义、实现、验证和迁移混在一起。
 
 #### 完成任务后
 
 - 先做定向验证，再写 evidence。
 - evidence 必须记录产物路径、检查方式和结果。
+- OPC 流程任务必须更新每个参与角色的 Role I/O artifact 输出区，包括 actions、changed_files、evidence、validation、risks 和 handoff。
+- 缺少任一参与角色的 Role I/O artifact，或 artifact 中输入/输出字段为空且未说明原因时，不得声称完成。
 - 验证失败或未验证时，必须写明原因，不得只写“已完成”。
-- 只在验证通过后更新任务状态或勾选完成。
+- 只在验证通过且角色 I/O artifact 齐全后更新任务状态或勾选完成。
 
 #### 换会话前
 

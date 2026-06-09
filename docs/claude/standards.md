@@ -33,6 +33,96 @@
 - 依赖关系
 - 完成标准
 
+## 角色 I/O artifact 应至少包含
+
+当任务按 OPC 流程执行时，每个参与角色必须维护独立 artifact，使用以下通用 schema：
+
+```yaml
+schema: opc.role_io.v1
+task_id: ""
+role: ""
+phase: ""
+status: pending | in_progress | done | blocked
+input:
+  user_request: ""
+  upstream_artifacts: []
+  constraints: []
+  read_before_start: []
+  acceptance_criteria: []
+output:
+  actions: []
+  changed_files: []
+  decisions: []
+  evidence: []
+  validation: []
+  risks: []
+  handoff:
+    status: ""
+    next_step: ""
+    blockers: none
+    read_next: []
+```
+
+### Engineer I/O 最小字段
+
+```yaml
+schema: opc.engineer_io.v1
+role: Engineer
+input:
+  task_scope: ""
+  acceptance_criteria: []
+  implementation_constraints: []
+  source_files: []
+  upstream_architect_output: []
+output:
+  implementation_summary: []
+  changed_files: []
+  validation_commands: []
+  validation_results: []
+  commit: ""
+  remaining_risks: []
+  next_role_input: []
+```
+
+### QA / Reviewer I/O 最小字段
+
+```yaml
+schema: opc.qa_io.v1
+role: QA | Reviewer
+input:
+  acceptance_criteria: []
+  implementation_artifacts: []
+  changed_files: []
+  validation_scope: []
+output:
+  checks: []
+  validation_results: []
+  defects_or_risks: []
+  pass_fail: pass | fail | blocked
+  evidence: []
+  handoff: ""
+```
+
+### Architect I/O 最小字段
+
+```yaml
+schema: opc.architect_io.v1
+role: Architect
+input:
+  user_request: ""
+  constraints: []
+  existing_context: []
+output:
+  architecture_split: []
+  module_responsibilities: []
+  interface_or_data_structure: []
+  technical_decisions: []
+  risks_and_tradeoffs: []
+  engineer_input: []
+```
+
+角色 I/O artifact 不替代任务清单、验收文档或发布检查；它用于记录角色边界、输入来源、输出去向和可恢复上下文。缺少参与角色的 I/O artifact 时，对应任务不得标记为完成。
+
 长任务或跨会话任务还应补充可恢复字段：
 
 | 字段 | 长任务要求 | 含义 |
