@@ -21,11 +21,12 @@ def main() -> int:
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
     parser.add_argument("--dataset", type=Path, default=PROJECT_ROOT / "tests" / "fixtures" / "rag_eval_dataset.json")
     parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument("--pipeline", choices=["rrf", "bm25"], default="rrf", help="rrf=full pipeline (default), bm25=BM25-only")
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON report path")
     args = parser.parse_args()
 
-    report = run_rag_eval(args.project_root.resolve(), args.dataset.resolve(), top_k=args.top_k)
-    summary = {key: report[key] for key in ["top_k", "queries", "corpus_chunks", "hit_rate", "mrr", "ndcg", "hits", "misses"]}
+    report = run_rag_eval(args.project_root.resolve(), args.dataset.resolve(), top_k=args.top_k, use_full_pipeline=(args.pipeline == "rrf"))
+    summary = {key: report[key] for key in ["top_k", "pipeline", "queries", "scored_queries", "corpus_chunks", "hit_rate", "mrr", "ndcg", "hits", "misses", "no_answer_total", "no_answer_correct"]}
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

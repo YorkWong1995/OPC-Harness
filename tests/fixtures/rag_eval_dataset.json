@@ -1,122 +1,184 @@
 [
   {
     "question": "RRF 融合算法的公式是什么？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/retriever.py"],
-    "relevant_chunks": ["src/opc/knowledge/retriever.py::L27-L56"]
+    "relevant_chunks": ["src/opc/knowledge/retriever.py::L27-L56"],
+    "expected_chunk_ids": ["src/opc/knowledge/retriever.py::L27-L56"]
   },
   {
     "question": "CodeChunker 如何检测 Python 代码的切分点？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/chunker.py"],
-    "relevant_chunks": ["src/opc/knowledge/chunker.py::L38-L52"]
+    "relevant_chunks": ["src/opc/knowledge/chunker.py::L38-L52"],
+    "expected_chunk_ids": ["src/opc/knowledge/chunker.py::L38-L52"]
   },
   {
     "question": "Chunk 数据模型包含哪些字段？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/models.py"],
-    "relevant_chunks": ["src/opc/knowledge/models.py::L8-L16"]
+    "relevant_chunks": ["src/opc/knowledge/models.py::L8-L16"],
+    "expected_chunk_ids": ["src/opc/knowledge/models.py::L8-L16"]
   },
   {
     "question": "向量检索和 BM25 检索结果是如何融合的？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/retriever.py"],
-    "relevant_chunks": ["src/opc/knowledge/retriever.py::L17-L56"]
+    "relevant_chunks": ["src/opc/knowledge/retriever.py::L17-L56"],
+    "expected_chunk_ids": ["src/opc/knowledge/retriever.py::L17-L56"]
   },
   {
     "question": "索引构建的完整流程包括哪些步骤？",
+    "category": "cross_file",
     "relevant_files": ["src/opc/knowledge/indexer.py"],
-    "relevant_chunks": ["src/opc/knowledge/indexer.py::L42-L146"]
+    "relevant_chunks": ["src/opc/knowledge/indexer.py::L42-L146"],
+    "expected_chunk_ids": ["src/opc/knowledge/indexer.py::L42-L146"]
   },
   {
     "question": "SimpleRAG 的关键词提取逻辑是怎样的？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/rag.py"],
-    "relevant_chunks": ["src/opc/rag.py::L102-L110"]
+    "relevant_chunks": ["src/opc/rag.py::L102-L110"],
+    "expected_chunk_ids": ["src/opc/rag.py::L102-L110"]
   },
   {
     "question": "哪些目录在索引时会被跳过？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/models.py"],
-    "relevant_chunks": ["src/opc/knowledge/models.py::L87-L93"]
+    "relevant_chunks": ["src/opc/knowledge/models.py::L87-L93"],
+    "expected_chunk_ids": ["src/opc/knowledge/models.py::L87-L93"]
   },
   {
     "question": "为什么选择 ChromaDB 作为向量数据库？",
+    "category": "doc_concept",
     "relevant_files": ["docs/knowledge-retrieval-design.md"],
-    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L38-L49"]
+    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L38-L49"],
+    "expected_chunk_ids": ["docs/knowledge-retrieval-design.md::L38-L49"]
   },
   {
     "question": "知识检索模块的 Chunk 策略对代码和文档分别使用什么参数？",
+    "category": "doc_concept",
     "relevant_files": ["docs/knowledge-retrieval-design.md"],
-    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L81-L89"]
+    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L81-L89"],
+    "expected_chunk_ids": ["docs/knowledge-retrieval-design.md::L81-L89"]
   },
   {
     "question": "混合检索后是否需要 Rerank？当前方案是什么？",
+    "category": "doc_concept",
     "relevant_files": ["docs/knowledge-retrieval-design.md"],
-    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L52-L77"]
+    "relevant_chunks": ["docs/knowledge-retrieval-design.md::L52-L77"],
+    "expected_chunk_ids": ["docs/knowledge-retrieval-design.md::L52-L77"]
   },
   {
     "question": "opc.toml 中 profile 配置的作用是什么？",
+    "category": "cross_file",
     "relevant_files": ["opc.example.toml", "src/opc/config.py"],
-    "relevant_chunks": ["opc.example.toml::L1-L30", "src/opc/config.py::L23-L79"]
+    "relevant_chunks": ["opc.example.toml::L1-L30", "src/opc/config.py::L23-L79"],
+    "expected_chunk_ids": ["opc.example.toml::L1-L30", "src/opc/config.py::L23-L79"]
   },
   {
     "question": "WorkflowConfig 支持哪些配置项？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/config.py"],
-    "relevant_chunks": ["src/opc/config.py::L15-L20"]
+    "relevant_chunks": ["src/opc/config.py::L15-L20"],
+    "expected_chunk_ids": ["src/opc/config.py::L15-L20"]
   },
   {
     "question": "load_workflow_config 如何确定使用哪个 profile？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/config.py"],
-    "relevant_chunks": ["src/opc/config.py::L23-L49"]
+    "relevant_chunks": ["src/opc/config.py::L23-L49"],
+    "expected_chunk_ids": ["src/opc/config.py::L23-L49"]
   },
   {
     "question": "OPC 允许的角色有哪些？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/config.py"],
-    "relevant_chunks": ["src/opc/config.py::L11-L12"]
+    "relevant_chunks": ["src/opc/config.py::L11-L12"],
+    "expected_chunk_ids": ["src/opc/config.py::L11-L12"]
   },
   {
     "question": "WorkflowState 的持久化结构包含哪些字段？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/workflow.py"],
-    "relevant_chunks": ["src/opc/workflow.py::L38-L47"]
+    "relevant_chunks": ["src/opc/workflow.py::L38-L47"],
+    "expected_chunk_ids": ["src/opc/workflow.py::L38-L47"]
   },
   {
     "question": "DocChunker 如何处理 Markdown 文件的分块？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/chunker.py"],
-    "relevant_chunks": ["src/opc/knowledge/chunker.py::L222-L270"]
+    "relevant_chunks": ["src/opc/knowledge/chunker.py::L222-L270"],
+    "expected_chunk_ids": ["src/opc/knowledge/chunker.py::L222-L270"]
   },
   {
     "question": "EXTENSION_MAP 支持哪些配置文件格式？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/models.py"],
-    "relevant_chunks": ["src/opc/knowledge/models.py::L67-L71"]
+    "relevant_chunks": ["src/opc/knowledge/models.py::L67-L71"],
+    "expected_chunk_ids": ["src/opc/knowledge/models.py::L67-L71"]
   },
   {
     "question": "Indexer 如何处理文件发现时的目录过滤？",
+    "category": "code_symbol",
     "relevant_files": ["src/opc/knowledge/indexer.py"],
-    "relevant_chunks": ["src/opc/knowledge/indexer.py::L266-L286"]
+    "relevant_chunks": ["src/opc/knowledge/indexer.py::L266-L286"],
+    "expected_chunk_ids": ["src/opc/knowledge/indexer.py::L266-L286"]
   },
   {
     "question": "Claude 协作规范的总体工作原则有哪些？",
+    "category": "doc_concept",
     "relevant_files": ["CLAUDE.md"],
-    "relevant_chunks": ["CLAUDE.md::L21-L28"]
+    "relevant_chunks": ["CLAUDE.md::L21-L28"],
+    "expected_chunk_ids": ["CLAUDE.md::L21-L28"]
   },
   {
     "question": "Engineer 角色必须产出哪些内容？",
+    "category": "doc_concept",
     "relevant_files": ["docs/claude/roles.md"],
-    "relevant_chunks": ["docs/claude/roles.md::L53-L61"]
+    "relevant_chunks": ["docs/claude/roles.md::L53-L61"],
+    "expected_chunk_ids": ["docs/claude/roles.md::L53-L61"]
   },
   {
     "question": "执行纪律中的默认协作结论是什么？",
+    "category": "doc_concept",
     "relevant_files": ["docs/claude/discipline.md"],
-    "relevant_chunks": ["docs/claude/discipline.md::L56-L64"]
+    "relevant_chunks": ["docs/claude/discipline.md::L56-L64"],
+    "expected_chunk_ids": ["docs/claude/discipline.md::L56-L64"]
   },
   {
     "question": "验收文档应至少包含哪些字段？",
+    "category": "doc_concept",
     "relevant_files": ["docs/claude/standards.md"],
-    "relevant_chunks": ["docs/claude/standards.md::L38-L46"]
+    "relevant_chunks": ["docs/claude/standards.md::L38-L46"],
+    "expected_chunk_ids": ["docs/claude/standards.md::L38-L46"]
   },
   {
     "question": "search_knowledge 工具如何加载知识索引？",
+    "category": "cross_file",
     "relevant_files": ["src/opc/tools/knowledge_tools.py"],
-    "relevant_chunks": ["src/opc/tools/knowledge_tools.py::L11-L27"]
+    "relevant_chunks": ["src/opc/tools/knowledge_tools.py::L11-L27"],
+    "expected_chunk_ids": ["src/opc/tools/knowledge_tools.py::L11-L27"]
   },
   {
     "question": "OPC 知识索引根目录如何解析 OPC_INDEX_ROOT？",
+    "category": "cross_file",
     "relevant_files": ["src/opc/knowledge/index_paths.py", "src/opc/cli.py"],
-    "relevant_chunks": ["src/opc/knowledge/index_paths.py::L10-L17", "src/opc/cli.py::L240-L251"]
+    "relevant_chunks": ["src/opc/knowledge/index_paths.py::L10-L17", "src/opc/cli.py::L240-L251"],
+    "expected_chunk_ids": ["src/opc/knowledge/index_paths.py::L10-L17", "src/opc/cli.py::L240-L251"]
+  },
+  {
+    "question": "OPC 项目是否内置了基于 Kubernetes 的分布式训练调度器？",
+    "category": "no_answer",
+    "relevant_files": [],
+    "relevant_chunks": [],
+    "expected_chunk_ids": []
+  },
+  {
+    "question": "如何用 OPC 配置 Stripe 支付网关的 webhook 回调密钥？",
+    "category": "no_answer",
+    "relevant_files": [],
+    "relevant_chunks": [],
+    "expected_chunk_ids": []
   }
 ]

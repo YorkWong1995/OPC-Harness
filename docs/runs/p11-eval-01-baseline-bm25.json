@@ -1,0 +1,1261 @@
+{
+  "top_k": 5,
+  "dataset": "D:\\Program_2025\\OPC\\tests\\fixtures\\rag_eval_dataset.json",
+  "pipeline": "bm25",
+  "queries": 26,
+  "scored_queries": 24,
+  "corpus_chunks": 334,
+  "hit_rate": 0.75,
+  "mrr": 0.5208333333333334,
+  "ndcg": 0.5641499540570443,
+  "hits": 18,
+  "misses": 6,
+  "no_answer_total": 2,
+  "no_answer_correct": 2,
+  "details": [
+    {
+      "question": "RRF 融合算法的公式是什么？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/retriever.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L443-L463",
+          "score": 53.75912840705871,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L426-L442",
+          "score": 35.236326245281276,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L571-L580",
+          "score": 30.55213919684057,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L482-L489",
+          "score": 29.33692463730536,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L392-L400",
+          "score": 28.354860673487114,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "CodeChunker 如何检测 Python 代码的切分点？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/chunker.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L97-L120",
+          "score": 70.24821030240565,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L60-L94",
+          "score": 45.361279516856655,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/chunker.py",
+          "chunk_id": "src/opc/knowledge/chunker.py::L1-L12",
+          "score": 43.59786088599656,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/knowledge/chunker.py",
+          "chunk_id": "src/opc/knowledge/chunker.py::L426-L438",
+          "score": 39.25961213509691,
+          "matched": true
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/knowledge/retriever.py",
+          "chunk_id": "src/opc/knowledge/retriever.py::L1-L50",
+          "score": 36.23930995124978,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "Chunk 数据模型包含哪些字段？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/models.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/knowledge/retriever.py",
+          "chunk_id": "src/opc/knowledge/retriever.py::L1-L50",
+          "score": 24.927389053258196,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L129-L140",
+          "score": 22.4940266457129,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/models.py",
+          "chunk_id": "src/opc/knowledge/models.py::L1-L37",
+          "score": 20.53783383828499,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/knowledge/answer.py",
+          "chunk_id": "src/opc/knowledge/answer.py::L55-L90",
+          "score": 18.018838658519638,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L97-L120",
+          "score": 17.777280377973625,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "向量检索和 BM25 检索结果是如何融合的？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/retriever.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L426-L442",
+          "score": 47.8987753859925,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L443-L463",
+          "score": 44.07928678601348,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L137-L144",
+          "score": 41.31474192154891,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L482-L489",
+          "score": 36.97655499658487,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L571-L580",
+          "score": 36.49012410805761,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "索引构建的完整流程包括哪些步骤？",
+      "category": "cross_file",
+      "expected": [
+        "src/opc/knowledge/indexer.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L523-L537",
+          "score": 20.195402295476,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L304-L322",
+          "score": 15.827861097361817,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L496-L508",
+          "score": 15.371432643010774,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L484-L495",
+          "score": 12.099849080931367,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L60-L94",
+          "score": 11.936919702888684,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "SimpleRAG 的关键词提取逻辑是怎样的？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/rag.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 2,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/rag_bm25.py",
+          "chunk_id": "src/opc/rag_bm25.py::L1-L25",
+          "score": 42.26851781895954,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/rag.py",
+          "chunk_id": "src/opc/rag.py::L1-L13",
+          "score": 41.072488924846986,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/rag.py",
+          "chunk_id": "src/opc/rag.py::L196-L231",
+          "score": 36.72465160690436,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/rag_bm25.py",
+          "chunk_id": "src/opc/rag_bm25.py::L122-L158",
+          "score": 33.39479617073175,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/rag_bm25.py",
+          "chunk_id": "src/opc/rag_bm25.py::L26-L121",
+          "score": 32.75102432027782,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "哪些目录在索引时会被跳过？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/models.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L616-L622",
+          "score": 17.08123407202104,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L523-L537",
+          "score": 16.85962090488554,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L159-L171",
+          "score": 10.710923631486441,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L283-L289",
+          "score": 10.431079866007673,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L509-L522",
+          "score": 10.38218396233934,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "为什么选择 ChromaDB 作为向量数据库？",
+      "category": "doc_concept",
+      "expected": [
+        "docs/knowledge-retrieval-design.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L38-L51",
+          "score": 50.68553364591468,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L476-L483",
+          "score": 33.416411024583894,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/embedder.py",
+          "chunk_id": "src/opc/knowledge/embedder.py::L117-L160",
+          "score": 33.281265763030405,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/knowledge/vector_store.py",
+          "chunk_id": "src/opc/knowledge/vector_store.py::L1-L20",
+          "score": 33.02779219065049,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L26-L37",
+          "score": 30.46896701029131,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "知识检索模块的 Chunk 策略对代码和文档分别使用什么参数？",
+      "category": "doc_concept",
+      "expected": [
+        "docs/knowledge-retrieval-design.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L121-L128",
+          "score": 33.71675829512337,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L283-L289",
+          "score": 31.101031335397984,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L464-L475",
+          "score": 29.37086658734538,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L443-L463",
+          "score": 27.26764719310502,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L141-L148",
+          "score": 26.952369401276577,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "混合检索后是否需要 Rerank？当前方案是什么？",
+      "category": "doc_concept",
+      "expected": [
+        "docs/knowledge-retrieval-design.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L52-L53",
+          "score": 49.172807813536394,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L571-L580",
+          "score": 46.678786273821345,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L60-L94",
+          "score": 41.5716722351766,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L482-L489",
+          "score": 41.30893976372924,
+          "matched": true
+        },
+        {
+          "rank": 5,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L54-L59",
+          "score": 36.46973384413121,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "opc.toml 中 profile 配置的作用是什么？",
+      "category": "cross_file",
+      "expected": [
+        "opc.example.toml",
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 2,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L1362-L1396",
+          "score": 66.12140705140595,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L338-L341",
+          "score": 63.01491514427633,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L107-L112",
+          "score": 61.68098397556237,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "opc.example.toml",
+          "chunk_id": "opc.example.toml::L1-L57",
+          "score": 61.07695892015933,
+          "matched": true
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L1-L38",
+          "score": 58.74062366341657,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "WorkflowConfig 支持哪些配置项？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L338-L341",
+          "score": 33.70616518784019,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L1-L38",
+          "score": 31.512135645991624,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L69-L106",
+          "score": 31.41459871446485,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L342-L402",
+          "score": 29.13750537962597,
+          "matched": true
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/knowledge/retriever.py",
+          "chunk_id": "src/opc/knowledge/retriever.py::L1-L50",
+          "score": 28.546697780072407,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "load_workflow_config 如何确定使用哪个 profile？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L338-L341",
+          "score": 70.27450629860498,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L372-L415",
+          "score": 65.80580734877131,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L153-L213",
+          "score": 64.72076823612156,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L416-L457",
+          "score": 64.31288795124203,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L113-L152",
+          "score": 62.2675535059743,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "OPC 允许的角色有哪些？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/config.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L538-L553",
+          "score": 22.045870475496223,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L523-L537",
+          "score": 21.50028387708598,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/config.py",
+          "chunk_id": "src/opc/config.py::L403-L411",
+          "score": 20.645942798372975,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L788-L791",
+          "score": 20.481965640134472,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L5-L14",
+          "score": 20.10561121419739,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "WorkflowState 的持久化结构包含哪些字段？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/workflow.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/workflow.py",
+          "chunk_id": "src/opc/workflow.py::L41-L50",
+          "score": 44.9998690243505,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L646-L653",
+          "score": 36.71184976038315,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/workflow.py",
+          "chunk_id": "src/opc/workflow.py::L51-L82",
+          "score": 33.90783546753086,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L638-L645",
+          "score": 28.73175357458545,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/knowledge/retriever.py",
+          "chunk_id": "src/opc/knowledge/retriever.py::L1-L50",
+          "score": 26.778003961597687,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "DocChunker 如何处理 Markdown 文件的分块？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/chunker.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/knowledge-retrieval-design.md",
+          "chunk_id": "docs/knowledge-retrieval-design.md::L97-L120",
+          "score": 79.09351335350992,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L464-L475",
+          "score": 40.356595593718595,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/chunker.py",
+          "chunk_id": "src/opc/knowledge/chunker.py::L426-L438",
+          "score": 39.47197267942355,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/knowledge/models.py",
+          "chunk_id": "src/opc/knowledge/models.py::L47-L94",
+          "score": 38.96855986357227,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/knowledge/chunker.py",
+          "chunk_id": "src/opc/knowledge/chunker.py::L216-L315",
+          "score": 37.31196835179429,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "EXTENSION_MAP 支持哪些配置文件格式？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/models.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/knowledge/chunker.py",
+          "chunk_id": "src/opc/knowledge/chunker.py::L1-L12",
+          "score": 44.60056622334614,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/knowledge/indexer.py",
+          "chunk_id": "src/opc/knowledge/indexer.py::L1-L20",
+          "score": 40.85787416259916,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/knowledge/models.py",
+          "chunk_id": "src/opc/knowledge/models.py::L47-L94",
+          "score": 36.71854447221968,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/knowledge/chunker.py",
+          "chunk_id": "src/opc/knowledge/chunker.py::L396-L425",
+          "score": 35.18118858079228,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/knowledge/rag_eval.py",
+          "chunk_id": "src/opc/knowledge/rag_eval.py::L37-L55",
+          "score": 34.827602348185586,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "Indexer 如何处理文件发现时的目录过滤？",
+      "category": "code_symbol",
+      "expected": [
+        "src/opc/knowledge/indexer.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 2,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L458-L504",
+          "score": 35.30983091547754,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/knowledge/indexer.py",
+          "chunk_id": "src/opc/knowledge/indexer.py::L1-L20",
+          "score": 34.75053142140682,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L1182-L1218",
+          "score": 31.52019376723624,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/tools/knowledge_tools.py",
+          "chunk_id": "src/opc/tools/knowledge_tools.py::L10-L43",
+          "score": 28.19930023534305,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L416-L457",
+          "score": 27.61432071047385,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "Claude 协作规范的总体工作原则有哪些？",
+      "category": "doc_concept",
+      "expected": [
+        "CLAUDE.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "CLAUDE.md",
+          "chunk_id": "CLAUDE.md::L1-L4",
+          "score": 31.209674881122783,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "CLAUDE.md",
+          "chunk_id": "CLAUDE.md::L21-L29",
+          "score": 30.23280388854172,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "docs/claude/standards.md",
+          "chunk_id": "docs/claude/standards.md::L198-L207",
+          "score": 29.649694410853527,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L1-L4",
+          "score": 28.855029292308433,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/claude/standards.md",
+          "chunk_id": "docs/claude/standards.md::L1-L4",
+          "score": 21.730995798621876,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "Engineer 角色必须产出哪些内容？",
+      "category": "doc_concept",
+      "expected": [
+        "docs/claude/roles.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 3,
+      "results": [
+        {
+          "rank": 1,
+          "file": "CLAUDE.md",
+          "chunk_id": "CLAUDE.md::L14-L20",
+          "score": 31.175543080296293,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "CLAUDE.md",
+          "chunk_id": "CLAUDE.md::L5-L13",
+          "score": 27.474921840575355,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L69-L84",
+          "score": 26.25970011343998,
+          "matched": true
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L196-L203",
+          "score": 25.832372290935062,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L13-L62",
+          "score": 25.626113498720628,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "执行纪律中的默认协作结论是什么？",
+      "category": "doc_concept",
+      "expected": [
+        "docs/claude/discipline.md"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/claude/discipline.md",
+          "chunk_id": "docs/claude/discipline.md::L115-L124",
+          "score": 18.928528770038113,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L218-L225",
+          "score": 15.842426626284613,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "CLAUDE.md",
+          "chunk_id": "CLAUDE.md::L30-L33",
+          "score": 15.048344836003443,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/claude/discipline.md",
+          "chunk_id": "docs/claude/discipline.md::L125-L133",
+          "score": 14.692485359030163,
+          "matched": true
+        },
+        {
+          "rank": 5,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L632-L637",
+          "score": 14.134045508724242,
+          "matched": false
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "验收文档应至少包含哪些字段？",
+      "category": "doc_concept",
+      "expected": [
+        "docs/claude/standards.md"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L85-L99",
+          "score": 29.346848392855534,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L38-L53",
+          "score": 25.67653887032665,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L15-L37",
+          "score": 25.48214809671773,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L54-L68",
+          "score": 25.29411887827442,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/claude/roles.md",
+          "chunk_id": "docs/claude/roles.md::L100-L108",
+          "score": 22.22415112715015,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "search_knowledge 工具如何加载知识索引？",
+      "category": "cross_file",
+      "expected": [
+        "src/opc/tools/knowledge_tools.py"
+      ],
+      "hit": false,
+      "first_hit_rank": null,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L346-L353",
+          "score": 34.53748740474521,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L418-L425",
+          "score": 32.1034331901284,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L554-L570",
+          "score": 24.732748562800992,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/knowledge/retriever.py",
+          "chunk_id": "src/opc/knowledge/retriever.py::L1-L50",
+          "score": 24.533579113113422,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L403-L417",
+          "score": 22.95018894435158,
+          "matched": false
+        }
+      ],
+      "failure_reason": "expected file not found in top-k",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "OPC 知识索引根目录如何解析 OPC_INDEX_ROOT？",
+      "category": "cross_file",
+      "expected": [
+        "src/opc/knowledge/index_paths.py",
+        "src/opc/cli.py"
+      ],
+      "hit": true,
+      "first_hit_rank": 1,
+      "results": [
+        {
+          "rank": 1,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L350-L371",
+          "score": 57.24155730036041,
+          "matched": true
+        },
+        {
+          "rank": 2,
+          "file": "src/opc/knowledge/index_paths.py",
+          "chunk_id": "src/opc/knowledge/index_paths.py::L1-L32",
+          "score": 56.174237276108165,
+          "matched": true
+        },
+        {
+          "rank": 3,
+          "file": "src/opc/tools/knowledge_tools.py",
+          "chunk_id": "src/opc/tools/knowledge_tools.py::L10-L43",
+          "score": 45.69129568170059,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L458-L504",
+          "score": 45.46948231504544,
+          "matched": true
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/cli.py",
+          "chunk_id": "src/opc/cli.py::L1182-L1218",
+          "score": 44.89416358174331,
+          "matched": true
+        }
+      ],
+      "failure_reason": "",
+      "pipeline": "bm25"
+    },
+    {
+      "question": "OPC 项目是否内置了基于 Kubernetes 的分布式训练调度器？",
+      "category": "no_answer",
+      "expected": [],
+      "no_answer": true,
+      "no_answer_correct": true,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L418-L425",
+          "score": 24.732527144608838,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L735-L740",
+          "score": 22.392439397323123,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L346-L353",
+          "score": 21.82055137237445,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L538-L553",
+          "score": 21.7741286432908,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "src/opc/knowledge/answer.py",
+          "chunk_id": "src/opc/knowledge/answer.py::L1-L54",
+          "score": 20.2880813625403,
+          "matched": false
+        }
+      ],
+      "pipeline": "bm25"
+    },
+    {
+      "question": "如何用 OPC 配置 Stripe 支付网关的 webhook 回调密钥？",
+      "category": "no_answer",
+      "expected": [],
+      "no_answer": true,
+      "no_answer_correct": true,
+      "results": [
+        {
+          "rank": 1,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L426-L442",
+          "score": 22.583457620936862,
+          "matched": false
+        },
+        {
+          "rank": 2,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L761-L770",
+          "score": 18.90608539337151,
+          "matched": false
+        },
+        {
+          "rank": 3,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L304-L322",
+          "score": 18.210105778953498,
+          "matched": false
+        },
+        {
+          "rank": 4,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L275-L282",
+          "score": 18.041108051992854,
+          "matched": false
+        },
+        {
+          "rank": 5,
+          "file": "docs/share/internal_technical_share.md",
+          "chunk_id": "docs/share/internal_technical_share.md::L63-L66",
+          "score": 15.599487144377996,
+          "matched": false
+        }
+      ],
+      "pipeline": "bm25"
+    }
+  ]
+}
