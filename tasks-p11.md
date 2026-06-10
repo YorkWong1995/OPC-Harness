@@ -32,7 +32,7 @@
 
 ## 2. P0 - Metadata Filter 启用
 
-- [ ] P11-FILTER-01 在 Retriever.retrieve() 增加 filters 参数 <!-- files: src/opc/knowledge/retriever.py, src/opc/knowledge/vector_store.py, src/opc/tools/knowledge_tools.py --> <!-- context: 责任角色=Engineer；输入=现有 retriever.py（无过滤）、ChromaDB 后端已存 language/source_name 字段；输出=retrieve() 接受可选 filters dict，传入 ChromaDB where 条件；FAISS 后端在内存中按元数据后过滤；完成标准=能按 language、source_name 过滤，knowledge_tools 的 search_knowledge 工具透传 filters 参数 --> <!-- depends_on: P11-EVAL-01 --> <!-- read_before_start: tasks-p11.md P11-FILTER-01、P11-EVAL-01 evidence、src/opc/knowledge/retriever.py、src/opc/knowledge/vector_store.py、src/opc/tools/knowledge_tools.py --> <!-- execution: main --> <!-- evidence: --> <!-- handoff: -->
+- [x] P11-FILTER-01 在 Retriever.retrieve() 增加 filters 参数 <!-- files: src/opc/knowledge/retriever.py, src/opc/knowledge/vector_store.py, src/opc/tools/knowledge_tools.py --> <!-- context: 责任角色=Engineer；输入=现有 retriever.py（无过滤）、ChromaDB 后端已存 language/source_name 字段；输出=retrieve() 接受可选 filters dict，传入 ChromaDB where 条件；FAISS 后端在内存中按元数据后过滤；完成标准=能按 language、source_name 过滤，knowledge_tools 的 search_knowledge 工具透传 filters 参数 --> <!-- depends_on: P11-EVAL-01 --> <!-- read_before_start: tasks-p11.md P11-FILTER-01、P11-EVAL-01 evidence、src/opc/knowledge/retriever.py、src/opc/knowledge/vector_store.py、src/opc/tools/knowledge_tools.py --> <!-- execution: main --> <!-- evidence: retrieve(filters=) 支持 language/source_name/file_path，标量=相等、列表=属于其一；FAISS 放宽召回后内存过滤(query_filtered)，Chroma 用 where($in/$and)；BM25 与 expand_context 结果内存同条件过滤；search_knowledge 工具+schema 透传 language/source_name；验证脚本确认 markdown/python 过滤无泄漏(FILTER_OK)，test_retriever_context_expansion+test_vector_store_faiss 7 passed --> <!-- handoff: 单一全局 filter 会损害混合类别评测，过滤用于工具按需调用而非全量评测 -->
 
 ---
 

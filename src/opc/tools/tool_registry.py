@@ -263,6 +263,8 @@ BUILTIN_TOOLS = [
                 "query": {"type": "string", "description": "要检索的问题或关键词"},
                 "top_k": {"type": "integer", "description": "返回结果数，默认 5", "default": 5},
                 "index_name": {"type": "string", "description": "可选索引名称；默认使用当前项目目录名"},
+                "language": {"type": "string", "description": "可选，按语言过滤（如 python/markdown/cpp）"},
+                "source_name": {"type": "string", "description": "可选，按来源目录标识过滤"},
             },
             "required": ["query"],
         },

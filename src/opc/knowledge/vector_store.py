@@ -41,6 +41,11 @@ class VectorStore:
     def query(self, query_text: str, top_k: int = 20) -> list[RetrievalResult]:
         return self._backend.query(query_text, top_k=top_k)
 
+    def query_filtered(self, query_text: str, top_k: int = 20, filters: dict[str, Any] | None = None) -> list[RetrievalResult]:
+        if not filters:
+            return self._backend.query(query_text, top_k=top_k)
+        return self._backend.query_filtered(query_text, top_k=top_k, filters=filters)
+
     def delete_chunks(self, chunk_ids: list[str]):
         self._backend.delete_chunks(chunk_ids)
 
@@ -98,6 +103,31 @@ class FaissVectorStore:
                 continue
             similarity = 1.0 / (1.0 + float(distance))
             results.append(RetrievalResult(chunk=self.chunks[int(index_id)], score=similarity, source="vector", rank=rank))
+        return results
+
+    def query_filtered(self, query_text: str, top_k: int = 20, filters: dict[str, Any] | None = None) -> list[RetrievalResult]:
+        """FAISS 无原生过滤：检索更宽后在内存按元数据过滤再截断。"""
+        if self.index is None or not self.chunks:
+            return []
+        if not filters:
+            return self.query(query_text, top_k=top_k)
+        # 过滤可能淘汰大量候选，放大召回宽度
+        fetch = min(len(self.chunks), max(top_k * 5, top_k + 20))
+        query_vector = self._vector(embed_query(query_text)).reshape(1, -1)
+        distances, indices = self.index.search(query_vector, fetch)
+        results: list[RetrievalResult] = []
+        rank = 0
+        for distance, index_id in zip(distances[0], indices[0]):
+            if index_id < 0 or index_id >= len(self.chunks):
+                continue
+            chunk = self.chunks[int(index_id)]
+            if not _chunk_matches_filters(chunk, filters):
+                continue
+            rank += 1
+            similarity = 1.0 / (1.0 + float(distance))
+            results.append(RetrievalResult(chunk=chunk, score=similarity, source="vector", rank=rank))
+            if rank >= top_k:
+                break
         return results
 
     def delete_chunks(self, chunk_ids: list[str]):
@@ -214,16 +244,30 @@ class ChromaVectorStore:
             n_results=min(top_k, self.collection.count()) if self.collection.count() > 0 else top_k,
             include=["documents", "metadatas", "distances"],
         )
+        return self._to_results(results)
 
+    def query_filtered(self, query_text: str, top_k: int = 20, filters: dict[str, Any] | None = None) -> list[RetrievalResult]:
+        if self.collection is None:
+            return []
+        where = _build_chroma_where(filters) if filters else None
+        if where is None:
+            return self.query(query_text, top_k=top_k)
+        results = self.collection.query(
+            query_texts=[query_text],
+            n_results=min(top_k, self.collection.count()) if self.collection.count() > 0 else top_k,
+            where=where,
+            include=["documents", "metadatas", "distances"],
+        )
+        return self._to_results(results)
+
+    def _to_results(self, results) -> list[RetrievalResult]:
         if not results["ids"] or not results["ids"][0]:
             return []
-
         retrieval_results = []
         ids = results["ids"][0]
         distances = results["distances"][0]
         metadatas = results["metadatas"][0]
         documents = results["documents"][0]
-
         for rank, (id_, dist, meta, doc) in enumerate(zip(ids, distances, metadatas, documents), 1):
             similarity = 1.0 / (1.0 + dist)
             chunk = Chunk(
@@ -241,7 +285,6 @@ class ChromaVectorStore:
                 source="vector",
                 rank=rank,
             ))
-
         return retrieval_results
 
     def delete_chunks(self, chunk_ids: list[str]):
@@ -255,6 +298,41 @@ class ChromaVectorStore:
             self.client.delete_collection(name=collection_name)
         except Exception:
             pass
+
+
+# 支持过滤的元数据字段
+_FILTERABLE_FIELDS = ("language", "source_name", "file_path")
+
+
+def _chunk_matches_filters(chunk: Chunk, filters: dict[str, Any]) -> bool:
+    """内存过滤：filters 值可为标量（相等）或列表（属于其一）。"""
+    for key, expected in filters.items():
+        if key not in _FILTERABLE_FIELDS:
+            continue
+        actual = getattr(chunk, key, None)
+        if isinstance(expected, (list, tuple, set)):
+            if actual not in expected:
+                return False
+        elif actual != expected:
+            return False
+    return True
+
+
+def _build_chroma_where(filters: dict[str, Any]) -> dict[str, Any] | None:
+    """转换为 ChromaDB where 条件；标量用相等，列表用 $in。"""
+    conditions: list[dict[str, Any]] = []
+    for key, expected in filters.items():
+        if key not in _FILTERABLE_FIELDS:
+            continue
+        if isinstance(expected, (list, tuple, set)):
+            conditions.append({key: {"$in": list(expected)}})
+        else:
+            conditions.append({key: expected})
+    if not conditions:
+        return None
+    if len(conditions) == 1:
+        return conditions[0]
+    return {"$and": conditions}
 
 
 def _chunk_to_dict(chunk: Chunk) -> dict[str, Any]:

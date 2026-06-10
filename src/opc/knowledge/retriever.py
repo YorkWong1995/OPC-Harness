@@ -6,7 +6,7 @@ import re
 
 from .models import Chunk, FusedResult, RetrievalResult, CODE_LANGUAGES, DOC_LANGUAGES
 from .bm25_index import BM25Index
-from .vector_store import VectorStore
+from .vector_store import VectorStore, _chunk_matches_filters
 
 
 _CODE_QUERY_HINTS: dict[str, list[str]] = {
@@ -59,20 +59,32 @@ class Retriever:
         self.bm25_index = bm25_index
         self.file_dependencies = file_dependencies or {}
 
-    def retrieve(self, query: str, top_k: int = 10, rrf_k: int = 60) -> list[FusedResult]:
-        """执行多路检索并融合结果"""
+    def retrieve(self, query: str, top_k: int = 10, rrf_k: int = 60, filters: dict[str, object] | None = None) -> list[FusedResult]:
+        """执行多路检索并融合结果。
+
+        filters：可选元数据过滤，支持 language/source_name/file_path 字段，
+        值可为标量（相等）或列表（属于其一）。向量后端按后端能力过滤，
+        BM25 与 expand_context 结果在内存按相同条件过滤。
+        """
         query_profile = self._build_query_profile(query)
         search_query = self._rewrite_query(query, query_profile)
 
         # 每路多取一些，保证融合后有足够结果
         fetch_k = top_k * 3
 
-        vector_results = self.vector_store.query(search_query, top_k=fetch_k)
-        bm25_results = self.bm25_index.query(search_query, top_k=fetch_k)
+        if filters:
+            vector_results = self.vector_store.query_filtered(search_query, top_k=fetch_k, filters=filters)
+            bm25_results = [r for r in self.bm25_index.query(search_query, top_k=fetch_k * 2) if _chunk_matches_filters(r.chunk, filters)][:fetch_k]
+        else:
+            vector_results = self.vector_store.query(search_query, top_k=fetch_k)
+            bm25_results = self.bm25_index.query(search_query, top_k=fetch_k)
 
         fused = self.rrf_fuse(vector_results, bm25_results, top_k, rrf_k)
         fused = self._apply_query_bias(fused, query_profile)
-        return self.expand_context(fused, top_k=top_k)
+        expanded = self.expand_context(fused, top_k=top_k)
+        if filters:
+            expanded = [r for r in expanded if _chunk_matches_filters(r.chunk, filters)]
+        return expanded
 
     def _build_query_profile(self, query: str) -> dict[str, object]:
         identifiers = _IDENTIFIER_RE.findall(query)

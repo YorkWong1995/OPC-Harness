@@ -4,7 +4,14 @@ from __future__ import annotations
 
 
 class KnowledgeToolsMixin:
-    def _tool_search_knowledge(self, query: str, top_k: int = 5, index_name: str | None = None) -> str:
+    def _tool_search_knowledge(
+        self,
+        query: str,
+        top_k: int = 5,
+        index_name: str | None = None,
+        language: str | None = None,
+        source_name: str | None = None,
+    ) -> str:
         if not self.project_dir:
             return "错误：未设置项目目录"
 
@@ -25,7 +32,13 @@ class KnowledgeToolsMixin:
         vector_store = VectorStore(index_root / "vector")
         vector_store.create_collection(meta.index_name)
         retriever = Retriever(vector_store, bm25, meta.file_dependencies)
-        results = retriever.retrieve(query, top_k=top_k)
+
+        filters: dict[str, object] = {}
+        if language:
+            filters["language"] = language
+        if source_name:
+            filters["source_name"] = source_name
+        results = retriever.retrieve(query, top_k=top_k, filters=filters or None)
         if not results:
             return "未找到相关知识。"
 
