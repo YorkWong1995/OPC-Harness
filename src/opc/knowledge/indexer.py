@@ -8,7 +8,9 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .models import Chunk, IndexMeta, EXTENSION_MAP, SKIP_DIRS
+import os
+
+from .models import Chunk, IndexMeta, EXTENSION_MAP, SKIP_DIRS, CODE_LANGUAGES
 from .chunker import chunk_file
 from .bm25_index import BM25Index
 from .vector_store import VectorStore
@@ -120,9 +122,10 @@ class Indexer:
         # 4. 构建向量索引
         if verbose:
             print("  构建向量索引...")
+        summary_chunks = self._generate_summaries(all_chunks)
         vs = VectorStore(self.vector_path)
         vs.create_collection(self.index_name)
-        vs.add_chunks(all_chunks)
+        vs.add_chunks(all_chunks + summary_chunks)
 
         # 5. 保存元数据
         elapsed = time.time() - start_time
@@ -189,7 +192,12 @@ class Indexer:
         deleted_paths = set(previous_manifest) - current_paths
         bm25.load(self.bm25_path)
         retained_chunks = [c for c in bm25.chunks if c.file_path in unchanged_paths]
-        removed_chunk_ids = [c.chunk_id for c in bm25.chunks if c.file_path in deleted_paths or c.file_path not in unchanged_paths]
+        removed_chunk_ids = [
+            cid
+            for c in bm25.chunks
+            if c.file_path in deleted_paths or c.file_path not in unchanged_paths
+            for cid in (c.chunk_id, f"{c.chunk_id}::summary")
+        ]
 
         changed_chunks: list[Chunk] = []
         for _, source_name, rel_path, content in changed_files:
@@ -205,10 +213,11 @@ class Indexer:
         bm25.build(all_chunks)
         bm25.save(self.bm25_path)
 
+        summary_chunks = self._generate_summaries(changed_chunks)
         vs = VectorStore(self.vector_path)
         vs.create_collection(self.index_name)
         vs.delete_chunks(removed_chunk_ids)
-        vs.add_chunks(changed_chunks)
+        vs.add_chunks(changed_chunks + summary_chunks)
 
         model_name, _ = get_model_info()
         file_dependencies = self._build_file_dependencies(files)
@@ -230,6 +239,61 @@ class Indexer:
             print(f"  增量索引完成，耗时 {elapsed:.1f}s")
 
         return meta
+
+    def _generate_summaries(self, chunks: list[Chunk]) -> list[Chunk]:
+        if os.environ.get("OPC_CODE_SUMMARY", "").strip() != "1":
+            return []
+        code_chunks = [c for c in chunks if c.language in CODE_LANGUAGES]
+        if not code_chunks:
+            return []
+        import anthropic
+        import json as _json
+
+        client = anthropic.Anthropic()
+        results: list[Chunk] = []
+        batch_size = 20
+        for start in range(0, len(code_chunks), batch_size):
+            batch = code_chunks[start:start + batch_size]
+            chunks_text = "\n".join(
+                f"[{i}] 文件: {c.file_path} (第{c.start_line}-{c.end_line}行)\n{c.content[:300]}"
+                for i, c in enumerate(batch)
+            )
+            prompt = (
+                "你是代码分析助手。请为以下每个代码片段生成一句话的中文功能描述（不超过30字）。\n"
+                "按 JSON 数组格式返回，每项只有 \"summary\" 字段。\n\n"
+                + chunks_text
+            )
+            try:
+                response = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=1024,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                text = response.content[0].text
+                # extract JSON array
+                start_idx = text.find("[")
+                end_idx = text.rfind("]") + 1
+                summaries = _json.loads(text[start_idx:end_idx])
+                for i, orig in enumerate(batch):
+                    if i >= len(summaries):
+                        break
+                    summary_text = summaries[i].get("summary", "")
+                    if not summary_text:
+                        continue
+                    results.append(Chunk(
+                        chunk_id=f"{orig.chunk_id}::summary",
+                        file_path=orig.file_path,
+                        start_line=orig.start_line,
+                        end_line=orig.end_line,
+                        content=summary_text,
+                        language=orig.language,
+                        source_name=orig.source_name,
+                        chunk_type="summary",
+                        source_chunk_id=orig.chunk_id,
+                    ))
+            except Exception:
+                continue
+        return results
 
     def _build_file_dependencies(self, files: list[tuple[Path, Path]]) -> dict[str, dict[str, list[str]]]:
         by_source: dict[Path, list[Path]] = {}

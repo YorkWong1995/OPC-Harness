@@ -14,6 +14,8 @@ class Chunk:
     content: str
     language: str          # "python", "cpp", "markdown", "text", etc.
     source_name: str       # 来源目录标识
+    chunk_type: str = "code"          # "code" or "summary"
+    source_chunk_id: str = ""         # for summary chunks: points to original chunk_id
 
 
 @dataclass

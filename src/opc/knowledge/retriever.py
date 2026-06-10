@@ -89,7 +89,26 @@ class Retriever:
         expanded = self.expand_context(rrf_candidates, top_k=top_k)
         if filters:
             expanded = [r for r in expanded if _chunk_matches_filters(r.chunk, filters)]
-        return expanded
+
+        # swap summary chunks for their source chunks
+        source_by_id = {c.chunk_id: c for c in self.bm25_index.chunks}
+        seen: set[str] = set()
+        final: list[FusedResult] = []
+        for result in expanded:
+            chunk = result.chunk
+            if getattr(chunk, "chunk_type", "code") == "summary":
+                src_id = getattr(chunk, "source_chunk_id", "")
+                chunk = source_by_id.get(src_id, chunk)
+            if chunk.chunk_id not in seen:
+                seen.add(chunk.chunk_id)
+                final.append(FusedResult(
+                    chunk=chunk,
+                    rrf_score=result.rrf_score,
+                    vector_rank=result.vector_rank,
+                    bm25_rank=result.bm25_rank,
+                    expansion_reason=result.expansion_reason,
+                ))
+        return final
 
     def _build_query_profile(self, query: str) -> dict[str, object]:
         identifiers = _IDENTIFIER_RE.findall(query)

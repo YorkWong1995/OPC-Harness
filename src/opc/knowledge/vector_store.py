@@ -218,6 +218,8 @@ class ChromaVectorStore:
                 "end_line": c.end_line,
                 "language": c.language,
                 "source_name": c.source_name,
+                "chunk_type": getattr(c, "chunk_type", "code"),
+                "source_chunk_id": getattr(c, "source_chunk_id", ""),
             } for c in batch]
 
             existing = set(self.collection.get(ids=ids)["ids"]) if self.collection.count() > 0 else set()
@@ -344,6 +346,8 @@ def _chunk_to_dict(chunk: Chunk) -> dict[str, Any]:
         "content": chunk.content,
         "language": chunk.language,
         "source_name": chunk.source_name,
+        "chunk_type": getattr(chunk, "chunk_type", "code"),
+        "source_chunk_id": getattr(chunk, "source_chunk_id", ""),
     }
 
 
@@ -356,4 +360,6 @@ def _chunk_from_dict(data: dict[str, Any]) -> Chunk:
         content=data.get("content", ""),
         language=data.get("language", ""),
         source_name=data.get("source_name", ""),
+        chunk_type=data.get("chunk_type", "code"),
+        source_chunk_id=data.get("source_chunk_id", ""),
     )
