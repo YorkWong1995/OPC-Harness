@@ -9,7 +9,7 @@ import shutil
 from typing import Any
 
 from .models import Chunk, RetrievalResult
-from .embedder import embed_query, embed_texts, get_embedding_function
+from .embedder import embed_query, embed_texts, get_embedding_function, contextual_text
 
 
 COLLECTION_PREFIX = "opc_"
@@ -81,7 +81,7 @@ class FaissVectorStore:
             batch = new_chunks[start:start + batch_size]
             if not batch:
                 continue
-            vectors = self._vectors([chunk.content for chunk in batch])
+            vectors = self._vectors([contextual_text(chunk) for chunk in batch])
             self._ensure_index(vectors.shape[1])
             if self.index.d != vectors.shape[1]:
                 raise RuntimeError(f"FAISS 维度不匹配：index={self.index.d}, vectors={vectors.shape[1]}")
@@ -211,7 +211,7 @@ class ChromaVectorStore:
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i:i + batch_size]
             ids = [c.chunk_id for c in batch]
-            documents = [c.content for c in batch]
+            documents = [contextual_text(c) for c in batch]
             metadatas = [{
                 "file_path": c.file_path,
                 "start_line": c.start_line,

@@ -7,6 +7,7 @@ import re
 from .models import Chunk, FusedResult, RetrievalResult, CODE_LANGUAGES, DOC_LANGUAGES
 from .bm25_index import BM25Index
 from .vector_store import VectorStore, _chunk_matches_filters
+from .reranker import rerank, reranker_enabled
 
 
 _CODE_QUERY_HINTS: dict[str, list[str]] = {
@@ -79,9 +80,13 @@ class Retriever:
             vector_results = self.vector_store.query(search_query, top_k=fetch_k)
             bm25_results = self.bm25_index.query(search_query, top_k=fetch_k)
 
-        fused = self.rrf_fuse(vector_results, bm25_results, top_k, rrf_k)
-        fused = self._apply_query_bias(fused, query_profile)
-        expanded = self.expand_context(fused, top_k=top_k)
+        rrf_candidates = self.rrf_fuse(vector_results, bm25_results, top_k * 3, rrf_k)
+        rrf_candidates = self._apply_query_bias(rrf_candidates, query_profile)
+        if reranker_enabled():
+            rrf_candidates = rerank(query, rrf_candidates, top_k)
+        else:
+            rrf_candidates = rrf_candidates[:top_k]
+        expanded = self.expand_context(rrf_candidates, top_k=top_k)
         if filters:
             expanded = [r for r in expanded if _chunk_matches_filters(r.chunk, filters)]
         return expanded

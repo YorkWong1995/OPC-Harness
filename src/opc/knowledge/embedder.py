@@ -182,6 +182,11 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return fn(texts)
 
 
+def contextual_text(chunk) -> str:
+    """生成带上下文前缀的 embedding 输入文本（存储仍保留原始 content）。"""
+    return f"文件: {chunk.file_path}\n语言: {chunk.language}\n\n{chunk.content}"
+
+
 def embed_query(text: str) -> list[float]:
     """生成单条查询 embedding"""
     results = embed_texts([text])
