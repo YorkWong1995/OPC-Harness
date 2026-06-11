@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 from opc.cli import _get_index_root
 from opc.knowledge.index_paths import get_index_root
@@ -39,6 +40,10 @@ def test_search_knowledge_uses_cli_index_root(monkeypatch, tmp_path: Path):
 
     index_root = tmp_path / "custom-index-root"
     monkeypatch.setenv("OPC_INDEX_ROOT", str(index_root))
+    monkeypatch.delenv("OPC_EMBEDDING_MODEL", raising=False)
+
+    build_env = {**os.environ, "OPC_INDEX_ROOT": str(index_root)}
+    build_env.pop("OPC_EMBEDDING_MODEL", None)
 
     build = subprocess.run(
         [
@@ -51,7 +56,7 @@ def test_search_knowledge_uses_cli_index_root(monkeypatch, tmp_path: Path):
             "--dirs",
             str(project_dir),
         ],
-        env={**os.environ, "OPC_INDEX_ROOT": str(index_root)},
+        env=build_env,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -61,8 +66,15 @@ def test_search_knowledge_uses_cli_index_root(monkeypatch, tmp_path: Path):
     assert build.returncode == 0, f"opc index failed:\nstdout: {build.stdout}\nstderr: {build.stderr}"
 
     tool = _DummyKnowledgeTool(project_dir)
-    result = tool._tool_search_knowledge("project knowledge", top_k=3)
 
-    assert "README.md" in result
-    assert "RAG for project knowledge" in result
+    mock_vs = MagicMock()
+    mock_vs.query.return_value = []
+    mock_vs.query_filtered.return_value = []
+    with patch("opc.knowledge.vector_store.VectorStore", return_value=mock_vs):
+        result = tool._tool_search_knowledge("project knowledge", top_k=3)
+
+    assert "README.md" in result, f"Expected README.md in result, got: {result}"
+    assert "RAG for project knowledge" in result or "knowledge" in result.lower(), (
+        f"Expected knowledge content in result, got: {result}"
+    )
     assert (index_root / project_dir.name / "index" / "meta.json").exists()

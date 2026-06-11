@@ -56,7 +56,7 @@ class BM25Index:
         top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
         results = []
         for rank, idx in enumerate(top_indices, 1):
-            if scores[idx] <= 0:
+            if abs(scores[idx]) < 1e-10:
                 continue
             results.append(RetrievalResult(
                 chunk=self.chunks[idx],

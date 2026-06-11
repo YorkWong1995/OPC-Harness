@@ -28,6 +28,10 @@ def test_tool_retry_on_transient_error(tmp_path):
     mock_def = MagicMock()
     mock_def.handler_name = None
     mock_def.handler = flaky_handler
+    mock_def.timeout = 30
+    mock_def.permission = "execute"
+    mock_def.side_effect = "none"
+    mock_def.name = "test_tool"
 
     with patch("opc.agent.get_tool", return_value=mock_def):
         result = agent._execute_tool("test_tool", {}, tool_use_id="t1")
@@ -56,6 +60,10 @@ def test_tool_no_retry_on_not_found(tmp_path):
     mock_def = MagicMock()
     mock_def.handler_name = None
     mock_def.handler = not_found_handler
+    mock_def.timeout = 30
+    mock_def.permission = "execute"
+    mock_def.side_effect = "none"
+    mock_def.name = "test_tool"
 
     with patch("opc.agent.get_tool", return_value=mock_def):
         result = agent._execute_tool("test_tool", {}, tool_use_id="t2")
@@ -84,6 +92,10 @@ def test_tool_max_retries_exhausted(tmp_path):
     mock_def = MagicMock()
     mock_def.handler_name = None
     mock_def.handler = always_fail
+    mock_def.timeout = 30
+    mock_def.permission = "execute"
+    mock_def.side_effect = "none"
+    mock_def.name = "test_tool"
 
     with patch("opc.agent.get_tool", return_value=mock_def):
         result = agent._execute_tool("test_tool", {}, tool_use_id="t3")

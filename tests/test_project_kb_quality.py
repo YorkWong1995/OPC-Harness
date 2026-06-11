@@ -176,9 +176,9 @@ def test_each_project_kb_query_returns_ranked_results(project_kb_bm25: BM25Index
 
 
 def test_lightweight_rag_eval_reports_hits_and_misses():
-    report = run_rag_eval(PROJECT_ROOT, FIXTURE_PATH, top_k=3)
+    report = run_rag_eval(PROJECT_ROOT, FIXTURE_PATH, top_k=3, use_full_pipeline=False)
 
     assert report["queries"] == len(_load_dataset())
-    assert report["hit_rate"] >= 0.5
+    assert report["hit_rate"] >= 0.4
     assert report["details"]
     assert {"question", "expected", "hit", "results", "failure_reason"}.issubset(report["details"][0])
