@@ -243,6 +243,13 @@ def main():
     del_parser = subparsers.add_parser("index-delete", help="删除索引")
     del_parser.add_argument("--name", required=True, help="索引名称")
 
+    # ---- opc symbol ----
+    symbol_parser = subparsers.add_parser("symbol", help="搜索 C/C++ 符号定义（基于 ctags）")
+    symbol_parser.add_argument("name", help="符号名称或部分匹配关键字")
+    symbol_parser.add_argument("--kind", default=None, help="限定符号类型：function/class/macro/enum/struct/method")
+    symbol_parser.add_argument("--index-name", default=None, help="索引名称（默认使用当前目录名）")
+    symbol_parser.add_argument("--limit", type=int, default=20, help="返回结果数")
+
     # ---- opc runs list ----
     runs_parser = subparsers.add_parser("runs", help="查看历史运行记录")
     runs_subparsers = runs_parser.add_subparsers(dest="runs_command")
@@ -324,6 +331,8 @@ def main():
         _run_index_list(args)
     elif args.command == "index-delete":
         _run_index_delete(args)
+    elif args.command == "symbol":
+        _run_symbol(args)
     elif args.command == "runs":
         _run_runs(args)
     elif args.command == "trace":
@@ -1234,6 +1243,45 @@ def _run_index_delete(args):
     # 删除索引目录
     shutil.rmtree(index_root, ignore_errors=True)
     console.print(f"[green]索引 '{args.name}' 已删除[/green]")
+
+
+# ---- opc symbol ----
+
+
+def _run_symbol(args):
+    from .knowledge.cpp_symbol_search import CppSymbolSearch
+    from .knowledge.indexer import Indexer
+
+    name = args.index_name or Path(".").resolve().name
+    index_root = _get_index_root(name)
+    meta = Indexer.load_meta(index_root)
+    if meta is None:
+        console.print(f"[red]错误：索引 '{name}' 不存在。请先运行 opc index --name {name}[/red]")
+        return
+
+    symbol_index = CppSymbolSearch()
+    for source_dir_str in meta.source_dirs:
+        source_dir = Path(source_dir_str)
+        if source_dir.exists():
+            symbol_index.index_directory(source_dir)
+
+    if not symbol_index.symbols:
+        console.print("[yellow]未找到任何符号。请确认 ctags 已安装并在 PATH 中（推荐 universal-ctags）。[/yellow]")
+        return
+
+    results = symbol_index.search(args.name, kind=args.kind, limit=args.limit)
+    if not results:
+        console.print(f"[yellow]未找到符号 '{args.name}'[/yellow]")
+        return
+
+    table = Table(title=f"符号搜索: {args.name}")
+    table.add_column("#", style="dim")
+    table.add_column("签名")
+    table.add_column("位置")
+    table.add_column("所属")
+    for i, sym in enumerate(results, 1):
+        table.add_row(str(i), sym.signature, f"{sym.file_path}:{sym.line}", sym.owner or "")
+    console.print(table)
 
 
 # ---- opc runs / trace ----

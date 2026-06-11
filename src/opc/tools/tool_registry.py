@@ -275,6 +275,25 @@ BUILTIN_TOOLS = [
         handler_name="_tool_search_knowledge",
     ),
     ToolDefinition(
+        name="search_symbol",
+        description="搜索 C/C++ 符号定义（函数/类/宏/枚举等），基于 ctags，适用于精确查找符号位置或 API 列表。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "符号名称或部分匹配关键字"},
+                "kind": {"type": "string", "description": "可选，限定符号类型：function/class/macro/enum/struct/union/variable/method"},
+                "index_name": {"type": "string", "description": "可选索引名称；默认使用当前项目目录名"},
+                "limit": {"type": "integer", "description": "返回结果数，默认 20", "default": 20},
+            },
+            "required": ["name"],
+        },
+        output_schema=TEXT_OUTPUT_SCHEMA,
+        permission="read",
+        side_effect="filesystem_read",
+        timeout=60,
+        handler_name="_tool_search_symbol",
+    ),
+    ToolDefinition(
         name="git_status",
         description="查看当前项目 Git 工作区状态。",
         input_schema={

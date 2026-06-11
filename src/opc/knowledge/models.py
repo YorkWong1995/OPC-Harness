@@ -92,4 +92,9 @@ SKIP_DIRS = {
     "node_modules", ".venv", "venv",
     "build", "dist", ".tox", ".mypy_cache",
     ".idea", ".vs", "cmake-build-*",
+    # SDK / C++ 项目常见噪声
+    "Debug", "Release", "x64", "x86", "Win32",
+    "thirdparty", "libuvc", "libusb",
+    # 备份/副本
+    "副本", "backup",
 }

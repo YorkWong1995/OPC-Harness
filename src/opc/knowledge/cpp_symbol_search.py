@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 
@@ -10,6 +11,24 @@ from .symbol_search import Symbol
 
 
 CPP_EXTENSIONS = {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"}
+
+
+def _ctags_executable() -> str:
+    """解析 ctags 可执行文件路径。
+
+    优先使用环境变量 OPC_CTAGS_PATH（可指向 ctags.exe 或其所在目录），
+    否则回退到 PATH 中的 "ctags"。
+    """
+    configured = os.environ.get("OPC_CTAGS_PATH", "").strip()
+    if configured:
+        path = Path(configured)
+        if path.is_dir():
+            for candidate in ("ctags.exe", "ctags"):
+                exe = path / candidate
+                if exe.exists():
+                    return str(exe)
+        return str(path)
+    return "ctags"
 
 _KIND_MAP = {
     "c": "class",
@@ -95,9 +114,14 @@ class CppSymbolSearch:
         with tempfile.TemporaryDirectory() as temp_dir:
             tags_path = Path(temp_dir) / "tags"
             command = [
-                "ctags",
+                _ctags_executable(),
                 "--fields=+nK",
                 "--extras=+q",
+                "--kinds-C=+p",
+                "--kinds-C++=+p",
+                "-I", "DLLEXPORT",
+                "-I", "DLLIMPORT",
+                "-I", "__attribute__+",
                 "-f",
                 str(tags_path),
                 *[str(path) for path in source_files],

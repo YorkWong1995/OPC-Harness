@@ -12,9 +12,9 @@ ROLE_TOOL_NAMES: dict[str, set[str]] = {
     "pm": set(),
     "ceo": set(),
     "growth": set(),
-    "architect": {"read_file", "list_files", "grep", "search_knowledge", "git_status", "git_diff", "git_log"},
-    "qa": {"read_file", "list_files", "grep", "search_knowledge", "git_status", "git_diff", "git_log", "run_lint", "run_typecheck", "run_tests"},
-    "ops": {"read_file", "list_files", "grep", "search_knowledge", "git_status", "git_diff", "git_log", "run_lint", "run_typecheck", "run_tests", "run_build"},
+    "architect": {"read_file", "list_files", "grep", "search_knowledge", "search_symbol", "git_status", "git_diff", "git_log"},
+    "qa": {"read_file", "list_files", "grep", "search_knowledge", "search_symbol", "git_status", "git_diff", "git_log", "run_lint", "run_typecheck", "run_tests"},
+    "ops": {"read_file", "list_files", "grep", "search_knowledge", "search_symbol", "git_status", "git_diff", "git_log", "run_lint", "run_typecheck", "run_tests", "run_build"},
     "engineer": {tool["name"] for tool in TOOLS_READ_WRITE},
     "embedded_engineer": {tool["name"] for tool in TOOLS_READ_WRITE},
 }
